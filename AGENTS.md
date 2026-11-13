@@ -2,6 +2,7 @@
 
 - Start with `docs/PROGRESS.md`, then `docs/PRODUCT_PLAN.md`, `docs/DESIGN_SPEC.md` and `docs/ARCHITECTURE.md`.
 - Ziad selected Sport-focused with a friendly, comfortable feel and light/dark themes. The initial UI selection gate is resolved.
+- For visual refinement, use `.agents/skills/calm-nextjs-design/SKILL.md`, adapted from Ziad's supplied skill. Preserve marketplace behavior and localization over generic marketing defaults.
 - Update `docs/PROGRESS.md` after every completed work session: changes, exact checks/results, limitations, decisions and concrete next steps. Never describe untested or unfinished behavior as done.
 - Preserve existing work. Keep demo data clearly labeled and separate from future production data.
 - Keep routes thin in `src/app`; domain UI/logic in `src/features/<domain>`; reusable UI in `src/components`; locale configuration in `src/i18n`; text in `messages`.

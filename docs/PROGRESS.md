@@ -1,9 +1,9 @@
 # PadelHub — progress and agent handoff
 
-Last updated: 2026-11-13 (Africa/Cairo).
+Last updated: 2026-11-14 (Africa/Cairo).
 
 ## Current position
-Stage 0 direction selected; Stage 1 local UI foundation implemented and checked. Stage 1 as a whole is NOT complete: production auth, data model, migrations and hosting are pending. Ziad chose **Sport-focused**, explicitly requesting a much friendlier, more comfortable visual treatment, dark mode, good file organization and this continuous handoff record. Browsing another variant in the old carousel is not a change of this explicit decision.
+Stage 0 direction selected; Stage 1 UI foundation implemented, checked and deployed as a demo frontend on Vercel. Stage 1 as a whole is NOT complete: production auth, data model and migrations are pending. Ziad chose **Sport-focused**, explicitly requesting a much friendlier, more comfortable visual treatment, dark mode, good file organization and this continuous handoff record. Browsing another variant in the old carousel is not a change of this explicit decision.
 
 Start each session with this file and AGENTS.md. Update this record before every handoff. Keep completed implementation, checks and pending work distinct.
 
@@ -33,7 +33,7 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Initial npm installation failed with sandbox DNS ENOTFOUND; installation succeeded with network permission. Latest TypeScript 7 was incompatible with typescript-eslint; pinned supported TypeScript 6.0.3.
 - Turbopack failed creating its CSS compiler subprocess both inside/outside the sandbox. Supported `--webpack` fallback in dev/build scripts passed.
 - Playwright's bundled browser download stalled and was stopped. Tests used installed Chrome in a fresh isolated headless profile. CI installs bundled Chromium; CI and physical Android/iPhone tests have not run.
-- Development navigation emitted a React script-tag warning from the theme integration during locale changes; theme persistence assertions passed. Production smoke run had no page errors. Recheck library behavior on upgrades.
+- Initial development locale navigation emitted a React script-tag warning from the theme bootstrap. Refinement uses full-document language links preserving queries and a theme selector disabled until hydration. Six browser tests passed after this fix without the script warning.
 
 ## Pending work / next agent actions
 1. Run `npm run dev` to inspect `/en` and `/ar`; collect Ziad's feedback on the friendly sport refinement. This is feedback iteration, not a reinstated scaffolding approval gate.
@@ -48,7 +48,7 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Foundation filtering covers text/category/sort only. Production location/price/brand/condition/swap rules and pagination remain pending.
 - Detail artwork is an illustration, not a real gallery. Profiles have no functional sharing/QR yet.
 - No auth, private data, uploads, persistence, moderation, WhatsApp endpoint or analytics exists.
-- No Supabase/Railway/Resend resources, deployment or paid services were created. Git remote: `https://github.com/zeyadkhaled2/padel-hub.git`, branch `main`; repository upload explicitly requested by Ziad.
+- No Supabase/Railway/Resend resources or paid upgrade were created. Ziad explicitly authorized Vercel frontend deployment. Project `padel-hub` is in the existing `zeyadkhaled2s-projects` Hobby workspace, connected to GitHub. Git remote: `https://github.com/zeyadkhaled2/padel-hub.git`, branch `main`.
 - Plan estimates/pricing remain historical assumptions; recheck before provider setup.
 - Local system fonts avoid external font requests and support Arabic fallbacks. Future branding/font changes must preserve performance and Arabic readability.
 - Next.js 16.4.6 adds its own documentation guidance block to AGENTS.md; project-specific instructions remain intact.
@@ -57,3 +57,15 @@ Start each session with this file and AGENTS.md. Update this record before every
 ## Session log
 - 2026-11-13: Preserved plan, explored three directions, received Sport-focused selection, implemented the friendly bilingual light/dark local foundation and ongoing handoff documentation. Lint/typecheck/build passed, six browser tests passed, production screenshots inspected. Backend integrations remain unimplemented.
 - 2026-11-13: Prepared the initial GitHub handoff to `zeyadkhaled2/padel-hub` after confirming the repository was empty. Expanded `.gitignore` for environment secrets, generated output, test reports, logs, caches and machine/editor state; retained source, package lockfile, CI, docs and intentional preview screenshots. No application code changed in this repository-packaging session; prior application validation remains applicable. Check the remote commit and GitHub Actions for publication/CI status.
+
+## Skill refinement and deployment — 2026-11-13/14
+- Added **Calm Next.js Design** under `.agents/skills/calm-nextjs-design`, with UI metadata and the original supplied document preserved in `references/original-skill.md`. The adapted entrypoint respects marketplace scope, localization, dark mode and optional motion. Official quick_validate.py passed with PyYAML installed into ignored `.cache/skill-validation`.
+- DESIGN_REFINEMENT.md records the pre-implementation plan. Search moved into the hero, mobile decoration was removed, desktop equipment artwork was introduced, card chrome and repeated arrows were reduced, semantic Tailwind tokens and a favicon were added. No GSAP/Lenis dependency was warranted for this search-first flow.
+- Fixed locale document replacement and a pre-hydration theme-selector race. Removed redundant linked artwork after an accessible-name audit finding; product titles remain keyboard-accessible links with 44px targets.
+- Final source passed `npm run check`. Six Playwright desktop/mobile tests passed after the theme fix; the subsequent artwork-link removal also passed lint/typecheck/build.
+- Captured 12 combinations across 390/768/1440px, both locales and both themes. No overflow; primary search action visible in the initial 900px viewport. Inspected desktop/mobile/tablet screenshots. Reduced-motion content stays visible, no-JS headline renders, keyboard begins at the skip link.
+- Local mobile Lighthouse before the final redundant-link removal: performance 99, accessibility 100, best practices 100, SEO 60 (intentional noindex), LCP 0.8s, CLS 0. These are local lab results, not field guarantees. Detailed accessible-name finding prompted the final link removal.
+- `vercel.json` specifies Next.js, npm ci and npm run build. `.vercelignore` excludes `.cache`, `.env*`, `.vercel`, instructions, docs/screenshots, tests and generated output. Never commit or print CLI credentials or generated environment files.
+- Vercel global config initially failed with Windows EXDEV; use `--global-config E:\projects\padelHub\.cache\vercel` with the local CLI. User completed OAuth authentication. Do not read auth files; reauthenticate via CLI if necessary.
+- Initial deployment confirmed Ready on 2026-11-14: https://padel-hub-beta.vercel.app (also https://padel-hub-zeyadkhaled2s-projects.vercel.app). Deployment ID `dpl_fjQEVbFV4A3iKhZ9S1aWknPZqxF9`. Final source is being synchronized through the connected GitHub main branch; inspect Vercel deployment status for its commit.
+- Previous session was interrupted by an automatic approval-review usage limit; source was preserved. This is still demo inventory with no production accounts, uploads, moderation or WhatsApp integration.

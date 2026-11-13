@@ -2,6 +2,8 @@
 
 Selected by Ziad on 2026-11-13. The sport identity remains; the initial sharp, forceful treatment is replaced with a calmer, welcoming interface. This specification guides the first implementation and can be refined with feedback.
 
+Latest refinement: see DESIGN_REFINEMENT.md and `.agents/skills/calm-nextjs-design/SKILL.md`. Search is integrated into the hero and precedes decoration on mobile. The desktop signature is labeled equipment artwork; product cards use quieter surfaces and fewer decorative arrows. Native scrolling is intentional.
+
 ## Personality and composition
 Use sentence-case headings, conversational copy, generous whitespace, rounded controls and soft green surfaces. Avoid aggressive uppercase slogans, neon backgrounds, dense navigation and invented trust statistics. Prioritize equipment discovery, then seller identity. Public contact happens on WhatsApp; never imply on-platform checkout.
 

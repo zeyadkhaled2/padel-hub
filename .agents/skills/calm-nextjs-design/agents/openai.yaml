@@ -1,0 +1,6 @@
+interface:
+  display_name: "Calm Next.js Design"
+  short_description: "Comfortable, distinctive and accessible Next.js UI"
+  default_prompt: "Use $calm-nextjs-design to refine this Next.js interface while preserving its product flows."
+policy:
+  allow_implicit_invocation: true
