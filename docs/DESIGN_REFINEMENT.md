@@ -1,3 +1,5 @@
+> Historical design, superseded by Ziad’s requested courtside redesign on 2026-11-14. See REDESIGN.md.
+
 # Calm sport refinement â€” 2026-11-13
 
 ## Brief

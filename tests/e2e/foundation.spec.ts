@@ -41,3 +41,18 @@ test('both locales and themes fit a narrow screen', async ({ page }) => {
     }
   }
 });
+
+test('category shortcuts preserve search and sort, and equipment images load', async ({ page }) => {
+  await page.goto('/en?q=Head&sort=low');
+  await page.getByRole('group', { name: 'Equipment' }).getByRole('link', { name: 'Balls', exact: true }).click();
+  await expect(page).toHaveURL(/category=balls/);
+  expect(new URL(page.url()).searchParams.get('q')).toBe('Head');
+  expect(new URL(page.url()).searchParams.get('sort')).toBe('low');
+  await expect(page.locator('.listing-card')).toHaveCount(1);
+  const image = page.locator('.listing-card .equipment-art img');
+  await expect(image).toBeVisible();
+  await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  await expect(page.locator('.listing-card .art-label')).toHaveText('AI demo image');
+  await page.getByRole('group', { name: 'Equipment' }).getByRole('link', { name: 'All equipment' }).click();
+  await expect(page.locator('.listing-card')).toHaveCount(2);
+});

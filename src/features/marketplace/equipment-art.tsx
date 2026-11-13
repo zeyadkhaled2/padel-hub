@@ -1,9 +1,10 @@
+import Image from 'next/image';
 import type { DemoListing } from './demo-data';
 
-export function EquipmentArt({ listing, label }: { listing: DemoListing; label: string }) {
-  return <div className={`equipment-art art-${listing.color}`} role="img" aria-label={label}>
-    <div className="court-line court-line-one" /><div className="court-line court-line-two" />
-    {listing.category === 'balls' ? <div className="ball-tube"><span>PADEL</span><div className="ball" /><div className="ball" /><span>PRO · 3</span></div> :
-      <div className="racket"><div className="racket-face"><span className="racket-brand">{listing.brand}</span></div><div className="racket-neck" /><div className="racket-grip" /></div>}
+/** Generated, unbranded illustrations; never evidence of a demo item's appearance. */
+export function EquipmentArt({ listing, label, hero = false }: { listing: DemoListing; label: string; hero?: boolean }) {
+  const source = listing.category === 'balls' ? 'balls' : listing.color === 'clay' ? 'racket-coral' : 'racket-court';
+  return <div className="equipment-art">
+    <Image src={`/images/demo/${source}.webp`} alt={label} fill sizes="(max-width: 700px) 100vw, 50vw" preload={hero} />
   </div>;
 }

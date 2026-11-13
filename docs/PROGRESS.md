@@ -36,7 +36,7 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Initial development locale navigation emitted a React script-tag warning from the theme bootstrap. Refinement uses full-document language links preserving queries and a theme selector disabled until hydration. Six browser tests passed after this fix without the script warning.
 
 ## Pending work / next agent actions
-1. Run `npm run dev` to inspect `/en` and `/ar`; collect Ziad's feedback on the friendly sport refinement. This is feedback iteration, not a reinstated scaffolding approval gate.
+1. Collect Ziad’s feedback on the courtside redesign and new Padel Hub logo (see REDESIGN.md and ASSET_PROVENANCE.md). This is feedback iteration, not a reinstated scaffolding approval gate.
 2. Complete Stage 1 requirements/backlog and permission/data model before integrating Supabase. External account verification/recovery and cross-account data isolation are not implemented.
 3. Add versioned migrations, server authorization/RLS, mutation validation and concurrency controls, then profile/listing/upload/moderation flow per PRODUCT_PLAN.md.
 4. Implement remaining production filters/pagination, gallery, profile sharing and explicit lifecycle states as their domain flows are built.
@@ -46,7 +46,7 @@ Start each session with this file and AGENTS.md. Update this record before every
 ## Known limitations and decisions
 - All equipment and seller records are fixtures in `src/features/marketplace/demo-data.ts`; do not ship them as real inventory.
 - Foundation filtering covers text/category/sort only. Production location/price/brand/condition/swap rules and pagination remain pending.
-- Detail artwork is an illustration, not a real gallery. Profiles have no functional sharing/QR yet.
+- Detail artwork is generated, unbranded illustrative imagery, not the named product or a real seller gallery. Profiles have no functional sharing/QR yet.
 - No auth, private data, uploads, persistence, moderation, WhatsApp endpoint or analytics exists.
 - No Supabase/Railway/Resend resources or paid upgrade were created. Ziad explicitly authorized Vercel frontend deployment. Project `padel-hub` is in the existing `zeyadkhaled2s-projects` Hobby workspace, connected to GitHub. Git remote: `https://github.com/zeyadkhaled2/padel-hub.git`, branch `main`.
 - Plan estimates/pricing remain historical assumptions; recheck before provider setup.
@@ -69,3 +69,15 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Vercel global config initially failed with Windows EXDEV; use `--global-config E:\projects\padelHub\.cache\vercel` with the local CLI. User completed OAuth authentication. Do not read auth files; reauthenticate via CLI if necessary.
 - Initial deployment confirmed Ready on 2026-11-14: https://padel-hub-beta.vercel.app (also https://padel-hub-zeyadkhaled2s-projects.vercel.app). Deployment ID `dpl_fjQEVbFV4A3iKhZ9S1aWknPZqxF9`. Final source is being synchronized through the connected GitHub main branch; inspect Vercel deployment status for its commit.
 - Previous session was interrupted by an automatic approval-review usage limit; source was preserved. This is still demo inventory with no production accounts, uploads, moderation or WhatsApp integration.
+
+## Courtside redesign and Padel Hub logo — 2026-11-14
+- Ziad explicitly requested replacing the rejected appearance with a more colorful, realistic marketplace and then requested a Padel Hub logo. Replaced the muted forest palette and CSS equipment drawings with cobalt/navy, yellow and coral, locally optimized photographic AI illustrations, a compact split hero, full-width search, clear comparison cards and category shortcuts. Shared detail/profile/about surfaces follow the new themes.
+- Created a custom SVG perforated-racket/ball identity, light/dark wordmarks, transparent PNG and matching favicon under `public/brand`. Added Brand component; moved marketplace composition into the domain feature, leaving the route thin.
+- Preserved URL query/sort across category shortcuts and locale switching, English/Arabic RTL, light/dark/system, no-JS content, native scrolling and accessible focus. No checkout or backend behavior added.
+- Assets generated with built-in image_gen (not Canva or a paid API service); final prompts and provenance recorded in ASSET_PROVENANCE.md. All cards visibly label AI demo imagery; detail captions explicitly say it is not the named product or a seller photo. Demo names/prices remain fixtures.
+- `npm run check`: PASS (ESLint, type generation, TypeScript and production Webpack build). Initial sandbox build failed with Windows EPERM mkdir; running outside sandbox succeeded. A temporary screenshot script initially triggered a CommonJS lint rule; converted it to ESM and reran the full checks successfully.
+- `$env:PLAYWRIGHT_CHANNEL='chrome'; npm run test:e2e`: PASS, 8/8 desktop/mobile checks against the production build. Added coverage for category shortcuts retaining query/sort and loading labeled imagery. Initial sandbox browser/server networking was blocked; an isolated Chrome run and production server outside sandbox succeeded.
+- Captured 12 responsive combinations at 390/768/1440px for English/Arabic and light/dark. No overflow, zero page errors, images loaded, search submit visible in 900px viewport (bottom between 591 and 686px). Saved representative desktop/mobile previews in docs/previews. Also checked 320px through E2E, mobile detail/profile/about in both locales, keyboard skip-link first and visible outline, system-dark switching, reduced motion and no-JS headline rendering.
+- Local production Lighthouse 13.6.0 mobile: performance 94, accessibility 100, best practices 100, SEO 63 (intentional noindex), LCP 2.9s, CLS 0. These are local lab measurements, not field guarantees. Audit CLI was used ephemerally without changing project dependencies.
+- Limitations: no real accounts, uploads, moderation, contact or inventory; no physical-device testing. Logo is a proposed identity with no trademark clearance claim. Publication verification follows below; do not infer deployment completion from this entry alone.
+- Next: verify the matching GitHub/Vercel release, then collect design feedback and continue Stage 1 data/authorization design before production integrations.

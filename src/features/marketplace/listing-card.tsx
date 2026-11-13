@@ -8,7 +8,7 @@ export async function ListingCard({ listing }: { listing: DemoListing }) {
   const t = await getTranslations('market');
   const locale = await getLocale();
   return <article className="listing-card">
-    <EquipmentArt listing={listing} label={t('illustration')} />
+    <div className="listing-visual"><EquipmentArt listing={listing} label={t('illustration')} /><span className="art-label">{t('artLabel')}</span></div>
     <div className="listing-content"><div className="card-topline"><span className="condition">{t(listing.condition)}</span><span>{t('sale')}</span></div>
       <h3><Link href={`/equipment/${listing.id}`}><bdi>{listing.name}</bdi></Link></h3>
       <p className="price">{t('price', { amount: new Intl.NumberFormat(locale).format(listing.price) })}</p>
