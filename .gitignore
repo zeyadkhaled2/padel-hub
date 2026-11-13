@@ -1,0 +1,45 @@
+# Dependencies and generated application output
+node_modules/
+/.next/
+/out/
+/dist/
+/build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Test artifacts (intentional design screenshots in docs/previews stay tracked)
+/coverage/
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
+
+# Secrets and local environment files; sanitized examples may be committed
+.env*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+/.aws/
+/.supabase/
+/supabase/.temp/
+
+# Logs and local caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+/.cache/
+/.turbo/
+/.vercel/
+
+# Machine/editor state
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+/.idea/
+/.vscode/
+/.codex/

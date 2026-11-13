@@ -1,0 +1,43 @@
+import { test, expect } from '@playwright/test';
+
+test('search, empty state, detail and seller navigation', async ({ page }) => {
+  await page.goto('/en');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your next game starts here.');
+  await page.getByRole('textbox', { name: 'What are you looking for?' }).fill('no-such-racket');
+  await page.getByRole('button', { name: 'Find equipment' }).click();
+  await expect(page.getByRole('heading', { name: 'Nothing here just yet' })).toBeVisible();
+  await page.getByRole('link', { name: 'Clear filters' }).click();
+  await page.getByRole('heading', { name: 'Head Delta Motion' }).getByRole('link').click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Head Delta Motion');
+  await expect(page.getByText('Contact is not connected in this preview.')).toBeVisible();
+  await page.getByRole('link', { name: /Omar Hassan/ }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Omar Hassan');
+});
+
+test('theme persists and locale switch preserves filters without overflow', async ({ page }) => {
+  await page.goto('/en?category=balls&sort=low');
+  await expect(page.locator('.listing-card')).toHaveCount(1);
+  await page.getByRole('combobox', { name: 'Color theme' }).selectOption('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.getByRole('link', { name: 'العربية' }).click();
+  await expect(page).toHaveURL(/\/ar\?.*category=balls/);
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.locator('.listing-card')).toHaveCount(1);
+  await page.getByRole('combobox', { name: 'مظهر الموقع' }).selectOption('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('both locales and themes fit a narrow screen', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 780 });
+  for (const locale of ['en', 'ar']) {
+    for (const theme of ['light', 'dark']) {
+      await page.goto(`/${locale}`);
+      await page.getByRole('combobox', { name: locale === 'en' ? 'Color theme' : 'مظهر الموقع' }).selectOption(theme);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    }
+  }
+});
