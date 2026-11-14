@@ -30,10 +30,12 @@ export async function EquipmentDetailView({
         </figure>
 
         <section>
-          <p className="eyebrow">{t('demo')}</p>
-          <span className="condition">
-            {t(listing.condition)} · {t('sale')}
-          </span>
+          <div className="detail-meta-row">
+            <span className="condition">
+              {t(listing.condition)} · {t('sale')}
+            </span>
+            <span className="demo-inline-note">{t('demo')}</span>
+          </div>
 
           <h1>
             <bdi>{listing.name}</bdi>

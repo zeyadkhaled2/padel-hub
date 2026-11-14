@@ -42,11 +42,7 @@ export function Preferences() {
       </label>
 
       {/* Locale changes replace the document language/direction and theme bootstrap together. */}
-      <a
-        className="language"
-        href={mounted ? languageHref : undefined}
-        lang={otherLocale}
-      >
+      <a className="language" href={languageHref} lang={otherLocale}>
         {locale === 'en' ? 'العربية' : 'English'}
       </a>
     </div>

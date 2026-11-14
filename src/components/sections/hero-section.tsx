@@ -9,16 +9,15 @@ export async function HeroSection() {
   return (
     <section className="hero">
       <div className="hero-copy">
-        <p className="eyebrow">
-          <MapPin size={15} aria-hidden />
-          {t('badge')}
-        </p>
-
         <h1>{t('title')}</h1>
 
         <p className="hero-intro">{t('intro')}</p>
 
         <ul className="hero-highlights" aria-label={t('badge')}>
+          <li>
+            <MapPin size={15} aria-hidden />
+            <span>{t('badge')}</span>
+          </li>
           <li>
             <CheckCircle2 size={15} aria-hidden />
             <span>{t('heroHighlight1')}</span>

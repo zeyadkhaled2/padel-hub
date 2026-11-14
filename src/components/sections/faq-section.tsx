@@ -13,11 +13,7 @@ export async function FaqSection() {
 
   return (
     <section className="faq-section" aria-labelledby="faq-heading">
-      <SectionHeader
-        id="faq-heading"
-        eyebrow={t('eyebrow')}
-        title={t('title')}
-      />
+      <SectionHeader id="faq-heading" title={t('title')} />
 
       <div className="faq-list">
         {questions.map((item, index) => (

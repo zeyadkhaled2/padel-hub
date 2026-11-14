@@ -21,7 +21,6 @@ export async function HowItWorksSection({
       {showHeader ? (
         <SectionHeader
           id="workflow-heading"
-          eyebrow={tWorkflow('eyebrow')}
           title={tWorkflow('title')}
           subtitle={tWorkflow('subtitle')}
         />

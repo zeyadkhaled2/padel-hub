@@ -62,10 +62,21 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-color: var(--border) var(--canvas);
+  scrollbar-width: thin;
+}
+
+::selection {
+  background: var(--hero);
+  color: var(--hero-ink);
+}
+
 body {
   margin: 0;
   background: var(--canvas);
   color: var(--text);
+  caret-color: var(--focus);
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.6;
@@ -119,7 +130,8 @@ h1,
 h2,
 h3 {
   line-height: 1.18;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 
 [dir="rtl"] h1,
@@ -142,6 +154,20 @@ h2 {
 h3 {
   font-size: 1.2rem;
   font-weight: 650;
+}
+
+.demo-inline-note {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.92em;
+}
+
+.detail-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-block: 10px 14px;
 }
 
 .container {
@@ -292,8 +318,8 @@ nav a:hover,
 .hero h1 {
   font-size: clamp(2.5rem, 4.3vw, 3.75rem);
   font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.055em;
+  line-height: 1.06;
+  letter-spacing: -0.035em;
   max-width: 480px;
 }
 
@@ -375,7 +401,6 @@ nav a:hover,
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 20px 24px 8px;
-  box-shadow: 0 5px 20px #17243e05;
 }
 
 .search-row {
@@ -981,8 +1006,8 @@ nav a:hover,
   align-items: center;
   gap: 24px;
   background: var(--surface-soft);
-  border-inline-start: 5px solid #e96640;
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
   padding: 32px;
   margin-block: 56px 64px;
 }
@@ -1148,7 +1173,7 @@ nav a:hover,
   padding: 40px;
   border-radius: 24px;
   background: var(--surface-soft);
-  border-bottom: 4px solid #e96640;
+  border: 1px solid var(--border);
   margin-top: 24px;
 }
 
@@ -1185,11 +1210,11 @@ nav a:hover,
   }
 
   .listing-grid,
-  .features-grid,
   .steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .features-split,
   .inspection-grid {
     grid-template-columns: 1fr;
   }
@@ -1382,7 +1407,7 @@ nav a:hover,
   }
 
   .listing-grid,
-  .features-grid,
+  .features-split,
   .steps,
   .inspection-grid,
   .detail-grid {
@@ -1396,7 +1421,7 @@ nav a:hover,
   }
 
   .listing-content,
-  .feature-card,
+  .feature-row,
   .step-card {
     padding: 20px;
   }

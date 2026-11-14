@@ -14,7 +14,6 @@ export interface InspectionTabItem {
 }
 
 interface InspectionShowcaseProps {
-  eyebrow: string;
   title: string;
   subtitle: string;
   artLabel: string;
@@ -23,7 +22,6 @@ interface InspectionShowcaseProps {
 }
 
 export function InspectionShowcase({
-  eyebrow,
   title,
   subtitle,
   artLabel,
@@ -45,7 +43,6 @@ export function InspectionShowcase({
       aria-labelledby="inspection-heading"
     >
       <div className="inspection-header">
-        <p className="eyebrow">{eyebrow}</p>
         <h2 id="inspection-heading">{title}</h2>
         <p className="inspection-subtitle">{subtitle}</p>
       </div>
@@ -82,6 +79,7 @@ export function InspectionShowcase({
         </div>
 
         <div
+          key={activeItem.id}
           role="tabpanel"
           id={`inspection-panel-${activeItem.id}`}
           aria-labelledby={`inspection-tab-${activeItem.id}`}

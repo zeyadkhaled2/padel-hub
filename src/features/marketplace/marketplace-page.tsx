@@ -75,9 +75,11 @@ export async function MarketplacePage({
       >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">{tMarket('demo')}</p>
             <h2 id="equipment-heading">{tMarket('heading')}</h2>
-            <p>{tMarket('subheading')}</p>
+            <p>
+              {tMarket('subheading')} ·{' '}
+              <span className="demo-inline-note">{tMarket('demo')}</span>
+            </p>
           </div>
           <span className="result-count">
             {tMarket('count', { count: listings.length })}
@@ -102,7 +104,6 @@ export async function MarketplacePage({
       </section>
 
       <InspectionShowcase
-        eyebrow={tInspection('eyebrow')}
         title={tInspection('title')}
         subtitle={tInspection('subtitle')}
         artLabel={tMarket('artLabel')}

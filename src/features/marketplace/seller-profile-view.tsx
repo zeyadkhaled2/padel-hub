@@ -15,11 +15,12 @@ export async function SellerProfileView() {
       <section className="profile-banner">
         <span className="avatar">O</span>
         <div>
-          <p className="eyebrow">
-            {t('individual')} · {t('demo')}
-          </p>
           <h1>{t('seller')}</h1>
-          <bdi>@omar_padel</bdi>
+          <div className="detail-meta-row">
+            <bdi>@omar_padel</bdi>
+            <span className="condition">{t('individual')}</span>
+            <span className="demo-inline-note">{t('demo')}</span>
+          </div>
           <p>{t('bio')}</p>
           <p>{t('location')}</p>
         </div>

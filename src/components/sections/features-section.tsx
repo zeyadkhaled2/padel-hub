@@ -1,11 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 import { ShieldCheck, MessageCircle, QrCode } from 'lucide-react';
-import { SectionHeader } from '@/components/ui/section-header';
 
 export async function FeaturesSection() {
   const t = await getTranslations('marketing.features');
 
-  const cards = [
+  const items = [
     {
       key: 'card1',
       icon: ShieldCheck,
@@ -35,29 +34,31 @@ export async function FeaturesSection() {
       className="features-section"
       aria-labelledby="features-heading"
     >
-      <SectionHeader
-        id="features-heading"
-        eyebrow={t('eyebrow')}
-        title={t('title')}
-        subtitle={t('subtitle')}
-      />
+      <div className="features-split">
+        <div className="features-lead">
+          <h2 id="features-heading">{t('title')}</h2>
+          <p className="features-lead-copy">{t('subtitle')}</p>
+        </div>
 
-      <div className="features-grid">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <article key={card.key} className="feature-card">
-              <div className="feature-card-top">
+        <div className="features-list">
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.key} className="feature-row">
                 <span className="feature-icon" aria-hidden>
                   <Icon size={20} />
                 </span>
-                <span className="condition">{card.badge}</span>
-              </div>
-              <h3>{card.title}</h3>
-              <p>{card.body}</p>
-            </article>
-          );
-        })}
+                <div className="feature-row-body">
+                  <div className="feature-row-head">
+                    <h3>{item.title}</h3>
+                    <span className="condition">{item.badge}</span>
+                  </div>
+                  <p>{item.body}</p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

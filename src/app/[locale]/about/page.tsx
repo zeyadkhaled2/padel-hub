@@ -9,7 +9,6 @@ export default async function AboutPage() {
 
   return (
     <main id="main" className="container detail-page">
-      <p className="eyebrow">PadelHub</p>
       <h1>{t('aboutTitle')}</h1>
       <p className="hero-intro">{t('aboutIntro')}</p>
 
