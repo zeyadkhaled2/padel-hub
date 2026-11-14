@@ -1,6 +1,6 @@
 # PadelHub â€” progress and agent handoff
 
-Last updated: 2026-11-14 (Africa/Cairo).
+Last updated: 2026-11-15 (Africa/Cairo).
 
 ## Current position
 Stage 0 direction selected; Stage 1 UI foundation implemented, checked and deployed as a demo frontend on Vercel. Stage 1 as a whole is NOT complete: production auth, data model and migrations are pending. Ziad chose **Sport-focused**, explicitly requesting a much friendlier, more comfortable visual treatment, dark mode, good file organization and this continuous handoff record. Browsing another variant in the old carousel is not a change of this explicit decision.
@@ -81,3 +81,10 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Local production Lighthouse 13.6.0 mobile: performance 94, accessibility 100, best practices 100, SEO 63 (intentional noindex), LCP 2.9s, CLS 0. These are local lab measurements, not field guarantees. Audit CLI was used ephemerally without changing project dependencies.
 - Limitations: no real accounts, uploads, moderation, contact or inventory; no physical-device testing. Logo is a proposed identity with no trademark clearance claim. Publication verification follows below; do not infer deployment completion from this entry alone.
 - Next: verify the matching GitHub/Vercel release, then collect design feedback and continue Stage 1 data/authorization design before production integrations.
+
+## Release verification — 2026-11-15
+- Redesign and logo commit `b2b534c076d956532261a2f621618da1616f7c1e` pushed to GitHub main. Automatic approval review initially rejected the push despite earlier-chat authorization; Ziad explicitly answered “Yes, push and deploy” in this chat, after which the push succeeded.
+- GitHub Actions run `43529585299`: completed, success. Vercel did not start an observed automatic build, so the documented CLI fallback deployed the same checked source to the existing project. Automatic GitHub-to-Vercel triggering remains unverified and should be investigated before relying on it for a future release.
+- Vercel production deployment `dpl_DYgZpfu3e1esBG71Nrsc8omrpYHV`: Ready. Public alias https://padel-hub-beta.vercel.app serves the redesign. Verified 2026-11-15 after the session resumed.
+- Live isolated Chrome smoke test: HTTP 200; custom logo, category filtering, English-to-Arabic switch retaining filter, RTL, dark theme, equipment detail navigation and all detail images passed; zero page errors.
+- Redesign scope is complete. No unfinished implementation or release step remains for this request. Future product work remains accounts/auth, permission/data model, uploads, manual moderation, real inventory and WhatsApp contact. Physical-device testing remains pending.
