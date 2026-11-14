@@ -1,4 +1,4 @@
-# PadelHub — progress and agent handoff
+# PadelHub â€” progress and agent handoff
 
 Last updated: 2026-11-14 (Africa/Cairo).
 
@@ -26,8 +26,8 @@ Start each session with this file and AGENTS.md. Update this record before every
 
 ## Validation
 - Original exploration: syntax and 36 render combinations passed in a DOM stub; no browser inspection in that stage.
-- `npm run check`: PASS — lint, route type generation, strict TypeScript and production Webpack build.
-- `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`: PASS — 6 tests across desktop and mobile projects. Checks cover search/no-results/reset, listing/profile navigation, theme persistence, language switch with URL filters, Arabic RTL and overflow at 320px in both themes/locales. PowerShell: `$env:PLAYWRIGHT_CHANNEL='chrome'; npm run test:e2e`.
+- `npm run check`: PASS â€” lint, route type generation, strict TypeScript and production Webpack build.
+- `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`: PASS â€” 6 tests across desktop and mobile projects. Checks cover search/no-results/reset, listing/profile navigation, theme persistence, language switch with URL filters, Arabic RTL and overflow at 320px in both themes/locales. PowerShell: `$env:PLAYWRIGHT_CHANNEL='chrome'; npm run test:e2e`.
 - Production smoke check: `/en` returned HTTP 200; isolated Chrome reported no page errors while capturing English light/dark and Arabic mobile screenshots.
 - `npm audit --omit=dev --json`: zero production advisories. Full audit reports 10 moderate development-tool findings from minimatch glob amplification through ESLint/typescript-eslint. Suggested fixes include major toolchain downgrades; no forced downgrade applied. Revisit compatible upstream patches before release.
 - Initial npm installation failed with sandbox DNS ENOTFOUND; installation succeeded with network permission. Latest TypeScript 7 was incompatible with typescript-eslint; pinned supported TypeScript 6.0.3.
@@ -36,7 +36,7 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Initial development locale navigation emitted a React script-tag warning from the theme bootstrap. Refinement uses full-document language links preserving queries and a theme selector disabled until hydration. Six browser tests passed after this fix without the script warning.
 
 ## Pending work / next agent actions
-1. Collect Ziad�s feedback on the courtside redesign and new Padel Hub logo (see REDESIGN.md and ASSET_PROVENANCE.md). This is feedback iteration, not a reinstated scaffolding approval gate.
+1. Collect Ziad’s feedback on the courtside redesign and new Padel Hub logo (see REDESIGN.md and ASSET_PROVENANCE.md). This is feedback iteration, not a reinstated scaffolding approval gate.
 2. Complete Stage 1 requirements/backlog and permission/data model before integrating Supabase. External account verification/recovery and cross-account data isolation are not implemented.
 3. Add versioned migrations, server authorization/RLS, mutation validation and concurrency controls, then profile/listing/upload/moderation flow per PRODUCT_PLAN.md.
 4. Implement remaining production filters/pagination, gallery, profile sharing and explicit lifecycle states as their domain flows are built.
@@ -58,7 +58,7 @@ Start each session with this file and AGENTS.md. Update this record before every
 - 2026-11-13: Preserved plan, explored three directions, received Sport-focused selection, implemented the friendly bilingual light/dark local foundation and ongoing handoff documentation. Lint/typecheck/build passed, six browser tests passed, production screenshots inspected. Backend integrations remain unimplemented.
 - 2026-11-13: Prepared the initial GitHub handoff to `zeyadkhaled2/padel-hub` after confirming the repository was empty. Expanded `.gitignore` for environment secrets, generated output, test reports, logs, caches and machine/editor state; retained source, package lockfile, CI, docs and intentional preview screenshots. No application code changed in this repository-packaging session; prior application validation remains applicable. Check the remote commit and GitHub Actions for publication/CI status.
 
-## Skill refinement and deployment — 2026-11-13/14
+## Skill refinement and deployment â€” 2026-11-13/14
 - Added **Calm Next.js Design** under `.agents/skills/calm-nextjs-design`, with UI metadata and the original supplied document preserved in `references/original-skill.md`. The adapted entrypoint respects marketplace scope, localization, dark mode and optional motion. Official quick_validate.py passed with PyYAML installed into ignored `.cache/skill-validation`.
 - DESIGN_REFINEMENT.md records the pre-implementation plan. Search moved into the hero, mobile decoration was removed, desktop equipment artwork was introduced, card chrome and repeated arrows were reduced, semantic Tailwind tokens and a favicon were added. No GSAP/Lenis dependency was warranted for this search-first flow.
 - Fixed locale document replacement and a pre-hydration theme-selector race. Removed redundant linked artwork after an accessible-name audit finding; product titles remain keyboard-accessible links with 44px targets.
@@ -70,7 +70,7 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Initial deployment confirmed Ready on 2026-11-14: https://padel-hub-beta.vercel.app (also https://padel-hub-zeyadkhaled2s-projects.vercel.app). Deployment ID `dpl_fjQEVbFV4A3iKhZ9S1aWknPZqxF9`. Final source is being synchronized through the connected GitHub main branch; inspect Vercel deployment status for its commit.
 - Previous session was interrupted by an automatic approval-review usage limit; source was preserved. This is still demo inventory with no production accounts, uploads, moderation or WhatsApp integration.
 
-## Courtside redesign and Padel Hub logo � 2026-11-14
+## Courtside redesign and Padel Hub logo — 2026-11-14
 - Ziad explicitly requested replacing the rejected appearance with a more colorful, realistic marketplace and then requested a Padel Hub logo. Replaced the muted forest palette and CSS equipment drawings with cobalt/navy, yellow and coral, locally optimized photographic AI illustrations, a compact split hero, full-width search, clear comparison cards and category shortcuts. Shared detail/profile/about surfaces follow the new themes.
 - Created a custom SVG perforated-racket/ball identity, light/dark wordmarks, transparent PNG and matching favicon under `public/brand`. Added Brand component; moved marketplace composition into the domain feature, leaving the route thin.
 - Preserved URL query/sort across category shortcuts and locale switching, English/Arabic RTL, light/dark/system, no-JS content, native scrolling and accessible focus. No checkout or backend behavior added.
@@ -81,3 +81,21 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Local production Lighthouse 13.6.0 mobile: performance 94, accessibility 100, best practices 100, SEO 63 (intentional noindex), LCP 2.9s, CLS 0. These are local lab measurements, not field guarantees. Audit CLI was used ephemerally without changing project dependencies.
 - Limitations: no real accounts, uploads, moderation, contact or inventory; no physical-device testing. Logo is a proposed identity with no trademark clearance claim. Publication verification follows below; do not infer deployment completion from this entry alone.
 - Next: verify the matching GitHub/Vercel release, then collect design feedback and continue Stage 1 data/authorization design before production integrations.
+
+## V2 marketing website & modular architecture — 2026-11-14 (branch `v2`)
+- Created branch `v2` and recorded the pre-implementation design plan in `docs/V2_MARKETING_PLAN.md` following `.agents/skills/calm-nextjs-design/SKILL.md` and `references/original-skill.md`.
+- Restructured `src/` into a clean, readable, multi-line modular architecture:
+  - `src/components/layout/`: `site-header.tsx` and `site-footer.tsx`.
+  - `src/components/sections/`: `hero-section.tsx`, `inspection-showcase.tsx` (interactive disclosure inspection tabs for carbon face, frame/bumper guard, and pressurized ball packs), `features-section.tsx` (editorial breakdown of manual moderation, direct WhatsApp connection, and club-ready shareable QR profiles), `how-it-works-section.tsx` (1–2–3 sequence), `faq-section.tsx` (accessible native `<details>`/`<summary>` accordion), and `community-cta-section.tsx`.
+  - `src/components/ui/`: `section-header.tsx`.
+  - `src/features/marketplace/`: `demo-data.ts`, `equipment-art.tsx`, `search-panel.tsx`, `category-pills.tsx`, `listing-card.tsx`, `marketplace-page.tsx`, `equipment-detail-view.tsx`, and `seller-profile-view.tsx`.
+  - `src/lib/`: `format.ts` for locale-aware EGP number formatting.
+  - Kept all route files under `src/app/[locale]/` thin and consolidated `src/app/globals.css` around semantic `@theme inline` tokens and clean responsive rules.
+- Expanded `messages/en.json` and `messages/ar.json` with bilingual marketing copy while preserving all existing marketplace keys and explicit demo labels.
+- Fixed a Next.js dev-mode pre-hydration router race on reload by setting `prefetch={false}` on `CategoryPills` hash query links and guarding the language switcher `href` on hydration mount in `Preferences`.
+- Verification results:
+  - `npm run check`: PASS (ESLint, `next typegen`, `tsc --noEmit`, and `next build --webpack`).
+  - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e`: PASS, 10/10 desktop and mobile tests (including interactive inspection showcase tabs and FAQ verification).
+  - Responsive verification across all 12 combinations (`390px`, `768px`, `1440px` × `en`/`ar` × `light`/`dark`) against the production server: `noOverflow: true` across all 12, zero page errors, and primary search submit button visible inside the initial 900px viewport (bottom between `617px` and `701px`). Updated representative screenshots in `docs/previews/`.
+- Limitations: All listings, seller details, and AI-generated equipment illustrations remain explicitly labeled demo fixtures (`noindex`). Authentication, persistence, uploads, moderation, and live WhatsApp endpoints remain unimplemented Stage 1–3 backlog items.
+- Next steps: Review the `v2` branch and compare against `main`, then proceed with Stage 1 Supabase schema/RLS and authentication setup when ready.
