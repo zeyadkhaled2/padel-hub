@@ -853,34 +853,48 @@ nav a:hover,
 }
 
 /* ==========================================================================
-   Editorial Features Grid (Why PadelHub)
+   Editorial Features Split (Why PadelHub)
    ========================================================================== */
 
 .features-section {
   margin-block: 72px;
 }
 
-.features-grid {
+.features-split {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 40px;
+  align-items: start;
 }
 
-.feature-card {
+.features-lead h2 {
+  font-size: clamp(1.6rem, 2.8vw, 2.15rem);
+  font-weight: 750;
+}
+
+.features-lead-copy {
+  color: var(--muted);
+  margin-top: 14px;
+  font-size: 16px;
+  max-width: 420px;
+}
+
+.features-list {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  overflow: hidden;
 }
 
-.feature-card-top {
+.feature-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 18px;
+  padding: 24px 28px;
+  align-items: flex-start;
+}
+
+.feature-row + .feature-row {
+  border-top: 1px solid var(--border);
 }
 
 .feature-icon {
@@ -891,13 +905,28 @@ nav a:hover,
   place-items: center;
   background: var(--surface-soft);
   color: var(--accent);
+  flex-shrink: 0;
 }
 
-.feature-card h3 {
-  font-size: 20px;
+.feature-row-body {
+  flex: 1;
+  min-width: 0;
 }
 
-.feature-card p {
+.feature-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.feature-row h3 {
+  font-size: 19px;
+}
+
+.feature-row p {
   color: var(--muted);
   font-size: 15px;
 }
@@ -932,6 +961,7 @@ nav a:hover,
   background: var(--surface-soft);
   color: var(--accent);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .step-card h3 {
