@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { Brand } from '@/components/brand';
+import { Brand } from './brand';
 
 export async function SiteFooter() {
   const t = await getTranslations('shell');

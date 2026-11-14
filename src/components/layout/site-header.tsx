@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { Brand } from '@/components/brand';
-import { Preferences } from '@/components/preferences';
+import { Brand } from './brand';
+import { Preferences } from './preferences';
 
 export async function SiteHeader() {
   const t = await getTranslations('shell');

@@ -100,3 +100,7 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Limitations: All listings, seller details, and AI-generated equipment illustrations remain explicitly labeled demo fixtures (`noindex`). Authentication, persistence, uploads, moderation, and live WhatsApp endpoints remain unimplemented Stage 1–3 backlog items.
 - Next steps: Review the `v2` branch and compare against `main`, then proceed with Stage 1 Supabase schema/RLS and authentication setup when ready.
 - 2026-11-14: Ziad approved the `v2` marketing & marketplace architecture and requested merging `v2` into `main` as the primary branch.
+- 2026-11-14: Cleaned repository structure per Ziad's request:
+  - Moved `brand.tsx` and `preferences.tsx` into `src/components/layout/` and `theme-provider.tsx` into `src/components/providers/` so `src/components/` contains only clean categorized subdirectories (`layout/`, `providers/`, `sections/`, `ui/`).
+  - Removed 14 MB of binary screenshot artifacts in `docs/previews/` (added `/docs/previews/` to `.gitignore`), removed unused duplicate brand exports in `public/brand/` (`padelhub-logo-dark.svg`, `padelhub-logo-light.svg`, `padelhub-logo.png`), and consolidated historical/intermediate docs (`UI_EXPLORATION.md`, `DESIGN_REFINEMENT.md`, `REDESIGN.md`, `V2_MARKETING_PLAN.md`, `ASSET_PROVENANCE.md`, `DEPLOYMENT.md`) into the four canonical documents (`docs/PROGRESS.md`, `docs/PRODUCT_PLAN.md`, `docs/DESIGN_SPEC.md`, `docs/ARCHITECTURE.md`).
+  - Re-verified `npm run check` (lint, typecheck, and production Webpack build): PASS.
