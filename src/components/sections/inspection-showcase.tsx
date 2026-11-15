@@ -16,7 +16,6 @@ export interface InspectionTabItem {
 interface InspectionShowcaseProps {
   title: string;
   subtitle: string;
-  artLabel: string;
   illustrationAlt: string;
   items: InspectionTabItem[];
 }
@@ -24,7 +23,6 @@ interface InspectionShowcaseProps {
 export function InspectionShowcase({
   title,
   subtitle,
-  artLabel,
   illustrationAlt,
   items,
 }: InspectionShowcaseProps) {
@@ -92,7 +90,6 @@ export function InspectionShowcase({
               fill
               sizes="(max-width: 700px) 100vw, 50vw"
             />
-            <span className="art-label">{artLabel}</span>
           </div>
 
           <div className="inspection-stage-body">

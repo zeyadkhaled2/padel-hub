@@ -17,7 +17,6 @@ export async function ListingCard({ listing }: ListingCardProps) {
     <article className="listing-card">
       <div className="listing-visual">
         <EquipmentArt listing={listing} label={t('illustration')} />
-        <span className="art-label">{t('artLabel')}</span>
       </div>
 
       <div className="listing-content">

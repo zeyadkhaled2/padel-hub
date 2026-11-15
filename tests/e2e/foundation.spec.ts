@@ -92,9 +92,7 @@ test('category shortcuts preserve search and sort, and equipment images load', a
       image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0),
     )
     .toBe(true);
-  await expect(page.locator('.listing-card .art-label')).toHaveText(
-    'AI demo image',
-  );
+  await expect(page.locator('.listing-card .art-label')).toHaveCount(0);
   await page
     .getByRole('group', { name: 'Equipment' })
     .getByRole('link', { name: 'All equipment' })

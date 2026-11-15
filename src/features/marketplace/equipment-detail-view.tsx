@@ -26,7 +26,6 @@ export async function EquipmentDetailView({
       <div className="detail-grid">
         <figure>
           <EquipmentArt listing={listing} label={t('illustration')} />
-          <figcaption>{t('illustration')}</figcaption>
         </figure>
 
         <section>

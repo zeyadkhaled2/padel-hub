@@ -106,7 +106,6 @@ export async function MarketplacePage({
       <InspectionShowcase
         title={tInspection('title')}
         subtitle={tInspection('subtitle')}
-        artLabel={tMarket('artLabel')}
         illustrationAlt={tMarket('illustration')}
         items={inspectionItems}
       />
