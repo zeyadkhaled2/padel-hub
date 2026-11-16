@@ -7,10 +7,22 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 2,
   reporter: 'list',
-  use: { baseURL: 'http://localhost:3100', trace: 'retain-on-failure', channel: process.env.PLAYWRIGHT_CHANNEL || undefined },
+  use: {
+    baseURL: 'http://localhost:3100',
+    trace: 'retain-on-failure',
+    channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+    launchOptions: process.env.PLAYWRIGHT_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
+      : undefined,
+  },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
-  webServer: { command: 'npm run dev -- --port 3100', url: 'http://localhost:3100/en', reuseExistingServer: !process.env.CI, timeout: 120_000 },
+  webServer: {
+    command: 'npm run dev -- --port 3100',
+    url: 'http://localhost:3100/en',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
 });

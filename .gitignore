@@ -1,4 +1,8 @@
 # Dependencies and generated application output
+# Local worker/reviewer coordination (never publish)
+/LOCAL_AGENT_PLAN.md
+/.local-handoff/
+
 node_modules/
 /.next/
 /out/
@@ -7,12 +11,13 @@ node_modules/
 *.tsbuildinfo
 next-env.d.ts
 
-# Test artifacts (intentional design screenshots in docs/previews stay tracked)
+# Test and preview artifacts
 /coverage/
 /playwright-report/
 /test-results/
 /blob-report/
 /playwright/.cache/
+/docs/previews/
 
 # Secrets and local environment files; sanitized examples may be committed
 .env*

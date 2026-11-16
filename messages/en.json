@@ -7,15 +7,21 @@
     "skip": "Skip to content",
     "navigation": "Main navigation",
     "explore": "Explore equipment",
+    "why": "Why PadelHub",
     "how": "How it works",
+    "faq": "FAQ",
     "demo": "Design preview · All sellers, equipment and prices are demo content.",
-    "made": "A little more padel. A lot more play."
+    "made": "A little more padel. A lot more play.",
+    "footerTagline": "Egypt's courtside connection bridge for padel rackets and balls. Browse openly, inspect honest condition disclosures, and coordinate directly with sellers."
   },
   "market": {
     "eyebrow": "For the love of the game",
     "title": "Your next game starts here.",
     "intro": "Find your next racket. Stock up on balls. More time on court starts with the right equipment.",
     "badge": "Egypt’s padel marketplace",
+    "heroHighlight1": "0% platform commission",
+    "heroHighlight2": "Mandatory frame & face disclosures",
+    "heroHighlight3": "Direct WhatsApp coordination",
     "demo": "Demo collection · not live inventory",
     "search": "What are you looking for?",
     "placeholder": "Try Head, Vertex or padel balls",
@@ -62,7 +68,59 @@
     "step3": "Make your own arrangements",
     "step3Body": "Agree payment and pickup directly. PadelHub does not process payments or deliver equipment.",
     "status": "This is a design preview. Accounts, listing submission, moderation and WhatsApp contact are not implemented yet.",
-    "artLabel": "AI demo image",
-    "courtCaption": "Made for more court time."
+    "courtCaption": "Made for more court time.",
+    "specShape": "Shape & balance",
+    "specWeight": "Weight class",
+    "specSurface": "Surface check"
+  },
+  "marketing": {
+    "inspection": {
+      "eyebrow": "Built for padel equipment, not generic classifieds",
+      "title": "Every listing requires structured court-ready disclosures.",
+      "subtitle": "Buying a used racket shouldn't mean guessing from one blurry photo. PadelHub prompts sellers to declare exact frame, face, and packaging details before manual review.",
+      "tabFace": "Carbon face & sweet spot",
+      "tabFaceTitle": "Face texture & core response",
+      "tabFaceBody": "Sellers disclose surface roughness, paint chips, and EVA core firmness so you know how the racket plays before meeting at the club.",
+      "tabFaceMeta": "Required: 3–6 clear photos covering both faces",
+      "tabFrame": "Frame & bumper guard",
+      "tabFrameTitle": "Structural integrity first",
+      "tabFrameBody": "Explicit declaration of glass scuffs versus structural cracks or prior carbon repairs. No hidden surprises when you inspect in person.",
+      "tabFrameMeta": "Mandatory crack & repair disclosure field",
+      "tabBalls": "Pressurized ball packs",
+      "tabBallsTitle": "Clear quantity & seal status",
+      "tabBallsBody": "Ball listings state exact canister count, packaging seal, and one clear EGP price for the entire bundle—sale only, zero stock confusion.",
+      "tabBallsMeta": "Whole-offer pricing in EGP"
+    },
+    "features": {
+      "eyebrow": "Why players choose PadelHub",
+      "title": "Designed around how Egypt's padel community actually trades.",
+      "subtitle": "No middleman markups, no forced escrow, and no noisy social group threads where listings disappear in hours.",
+      "card1Badge": "Manual moderation",
+      "card1Title": "Reviewed before publication",
+      "card1Body": "Every submitted listing is checked for complete photos, clear EGP pricing, and honest damage disclosures before appearing in search.",
+      "card2Badge": "Direct connection",
+      "card2Title": "Tap to chat on WhatsApp",
+      "card2Body": "Browse anonymously without creating an account. When you find the right racket, start a conversation directly with the seller to meet courtside.",
+      "card3Badge": "Club-ready profiles",
+      "card3Title": "Private by default, shareable by choice",
+      "card3Body": "Sellers control when their profile is public and get a permanent username link and QR code to share at clubs in Cairo, Giza, and Alexandria."
+    },
+    "workflow": {
+      "eyebrow": "Simple 3-step journey",
+      "title": "From browsing to courtside handover.",
+      "subtitle": "PadelHub acts as a clean, trustworthy bridge between players—keeping the transaction in your hands."
+    },
+    "faq": {
+      "eyebrow": "Common questions",
+      "title": "Everything you need to know about the marketplace.",
+      "q1": "Does PadelHub charge commissions or handle checkout?",
+      "a1": "No. PadelHub is a free connection bridge. Buyers and sellers arrange inspection, payment, and pickup directly with one another in EGP.",
+      "q2": "Can I swap a racket instead of selling it?",
+      "a2": "Yes. Racket listings support sale, swap, or both, allowing you to specify the exact model or weight class you are looking to trade for. Padel balls are sale-only.",
+      "q3": "Do I need an account just to browse or message a seller?",
+      "a3": "No account is needed to browse equipment or initiate a WhatsApp inquiry once the live marketplace launches. Accounts are only required to create a seller profile and post listings.",
+      "q4": "Are the listings on this page available to buy right now?",
+      "a4": "Not yet. The items shown here are clearly labeled demo fixtures and AI-generated illustrations created to preview the marketplace experience."
+    }
   }
 }

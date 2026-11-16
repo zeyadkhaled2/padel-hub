@@ -1,4 +1,6 @@
 .git
+LOCAL_AGENT_PLAN.md
+.local-handoff
 .agents
 .cache
 .env*
