@@ -77,7 +77,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
       ref={stageRef}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className="hero-stage relative m-0 h-[182px] md:h-auto md:min-h-[380px] min-w-0 overflow-hidden select-none ring-1 ring-inset ring-white/10"
+      className="hero-stage relative m-0 h-[128px] md:h-auto md:min-h-[212px] lg:min-h-[224px] min-w-0 overflow-hidden select-none ring-1 ring-inset ring-white/10"
     >
       {/* Subtle architectural padel court line geometry */}
       <svg
@@ -117,7 +117,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
       <div
         aria-hidden="true"
         style={depth(-6, -4)}
-        className="hero-layer pointer-events-none absolute top-[14%] start-[8%] z-10 md:top-[11%] md:start-[9%]"
+        className="hero-layer pointer-events-none absolute top-[12%] start-[8%] z-10 md:top-[11%] md:start-[9%]"
       >
         <div className="hero-float-far">
           <Image
@@ -125,9 +125,9 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
             alt=""
             width={280}
             height={280}
-            sizes="(max-width: 767px) 38px, 64px"
+            sizes="(max-width: 767px) 28px, 46px"
             draggable={false}
-            className="h-auto w-[34px] md:w-[50px] lg:w-[58px] opacity-85 blur-[0.45px] drop-shadow-[0_10px_14px_rgba(5,10,24,0.45)]"
+            className="h-auto w-[26px] md:w-[38px] lg:w-[44px] opacity-85 blur-[0.45px] drop-shadow-[0_8px_12px_rgba(5,10,24,0.45)]"
           />
         </div>
       </div>
@@ -137,7 +137,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
         style={depth(12, 9)}
         className="hero-layer pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
       >
-        <div className="-translate-x-2 -translate-y-2 rtl:translate-x-2 md:-translate-x-3 md:-translate-y-4 md:rtl:translate-x-3">
+        <div className="-translate-x-2 -translate-y-1.5 rtl:translate-x-2 md:-translate-x-2.5 md:-translate-y-2 md:rtl:translate-x-2.5">
           <div className="hero-float-racket">
             <Image
               src="/images/hero/padel-racket.webp"
@@ -145,9 +145,9 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
               width={413}
               height={740}
               preload={true}
-              sizes="(max-width: 767px) 140px, (max-width: 1024px) 200px, 230px"
+              sizes="(max-width: 767px) 100px, (max-width: 1024px) 150px, 165px"
               draggable={false}
-              className="h-[154px] md:h-[288px] lg:h-[314px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_24px_28px_rgba(5,10,24,0.62)]"
+              className="h-[112px] md:h-[182px] lg:h-[196px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_18px_22px_rgba(5,10,24,0.62)]"
             />
           </div>
         </div>
@@ -157,7 +157,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
       <div
         aria-hidden="true"
         style={depth(21, 15)}
-        className="hero-layer pointer-events-none absolute top-[11%] end-[14%] z-30 md:top-[13%] md:end-[11%]"
+        className="hero-layer pointer-events-none absolute top-[10%] end-[14%] z-30 md:top-[11%] md:end-[12%]"
       >
         <div className="hero-float-mid">
           <Image
@@ -165,9 +165,9 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
             alt=""
             width={280}
             height={280}
-            sizes="(max-width: 767px) 46px, 80px"
+            sizes="(max-width: 767px) 34px, 56px"
             draggable={false}
-            className="h-auto w-[42px] md:w-[62px] lg:w-[74px] drop-shadow-[0_18px_22px_rgba(5,10,24,0.55)]"
+            className="h-auto w-[32px] md:w-[46px] lg:w-[54px] drop-shadow-[0_14px_18px_rgba(5,10,24,0.55)]"
           />
         </div>
       </div>
@@ -176,7 +176,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
       <div
         aria-hidden="true"
         style={depth(34, 24)}
-        className="hero-layer pointer-events-none absolute -bottom-[14px] end-[4%] z-40 md:-bottom-[18px] md:end-[4%] lg:-bottom-[20px] lg:end-[5%]"
+        className="hero-layer pointer-events-none absolute -bottom-[12px] end-[4%] z-40 md:-bottom-[14px] md:end-[4%] lg:-bottom-[16px] lg:end-[5%]"
       >
         <div className="hero-float-near">
           <Image
@@ -184,14 +184,14 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
             alt=""
             width={320}
             height={320}
-            sizes="(max-width: 767px) 84px, 144px"
+            sizes="(max-width: 767px) 60px, 96px"
             draggable={false}
-            className="h-auto w-[76px] md:w-[104px] lg:w-[134px] md:blur-[0.6px] drop-shadow-[0_26px_32px_rgba(4,8,20,0.72)]"
+            className="h-auto w-[56px] md:w-[78px] lg:w-[92px] md:blur-[0.5px] drop-shadow-[0_20px_26px_rgba(4,8,20,0.72)]"
           />
         </div>
       </div>
 
-      <figcaption className="absolute bottom-3 start-3 md:bottom-4 md:start-4 lg:bottom-5 lg:start-5 z-50 m-0 w-fit max-w-[calc(100%-104px)] md:max-w-[calc(100%-132px)] lg:max-w-[calc(100%-168px)] rounded-[10px] bg-white/95 px-2.5 py-1.5 md:px-3.5 md:py-2 text-[11px] md:text-[13px] font-semibold leading-snug text-[#17243e]">
+      <figcaption className="absolute bottom-2.5 start-2.5 md:bottom-3 md:start-3 z-50 m-0 w-fit max-w-[calc(100%-82px)] md:max-w-[calc(100%-96px)] rounded-[8px] bg-white/95 px-2.5 py-1 text-[11px] md:text-[12px] font-semibold leading-snug text-[#17243e]">
         {caption}
       </figcaption>
     </figure>

@@ -6,6 +6,7 @@
   --color-muted: var(--muted);
   --color-line: var(--border);
   --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-text);
   --color-coral: var(--focus);
   --color-hero: var(--hero);
   --color-hero-ink: var(--hero-ink);

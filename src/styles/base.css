@@ -116,11 +116,32 @@
   margin-block: 10px 14px;
 }
 
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 13px 22px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 9px;
+  font-weight: 600;
+  transition: filter 0.2s var(--ease-calm), transform 0.2s var(--ease-calm);
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.button:hover {
+  filter: brightness(0.94);
+}
+
 .equipment-art {
-  height: 245px;
   position: relative;
-  display: grid;
-  place-items: center;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: var(--surface-soft);
 }

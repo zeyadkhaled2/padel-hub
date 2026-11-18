@@ -28,7 +28,7 @@ export async function SellerProfileView() {
 
       <section className="market-section">
         <h2>{t('heading')}</h2>
-        <div className="listing-grid">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4">
           {demoListings.map((listing) => (
             <ListingCard listing={listing} key={listing.id} />
           ))}

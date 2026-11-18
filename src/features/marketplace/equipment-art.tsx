@@ -5,6 +5,8 @@ interface EquipmentArtProps {
   listing: DemoListing;
   label: string;
   hero?: boolean;
+  sizes?: string;
+  imageClassName?: string;
 }
 
 /**
@@ -14,6 +16,8 @@ export function EquipmentArt({
   listing,
   label,
   hero = false,
+  sizes = '(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw',
+  imageClassName,
 }: EquipmentArtProps) {
   const source =
     listing.category === 'balls'
@@ -28,8 +32,9 @@ export function EquipmentArt({
         src={`/images/demo/${source}.webp`}
         alt={label}
         fill
-        sizes="(max-width: 700px) 100vw, 50vw"
+        sizes={sizes}
         preload={hero}
+        className={imageClassName}
       />
     </div>
   );

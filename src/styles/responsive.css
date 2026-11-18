@@ -3,7 +3,6 @@
    ========================================================================== */
 
 @media (min-width: 701px) and (max-width: 1000px) {
-  .listing-grid,
   .steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -29,14 +28,6 @@
 
   nav {
     gap: 16px;
-  }
-
-  .listing-grid {
-    gap: 16px;
-  }
-
-  .listing-content {
-    padding: 18px;
   }
 }
 
@@ -86,49 +77,6 @@
     min-height: 40px;
   }
 
-  .search-panel {
-    padding: 16px 16px 4px;
-  }
-
-  .search-row {
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .search-field {
-    flex-basis: 100%;
-  }
-
-  .search-row .button {
-    width: 100%;
-    padding: 10px 14px;
-  }
-
-  .filter-fields {
-    gap: 16px;
-  }
-
-  .filter-fields label {
-    min-width: 100%;
-  }
-
-  .category-links {
-    margin-block: 20px 24px;
-    gap: 8px;
-  }
-
-  .category-link {
-    font-size: 12px;
-    padding: 8px 12px;
-    gap: 6px;
-  }
-
-  .category-link svg {
-    width: 16px;
-  }
-
   .market-section,
   .inspection-section,
   .features-section,
@@ -147,15 +95,9 @@
     font-size: 24px;
   }
 
-  .result-count {
-    font-size: 12px;
-  }
-
-  .listing-grid,
   .features-split,
   .steps,
-  .inspection-grid,
-  .detail-grid {
+  .inspection-grid {
     grid-template-columns: 1fr;
     gap: 20px;
   }
@@ -165,7 +107,6 @@
     border-radius: 18px;
   }
 
-  .listing-content,
   .feature-row,
   .step-card {
     padding: 20px;
@@ -179,10 +120,6 @@
     padding: 24px;
     gap: 16px;
     margin-block: 36px 48px;
-  }
-
-  .detail-grid h1 {
-    font-size: 32px;
   }
 
   .profile-banner {

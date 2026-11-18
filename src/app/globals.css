@@ -10,7 +10,6 @@
 
 /* Marketing sections and marketplace browsing (page order) */
 @import "../styles/sections/hero.css";
-@import "../styles/marketplace/search.css";
 @import "../styles/marketplace/listings.css";
 @import "../styles/sections/inspection.css";
 @import "../styles/sections/features.css";
