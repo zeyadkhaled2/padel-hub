@@ -10,6 +10,7 @@ Updated: 2026-11-18. Verified locally; hosted backend is not configured. Main-br
 - Migration 010 applied locally. TOTP enabled in running Auth; previous Auth container retained stopped. User-selected verified account received local admin access; its authenticator setup is user-controlled.
 
 ## Verification
+- Vercel failure diagnosed: unanchored `supabase` in `.vercelignore` removed `src/server/supabase`, causing missing-module build errors. Changed to `/supabase/`; local `npm run check` and 10/10 foundation browser tests passed. Hosted rebuild verification pending.
 - `npm run check`: lint, TypeScript and production build passed on the final code.
 - Full browser suite: 16/16 passed; after the final encrypted-snapshot change, both affected admin tests passed again (2/2).
 - Admin checks cover real TOTP, invalid codes, fresh challenge after sign-in, private photos, rejection reasons, stale decisions, approval and revocation. 32 queue/review locale/theme/width combinations passed; screenshots inspected.
