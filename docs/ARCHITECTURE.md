@@ -26,6 +26,7 @@ src/
       faq-section.tsx
       features-section.tsx
       hero-section.tsx
+      hero-stage.tsx
       how-it-works-section.tsx
       inspection-showcase.tsx
     ui/
@@ -48,24 +49,24 @@ src/
     format.ts
   styles/
     tokens.css            # @theme inline + light/dark semantic tokens
-    base.css              # reset, element defaults, container, skip link
+    base.css              # @layer base element defaults, container, skip link, equipment-art
     responsive.css        # breakpoints + reduced motion (imported last)
     layout/               # header.css, footer.css
     marketplace/          # search.css, listings.css
     pages/                # detail.css (equipment detail + seller profile)
-    sections/             # hero, inspection, features, how-it-works, faq, community
+    sections/             # hero (stage wash + float keyframes), inspection, features, how-it-works, faq, community
   proxy.ts
 ```
 
 - `src/app/[locale]`: localized routes and thin page composition.
 - `src/components/layout`: site-wide header, footer, brand mark, and locale/theme preference controls.
 - `src/components/providers`: client context providers (`theme-provider.tsx`).
-- `src/components/sections`: marketing and product education sections.
+- `src/components/sections`: marketing and product education sections (`hero-section.tsx` uses Tailwind utilities with `hero-stage.tsx` for the layered 2.5D visual).
 - `src/components/ui`: reusable presentational primitives (`section-header.tsx`).
 - `src/features/marketplace`: equipment domain UI, explicitly typed demo fixtures, URL search/category filtering, and detail/seller views. Future production repository functions must be separate from fixtures.
 - `src/lib`: shared formatting helpers (`format.ts`).
 - `src/styles`: global CSS partials grouped like the components they style. `src/app/globals.css` is only the ordered `@import` entry; import order is the cascade order, so keep `tokens.css`/`base.css` first and `responsive.css` last. Add new rules to the partial for that area rather than to `globals.css`.
-- Styling direction (decided 2026-11-18): incremental Tailwind v4 adoption. New or redesigned UI uses Tailwind utilities built on the semantic tokens (`bg-base`, `bg-surface`, `bg-surface-soft`, `text-ink`, `text-muted`, `border-line`, `bg-accent`, `text-coral`); never hard-code theme colors. Use logical utilities (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`, `text-start`) and `rtl:` only where direction truly needs it, so Arabic RTL and light/dark keep working. Theme switching is driven by `[data-theme="dark"]`, so prefer tokens over `dark:`; Tailwind's default `dark:` follows `prefers-color-scheme` and would ignore the manual theme selector. If `dark:` is ever needed, first add `@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));` to `tokens.css`. When a component is converted, remove its now-unused rules from its partial and delete the partial once empty (also remove its `@import`). Keep class hooks used by tests (e.g. `listing-card`, `equipment-art`) or move tests to role-based selectors in the same change.
+- Styling direction (decided 2026-11-18): incremental Tailwind v4 adoption. New or redesigned UI uses Tailwind utilities built on the semantic tokens (`bg-base`, `bg-surface`, `bg-surface-soft`, `text-ink`, `text-muted`, `border-line`, `bg-accent`, `text-coral`, `bg-hero`, `text-hero-ink`, `bg-hero-stage`); never hard-code theme colors. Use logical utilities (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`, `text-start`) and `rtl:` only where direction truly needs it, so Arabic RTL and light/dark keep working. Theme switching is driven by `[data-theme="dark"]`, so prefer tokens over `dark:`; Tailwind's default `dark:` follows `prefers-color-scheme` and would ignore the manual theme selector. If `dark:` is ever needed, first add `@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));` to `tokens.css`. Element defaults in `base.css` live in `@layer base` so Tailwind `@layer utilities` override them cleanly. When a component is converted, remove its now-unused rules from its partial and delete the partial once empty (also remove its `@import`). Keep class hooks used by tests (e.g. `listing-card`, `equipment-art`) or move tests to role-based selectors in the same change.
 - `src/i18n` & `messages`: supported locales (`en`, `ar`), request messages, and localized navigation.
 - `tests/e2e`: Playwright browser behavior tests (`foundation.spec.ts`).
 - `docs`: canonical product, design, architecture, and live handoff documentation (`PROGRESS.md`, `PRODUCT_PLAN.md`, `DESIGN_SPEC.md`, `ARCHITECTURE.md`).
@@ -73,7 +74,7 @@ src/
 Add `src/server` for server-only integrations and `supabase/migrations` when database work starts. Do not introduce empty service/repository wrappers.
 
 ## Boundaries and deployment
-Server-render routes and filter data on the server. Theme selection (`Preferences`) and the interactive disclosure showcase (`InspectionShowcase`) are small client islands. next-intl owns locale routing and message lookup. Tailwind v4 (`@theme inline`) and semantic CSS tokens in `src/styles/tokens.css` (imported by `src/app/globals.css`) provide the shared visual vocabulary.
+Server-render routes and filter data on the server. Theme selection (`Preferences`), the interactive disclosure showcase (`InspectionShowcase`), and fine-pointer hero parallax (`HeroStage`) are small client islands. next-intl owns locale routing and message lookup. Tailwind v4 (`@theme inline`) and semantic CSS tokens in `src/styles/tokens.css` (imported by `src/app/globals.css`) provide the shared visual vocabulary.
 
 Use the supported Webpack bundler (`next dev --webpack` / `next build --webpack`). TypeScript 6.0.3 is pinned for lint-tool compatibility.
 

@@ -3,18 +3,6 @@
    ========================================================================== */
 
 @media (min-width: 701px) and (max-width: 1000px) {
-  .hero-copy {
-    padding: 28px;
-  }
-
-  .hero h1 {
-    font-size: 38px;
-  }
-
-  .hero-equipment .equipment-art {
-    min-height: 360px;
-  }
-
   .listing-grid,
   .steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -96,55 +84,6 @@
   nav a {
     font-size: 13px;
     min-height: 40px;
-  }
-
-  .hero {
-    grid-template-columns: 1fr;
-    margin-block: 16px 14px;
-    border-radius: 16px;
-  }
-
-  .hero-copy {
-    padding: 20px 22px;
-  }
-
-  .hero h1 {
-    font-size: clamp(1.95rem, 8.5vw, 2.6rem);
-  }
-
-  .hero .eyebrow {
-    font-size: 12px;
-    margin-bottom: 10px;
-  }
-
-  .hero-intro {
-    font-size: 14px;
-    line-height: 1.6;
-    margin-top: 12px;
-  }
-
-  .hero-highlights {
-    display: none;
-  }
-
-  .hero-equipment {
-    display: block;
-  }
-
-  .hero-equipment .equipment-art {
-    min-height: 0;
-    height: 140px;
-  }
-
-  .hero-equipment .equipment-art img {
-    object-position: 50% 45%;
-  }
-
-  .hero-equipment figcaption {
-    inset-inline: 12px;
-    bottom: 12px;
-    font-size: 11px;
-    padding: 5px 10px;
   }
 
   .search-panel {

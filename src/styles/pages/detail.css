@@ -6,6 +6,14 @@
   padding-block: 40px 64px;
 }
 
+.detail-page .hero-intro {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--muted);
+  margin-top: 16px;
+  max-width: 580px;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -1,116 +1,89 @@
 /* ==========================================================================
-   Hero Section
+   Hero 2.5D Stage — Courtside backdrop, pointer parallax & gentle float
+   (Hero layout & typography use Tailwind utilities in hero-section.tsx)
    ========================================================================== */
 
-.hero {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  padding: 0;
-  margin-block: 32px 24px;
-  background: var(--hero);
-  color: var(--hero-ink);
-  border-radius: 24px;
-  overflow: hidden;
-  align-items: stretch;
+.hero-stage {
+  --px: 0;
+  --py: 0;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(36, 75, 216, 0.42), transparent 58%),
+    linear-gradient(155deg, var(--hero-stage) 0%, var(--hero-stage-deep) 100%);
 }
 
-.hero-copy {
-  padding: 44px;
-  align-self: center;
-  min-width: 0;
+[dir="rtl"] .hero-stage {
+  background:
+    radial-gradient(circle at 76% 18%, rgba(36, 75, 216, 0.42), transparent 58%),
+    linear-gradient(205deg, var(--hero-stage) 0%, var(--hero-stage-deep) 100%);
 }
 
-.eyebrow {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
-  margin-bottom: 10px;
+.hero-layer {
+  transform: translate3d(
+    calc(var(--px, 0) * var(--depth-x, 12px)),
+    calc(var(--py, 0) * var(--depth-y, 9px)),
+    0
+  );
+  transition: transform 0.28s var(--ease-calm);
+  will-change: transform;
 }
 
-.hero .eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--hero-ink);
-  font-weight: 650;
-  font-size: 13px;
-  margin-bottom: 20px;
+.hero-stage[data-active="true"] .hero-layer {
+  transition: transform 0.09s linear;
 }
 
-.hero h1 {
-  font-size: clamp(2.5rem, 4.3vw, 3.75rem);
-  font-weight: 800;
-  line-height: 1.06;
-  letter-spacing: -0.035em;
-  max-width: 480px;
+@keyframes hero-float-racket {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-3deg);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0) rotate(-1.5deg);
+  }
 }
 
-[dir="rtl"] .hero h1 {
-  line-height: 1.4;
-  letter-spacing: 0;
+@keyframes hero-float-far {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -6px, 0) rotate(6deg);
+  }
 }
 
-.hero-intro {
-  font-size: 17px;
-  line-height: 1.65;
-  color: var(--hero-ink);
-  margin-top: 20px;
-  max-width: 440px;
+@keyframes hero-float-mid {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-4deg);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) rotate(5deg);
+  }
 }
 
-.hero-highlights {
-  list-style: none;
-  padding: 0;
-  margin-top: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
+@keyframes hero-float-near {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(4deg);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0) rotate(-4deg);
+  }
 }
 
-.hero-highlights li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--hero-ink);
+.hero-float-racket {
+  transform: rotate(-3deg);
+  animation: hero-float-racket 6.4s ease-in-out infinite;
 }
 
-.hero-equipment {
-  position: relative;
-  min-width: 0;
+.hero-float-far {
+  animation: hero-float-far 7.4s ease-in-out -1.8s infinite;
 }
 
-.hero-equipment .equipment-art {
-  height: 100%;
-  min-height: 360px;
-  border-radius: 0;
+.hero-float-mid {
+  animation: hero-float-mid 5.2s ease-in-out -0.9s infinite;
 }
 
-.equipment-art {
-  height: 245px;
-  position: relative;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: var(--surface-soft);
-}
-
-.equipment-art img {
-  object-fit: cover;
-}
-
-.hero-equipment figcaption {
-  position: absolute;
-  inset-inline: 20px;
-  bottom: 20px;
-  width: fit-content;
-  padding: 8px 14px;
-  background: #ffffff;
-  color: #17243e;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 650;
-  margin: 0;
+.hero-float-near {
+  animation: hero-float-near 4.6s ease-in-out -2.4s infinite;
 }

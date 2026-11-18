@@ -7,6 +7,9 @@
   --color-line: var(--border);
   --color-accent: var(--accent);
   --color-coral: var(--focus);
+  --color-hero: var(--hero);
+  --color-hero-ink: var(--hero-ink);
+  --color-hero-stage: var(--hero-stage);
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
   --radius-sm: 8px;
   --radius-md: 16px;
@@ -31,6 +34,8 @@
   --focus: #e96640;
   --hero: #f6d957;
   --hero-ink: #17243e;
+  --hero-stage: #122144;
+  --hero-stage-deep: #0b1630;
   --mint: #244bd8;
 }
 
@@ -49,5 +54,7 @@
   --focus: #ff9e7e;
   --hero: #eacb51;
   --hero-ink: #17243e;
+  --hero-stage: #15254b;
+  --hero-stage-deep: #0c1732;
   --mint: #a7bcff;
 }
