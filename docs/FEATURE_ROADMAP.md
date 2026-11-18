@@ -14,12 +14,17 @@ Updated 2026-11-18. Earlier day estimates were not measured and are withdrawn. T
 
 - MFA-protected admin queue/review, approval/rejection and owner-visible rejection reasons.
 
+- Seller sold/traded, archive and relist-for-approval controls, retaining photos and rejecting stale updates. Reservation is deferred.
+
 ## Remaining, in order
 1. **Admin UI refinement:** minimal MFA/queue/photo/decision UI works. UI-agent prompt and contracts are in ADMIN_REVIEW.md; no specialist orchestration is running.
-2. **Marketplace controls:** reserved/sold/traded/archive/relist, public profiles/aliases/QR, reports, hide/suspend, configurable limits and basic views/contact counts. Clicks are not successful sales.
+2. **Marketplace controls:** public profiles/aliases/QR, reports, hide/suspend, configurable limits and basic views/contact counts. Clicks are not successful sales.
 3. **Production readiness:** recovery, Google login, external email, deletion flows, abuse protections, backups/restore, monitoring and final accessibility/privacy/security checks.
 4. **Hosted pilot:** user-approved hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness.
 
 No new specialist orchestration or handoff reports. Keep one dependent feature in progress. No checkout, payments, automatic expiry or automatic deletion of saved photos. Seller-reported deal counts still require a product decision.
 
-Current next functional milestone: seller listing lifecycle controls. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
+Current next functional milestone: public seller profiles/aliases/QR. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
+
+## After MVP
+- Reservation and available-again controls (deferred by Ziad on 2026-11-18).

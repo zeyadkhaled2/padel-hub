@@ -31,6 +31,11 @@ export async function saveListing(previous: ListingState, form: FormData): Promi
   if (listing.version !== version.data) return fail('conflict');
   const args = { p_listing_id: id.data, p_expected_version: version.data };
   const intent = values.intent;
+  if (['sold','traded','archive','relist'].includes(intent)) {
+    const result = await client.rpc('change_listing_status', { ...args, p_action: intent });
+    if (result.error) return fail(result.error.code === 'PT409' ? 'conflictOrLimit' : result.error.code === '23514' ? 'requirements' : 'unavailable');
+    return { listing: result.data, message: intent === 'relist' ? 'submitted' : 'statusUpdated' };
+  }
   if (!['save','submit','withdraw'].includes(intent)) return fail('invalid');
   if (intent === 'save') {
     const patch: Record<string, unknown> = {};

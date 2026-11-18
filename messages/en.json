@@ -309,7 +309,15 @@
     "reload": "Reload saved listing",
     "myListings": "My listings",
     "create": "Create listing",
-    "empty": "No listings yet. Start with a racket or balls."
+    "empty": "No listings yet. Start with a racket or balls.",
+    "markSold": "Mark as sold",
+    "markTraded": "Mark as traded",
+    "archive": "Archive listing",
+    "relist": "Relist for approval",
+    "statusUpdated": "Listing status updated.",
+    "completedHint": "Only mark a deal completed after the handover. The listing leaves search and stops accepting inquiries.",
+    "archiveHint": "Archive to remove this listing from public view. Saved details and photos are kept.",
+    "relistHint": "Relisting sends the saved details and photos for approval again. It stays off the marketplace until approved."
   },
   "buyer": {
     "approvedOnly": "Approved listings only",

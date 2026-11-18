@@ -38,7 +38,7 @@ Balls: brand/model, condition, quantity/packaging, price for the whole stated of
 Curated brands plus Other; model free text.
 Initial configurable limits: 5 active+pending individual listings, 20 business listings.
 
-Lifecycle: draft, pending, active, reserved, sold, traded, archived; admin rejection/removal. Only approved active listings appear in marketplace search. Rejections have reasons and allow correction/resubmission. Content edits of approved listings take them off public discovery pending re-review. Sellers can change availability/terminal status immediately. Reserved direct pages show status and disable contact; unchanged reserved→active can skip re-review. Relisting sold/traded/archived requires approval.
+MVP lifecycle: draft, pending, active, sold, traded, archived; admin rejection/removal. Only approved active listings appear in marketplace search. Rejections have reasons and allow correction/resubmission. Content edits of approved listings take them off public discovery pending re-review. Sellers can mark listings sold/traded or archive them immediately. Reservation and available-again controls are deferred until after MVP (decision: 2026-11-18). Relisting sold/traded/archived requires approval.
 No automatic expiry. Optional manual availability confirmation with timestamp. Sold/traded pages clearly disable inquiries. Moderation checks completeness/appropriateness; it is not a product or seller guarantee.
 
 ### Images and storage

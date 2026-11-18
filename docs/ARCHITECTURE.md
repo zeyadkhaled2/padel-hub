@@ -92,3 +92,7 @@ Migration 009 provides explicit public listing projections under a read-only cap
 ## Admin review
 
 `src/features/admin` owns MFA enrollment/challenge and the minimal queue/review UI. Migration 010 adds role/MFA access status, paginated pending summaries, authorized photo reads and owner rejection reasons. All decisions still use migration 005 snapshot/version checks. Admin photo delivery reuses the bounded, hash-verified private proxy; it rechecks the session-authorized RPC before returning bytes. No role provisioning endpoint is exposed. See ADMIN_REVIEW.md for operations and the UI refinement prompt.
+
+## Seller lifecycle
+
+Migration 011 adds `change_listing_status`: owner/version checks, offer-compatible sold/traded transitions, archive from active/pending, and atomic relist through the existing submission checks. Relisting requires fresh approval; failed submissions roll back status/version/audit changes. Existing public projections hide non-active inventory from search and block contact while retaining eligible sold/traded detail pages. No photo deletion or reservation controls.

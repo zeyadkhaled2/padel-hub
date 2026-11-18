@@ -37,6 +37,12 @@ export function ListingForm({ initial }: { initial: Listing }) {
           {!dirty && <Link className="button secondary" href={`/account/photos?listing=${listing.id}`}>{t('photos')}</Link>}
           <p className="field-hint">{t('saveFirst')}</p><button name="intent" value="submit" disabled={dirty || !!state.values} className="button primary">{t('submit')}</button></>}
         {['pending','active','reserved'].includes(listing.status) && <><p>{t('withdrawHint')}</p><button name="intent" value="withdraw" className="button secondary">{t('withdraw')}</button></>}
+        {listing.status === 'active' && <><p className="field-hint">{t('completedHint')}</p>
+          {['sale','both'].includes(String(listing.offer_type)) && <button name="intent" value="sold" className="button secondary">{t('markSold')}</button>}
+          {listing.category === 'rackets' && ['swap','both'].includes(String(listing.offer_type)) && <button name="intent" value="traded" className="button secondary">{t('markTraded')}</button>}
+        </>}
+        {['pending','active'].includes(listing.status) && <><p className="field-hint">{t('archiveHint')}</p><button name="intent" value="archive" disabled={dirty} className="button secondary">{t('archive')}</button></>}
+        {['sold','traded','archived'].includes(listing.status) && <><p className="field-hint">{t('relistHint')}</p><button name="intent" value="relist" className="button primary">{t('relist')}</button></>}
       </fieldset>
     </form>
     {state.message === 'conflict' && <a className="button secondary" href={`/${locale}/account/listings/${listing.id}`}>{t('reload')}</a>}
