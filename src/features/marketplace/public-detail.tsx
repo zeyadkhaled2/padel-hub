@@ -2,6 +2,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
+import { ReportForm } from '@/features/reports/forms';
 import { formatAmount } from '@/lib/format';
 import { publicListing, type PublicListing } from './public-data';
 
@@ -28,6 +29,6 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
       <div className="disclosure"><h2>{t('seller')}</h2><p><bdi>{listing.seller.display_name} · @{listing.seller.username}</bdi></p><p>{t(listing.seller.account_type)}</p></div>
       <p>{listing.last_confirmed_available_at ? t('confirmed', { date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'Africa/Cairo' }).format(new Date(listing.last_confirmed_available_at)) }) : t('confirmHint')}</p>
       {listing.status === 'active' ? <a className="button primary" href={`/api/contact/${id}?locale=${locale}`} rel="nofollow">{t('whatsapp')}</a> : <p className="form-notice">{t('noContact')}</p>}
-      <p className="field-hint">{t('safety')}</p>
+      <p className="field-hint">{t('safety')}</p><ReportForm type="listing" target={id} />
     </section></div></main>;
 }

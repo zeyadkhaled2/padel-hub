@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { publicClient, type PublicListing } from '@/features/marketplace/public-data';
 import { PublicCard } from '@/features/marketplace/public-card';
 import { Link } from '@/i18n/navigation';
+import { ReportForm } from '@/features/reports/forms';
 import { ShareProfile } from './share-profile';
 
 export async function PublicProfilePage({ params, searchParams }: {
@@ -29,7 +30,7 @@ export async function PublicProfilePage({ params, searchParams }: {
       <p>{a(`governorates.${profile.governorate_slug}`)}{profile.district_text && <> · <bdi>{profile.district_text}</bdi></>}</p>
       {profile.bio && <p className="user-copy"><bdi>{profile.bio}</bdi></p>}
       {profile.favorite_racket && <p>{a('favorite_racket')}: <bdi>{profile.favorite_racket}</bdi></p>}
-      <ShareProfile username={profile.username} publicId={profile.public_id} />
+      <ShareProfile username={profile.username} publicId={profile.public_id} /><ReportForm type="profile" target={profile.public_id} />
     </header>
     <h2>{t('listings')}</h2>
     {profile.items.length ? <div className="listing-grid">{profile.items.map(listing => <PublicCard key={listing.id} listing={listing} />)}</div> : <p>{t('empty')}</p>}

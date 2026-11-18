@@ -26,7 +26,8 @@ export async function AdminPage({ params, searchParams }: { params: Promise<{loc
   const page = z.coerce.number().int().min(1).max(10000).safeParse(query.page ?? 1);
   const result = await client.rpc('admin_pending_listings', { p_page: page.success ? page.data : 1 });
   const current = page.success ? page.data : 1;
-  return <main id="main" className="container account-page"><Link href="/account">{t('account')}</Link><h1>{t('queue')}</h1>
+  const reports = await getTranslations('reports');
+  return <main id="main" className="container account-page"><Link href="/account">{t('account')}</Link><h1>{t('queue')}</h1><Link href="/admin/reports">{reports('queue')}</Link>
     {['approve','reject'].includes(query.done ?? '') && <p role="status">{t('saved')}</p>}
     {result.error ? <p role="alert">{t('unavailable')}</p> : <><p>{t('count',{count:result.data.total})}</p><ul className="admin-queue">{result.data.items.map((item: {id:string;title:string;display_name:string}) => <li key={item.id}><Link href={`/admin/listings/${item.id}`} prefetch={false}><bdi>{item.title}</bdi></Link><span><bdi>{item.display_name}</bdi></span></li>)}</ul><nav className="category-links" aria-label={t('pages')}>
       {current>1 && <Link href={`/admin?page=${current-1}`}>{t('previous')}</Link>}{current*24<result.data.total && <Link href={`/admin?page=${current+1}`}>{t('next')}</Link>}</nav></>}

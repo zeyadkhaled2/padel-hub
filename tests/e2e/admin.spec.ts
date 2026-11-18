@@ -89,6 +89,40 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await sellerPage.getByRole('button',{name:'Submit for approval',exact:true}).click();await expect(sellerPage.getByRole('status')).toContainText('Submitted');
     await page.goto(`/en/admin/listings/${id}`);await page.getByRole('button',{name:'Approve listing',exact:true}).click();await expect(page.getByRole('status')).toContainText('saved');
     expect((await sellerPage.request.get(`/en/equipment/${id}`)).status()).toBe(200);
+    await page.goto(`/en/equipment/${id}`);
+    await page.getByText('Report content',{exact:true}).click();
+    await page.getByLabel('Details (optional)').fill(`Synthetic report ${suffix}`);
+    await page.getByRole('button',{name:'Send report',exact:true}).click();
+    await expect(page.getByRole('status')).toContainText('Report received');
+    await page.goto('/en/admin/reports');
+    if(info.project.name==='desktop') {
+      for(const locale of ['en','ar'])for(const theme of ['light','dark'])for(const width of [390,768,1440]) {
+        await page.setViewportSize({width,height:1000});
+        await page.goto(`/${locale}/admin/reports`);
+        await page.locator('header select').selectOption(theme);
+        await expect(page.locator('section').filter({hasText:`Synthetic report ${suffix}`})).toBeVisible();
+        expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+        if(width===390 && theme==='dark' && locale==='ar') await page.screenshot({path:'.cache/reports-ar-dark.png',fullPage:true});
+      }
+      await page.goto('/en/admin/reports');
+    }
+    const report=page.locator('section').filter({hasText:`Synthetic report ${suffix}`});
+    await report.getByLabel('Decision note (required)').fill('Synthetic moderation removal');
+    await report.getByRole('button',{name:'Remove listing',exact:true}).click();
+    await expect(page.getByRole('status')).toContainText('Report resolved');
+    expect((await sellerPage.request.get(`/en/equipment/${id}`)).status()).toBe(404);
+    expect((await sellerPage.request.get(`/api/contact/${id}`,{maxRedirects:0})).status()).toBe(404);
+    await page.goto(`/en/@a_${suffix}`);
+    await page.getByText('Report content',{exact:true}).click();
+    await page.getByLabel('Details (optional)').fill(`Synthetic profile report ${suffix}`);
+    await page.getByRole('button',{name:'Send report',exact:true}).click();
+    await expect(page.getByRole('status')).toContainText('Report received');
+    await page.goto('/en/admin/reports');
+    const profileReport=page.locator('section').filter({hasText:`Synthetic profile report ${suffix}`});
+    await profileReport.getByLabel('Decision note (required)').fill('Synthetic profile suspension');
+    await profileReport.getByRole('button',{name:'Suspend profile',exact:true}).click();
+    await expect(page.getByRole('status')).toContainText('Report resolved');
+    expect((await sellerPage.request.get(`/en/@a_${suffix}`)).status()).toBe(404);
     await page.goto('/en/account');await page.getByRole('button',{name:'Sign out',exact:true}).click();
     await login(page,email);await page.goto('/en/admin');
     await expect(page.getByLabel('Authenticator code')).toBeVisible();
