@@ -123,3 +123,4 @@ Start each session with this file and AGENTS.md. Update this record before every
   - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e`: PASS, 10/10 desktop and mobile.
 - Docs: ARCHITECTURE.md and DESIGN_SPEC.md now point to `src/styles/tokens.css`.
 - Next: optional follow-ups proposed but not approved yet: move marketing sections into `src/features/marketing` (fixes the shared `hero-section.tsx` → `features/marketplace` dependency) and split `features/marketplace` into marketplace/listings/sellers, coordinated with Ziad's functional branch.
+- Decision (2026-11-18): Ziad chose incremental Tailwind adoption. New/redesigned UI uses Tailwind utilities on the semantic tokens; each component is converted when it is polished, and its CSS partial is trimmed/deleted once unused. Convention recorded in ARCHITECTURE.md. No components converted yet.
