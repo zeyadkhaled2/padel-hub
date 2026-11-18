@@ -1,0 +1,83 @@
+/* ==========================================================================
+   Site Header & Preferences
+   ========================================================================== */
+
+.site-header {
+  background: var(--header);
+  color: var(--header-text);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 88px;
+  flex-wrap: wrap;
+  padding-block: 16px;
+}
+
+.brand-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 29px;
+  font-weight: 800;
+  letter-spacing: -1.4px;
+  direction: ltr;
+}
+
+.wordmark > span {
+  color: var(--text);
+}
+
+.wordmark .brand-hub {
+  color: var(--accent);
+}
+
+.wordmark .brand-period {
+  color: #e96640;
+}
+
+nav,
+.preferences {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+nav a,
+.language {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  transition: color 0.2s var(--ease-calm);
+}
+
+nav a:hover,
+.language:hover {
+  color: var(--accent);
+}
+
+.preferences {
+  gap: 16px;
+}
+
+.preferences select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--header);
+  color: var(--header-text);
+  min-height: 44px;
+  max-width: 140px;
+}

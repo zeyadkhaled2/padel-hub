@@ -1,0 +1,172 @@
+/* ==========================================================================
+   Marketplace Equipment Grid & Cards
+   ========================================================================== */
+
+.market-section {
+  margin-block: 32px 64px;
+}
+
+.market-section > h2 {
+  margin-bottom: 24px;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-end;
+  margin-bottom: 28px;
+}
+
+.section-heading h2 {
+  font-size: clamp(1.6rem, 2.8vw, 2.15rem);
+  font-weight: 750;
+}
+
+.section-heading .eyebrow {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.section-heading p:not(.eyebrow) {
+  color: var(--muted);
+  margin-top: 10px;
+  font-size: 15px;
+  max-width: 640px;
+}
+
+.result-count {
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 14px;
+  background: var(--surface-soft);
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.listing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.listing-card {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.25s var(--ease-calm);
+}
+
+.listing-card:hover {
+  border-color: var(--accent);
+}
+
+.listing-card .equipment-art {
+  border-radius: 0;
+  height: auto;
+  aspect-ratio: 3 / 2;
+}
+
+.listing-visual {
+  position: relative;
+}
+
+.listing-content {
+  padding: 20px;
+}
+
+.card-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.condition {
+  display: inline-block;
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.listing-content h3 {
+  font-size: 19px;
+  letter-spacing: -0.025em;
+}
+
+.listing-content h3 a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.price {
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 700;
+  margin-block: 8px;
+}
+
+.location {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.seller-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  min-height: 48px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.seller-link small {
+  display: block;
+  color: var(--muted);
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface-soft);
+  color: var(--accent);
+  font-weight: 650;
+  flex-shrink: 0;
+}
+
+.avatar.small {
+  width: 30px;
+  height: 30px;
+}
+
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+}
+
+.empty-state p {
+  margin-block: 16px 24px;
+  color: var(--muted);
+}

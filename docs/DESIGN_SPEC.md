@@ -1,7 +1,7 @@
 # PadelHub — Design Specification
 
 ## Visual direction and semantic tokens
-PadelHub uses a friendly, courtside sport identity in both Light and Dark themes (`next-themes` with `attribute="data-theme"` and `defaultTheme="system"`), exposed through Tailwind v4 `@theme inline` tokens in `src/app/globals.css`:
+PadelHub uses a friendly, courtside sport identity in both Light and Dark themes (`next-themes` with `attribute="data-theme"` and `defaultTheme="system"`), exposed through Tailwind v4 `@theme inline` tokens in `src/styles/tokens.css` (imported by `src/app/globals.css`):
 
 - **Light theme (`:root`)**:
   - `--canvas` (`--color-base`): `#f5f6fa`

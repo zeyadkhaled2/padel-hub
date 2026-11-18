@@ -1,0 +1,47 @@
+/* ==========================================================================
+   Community Callout & Text Link
+   ========================================================================== */
+
+.community-banner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px;
+  margin-block: 56px 64px;
+}
+
+.community-banner > svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.community-banner h2 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.community-banner p {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.community-banner .text-link {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+
+.text-link {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 44px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: var(--accent);
+}

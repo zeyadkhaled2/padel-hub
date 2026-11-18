@@ -1,0 +1,283 @@
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+
+@media (min-width: 701px) and (max-width: 1000px) {
+  .hero-copy {
+    padding: 28px;
+  }
+
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .hero-equipment .equipment-art {
+    min-height: 360px;
+  }
+
+  .listing-grid,
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .features-split,
+  .inspection-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .community-banner {
+    flex-wrap: wrap;
+  }
+
+  .community-banner .text-link {
+    margin-inline-start: 0;
+  }
+
+  .header-inner {
+    gap: 16px;
+  }
+
+  nav {
+    gap: 16px;
+  }
+
+  .listing-grid {
+    gap: 16px;
+  }
+
+  .listing-content {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 700px) {
+  .container {
+    width: calc(100% - 32px);
+  }
+
+  .header-inner {
+    min-height: 80px;
+    padding-block: 12px 8px;
+    gap: 8px 16px;
+  }
+
+  .wordmark {
+    font-size: 24px;
+    gap: 7px;
+  }
+
+  .wordmark img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .preferences {
+    margin-inline-start: auto;
+    gap: 10px;
+  }
+
+  .preferences select {
+    max-width: 100px;
+    font-size: 13px;
+  }
+
+  nav {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    border-top: 1px solid var(--border);
+    padding-top: 4px;
+  }
+
+  nav a {
+    font-size: 13px;
+    min-height: 40px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    margin-block: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .hero-copy {
+    padding: 20px 22px;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.95rem, 8.5vw, 2.6rem);
+  }
+
+  .hero .eyebrow {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .hero-intro {
+    font-size: 14px;
+    line-height: 1.6;
+    margin-top: 12px;
+  }
+
+  .hero-highlights {
+    display: none;
+  }
+
+  .hero-equipment {
+    display: block;
+  }
+
+  .hero-equipment .equipment-art {
+    min-height: 0;
+    height: 140px;
+  }
+
+  .hero-equipment .equipment-art img {
+    object-position: 50% 45%;
+  }
+
+  .hero-equipment figcaption {
+    inset-inline: 12px;
+    bottom: 12px;
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .search-panel {
+    padding: 16px 16px 4px;
+  }
+
+  .search-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .search-field {
+    flex-basis: 100%;
+  }
+
+  .search-row .button {
+    width: 100%;
+    padding: 10px 14px;
+  }
+
+  .filter-fields {
+    gap: 16px;
+  }
+
+  .filter-fields label {
+    min-width: 100%;
+  }
+
+  .category-links {
+    margin-block: 20px 24px;
+    gap: 8px;
+  }
+
+  .category-link {
+    font-size: 12px;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .category-link svg {
+    width: 16px;
+  }
+
+  .market-section,
+  .inspection-section,
+  .features-section,
+  .workflow-section,
+  .faq-section {
+    margin-block: 36px;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .section-heading h2 {
+    font-size: 24px;
+  }
+
+  .result-count {
+    font-size: 12px;
+  }
+
+  .listing-grid,
+  .features-split,
+  .steps,
+  .inspection-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .inspection-section {
+    padding: 22px 18px;
+    border-radius: 18px;
+  }
+
+  .listing-content,
+  .feature-row,
+  .step-card {
+    padding: 20px;
+  }
+
+  .faq-item {
+    padding: 6px 18px;
+  }
+
+  .community-banner {
+    padding: 24px;
+    gap: 16px;
+    margin-block: 36px 48px;
+  }
+
+  .detail-grid h1 {
+    font-size: 32px;
+  }
+
+  .profile-banner {
+    padding: 24px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-banner .avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 24px;
+  }
+
+  .site-footer {
+    gap: 20px;
+  }
+
+  .footer-meta-block {
+    text-align: start;
+    width: 100%;
+  }
+
+  .footer-links {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

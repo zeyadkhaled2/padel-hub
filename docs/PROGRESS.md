@@ -111,3 +111,15 @@ Start each session with this file and AGENTS.md. Update this record before every
   - Replaced the 3-card wall in `FeaturesSection` with an asymmetric editorial split (`.features-split` + `.features-list`).
   - Themed browser surfaces (`::selection`, `caret-color`, `scrollbar-color`, `tabular-nums`, `text-wrap: balance`), refined `.hero h1` tracking to `-0.035em`, removed `.search-panel` ghost shadow, and added `.agents/**` to `eslint.config.mjs` `globalIgnores`.
   - Verified: `npm run check` PASS (0 errors, 0 warnings), `impeccable detect --json src` PASS (`[]`), `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e` PASS (10/10 desktop & mobile), and updated production preview screenshots inspected with zero overflow and zero page errors.
+
+## CSS structure split — 2026-11-18 (branch `v2`, UI-only)
+- Working agreement recorded: this UI agent works only on `v2` and only on layouts, styling, typography, icons and presentation. Form fields, submit actions, validation, status handling, accessibility, Arabic/RTL, English and light/dark must be preserved. Database migrations, permissions, authentication and backend actions belong to Ziad.
+- Ziad chose to restructure only `src/app/globals.css` for now (file moves in `features/marketplace` and `components/sections` were deferred to avoid conflicts with functional work).
+- Split the 1,495-line `globals.css` mechanically by its existing section banners into `src/styles/` partials: `tokens.css`, `base.css`, `responsive.css`, `layout/{header,footer}.css`, `marketplace/{search,listings}.css`, `pages/detail.css`, `sections/{hero,inspection,features,how-it-works,faq,community}.css`. `globals.css` is now only the ordered `@import` entry (import order = cascade order). No selectors, values or class names changed; only two banner comments were adjusted (community/text link, new site footer banner).
+- Checks:
+  - Concatenated partials vs original rules (blank lines ignored): identical.
+  - Compiled production CSS before/after: identical, same hash `9c1cada71e82b229.css`.
+  - `npm run check`: PASS (lint, typegen, tsc, production Webpack build).
+  - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e`: PASS, 10/10 desktop and mobile.
+- Docs: ARCHITECTURE.md and DESIGN_SPEC.md now point to `src/styles/tokens.css`.
+- Next: optional follow-ups proposed but not approved yet: move marketing sections into `src/features/marketing` (fixes the shared `hero-section.tsx` → `features/marketplace` dependency) and split `features/marketplace` into marketplace/listings/sellers, coordinated with Ziad's functional branch.

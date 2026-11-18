@@ -1,0 +1,81 @@
+/* ==========================================================================
+   Equipment Detail & Seller Profile Pages
+   ========================================================================== */
+
+.detail-page {
+  padding-block: 40px 64px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-top: 24px;
+}
+
+.detail-grid .equipment-art {
+  height: auto;
+  aspect-ratio: 3 / 2;
+  border-radius: 24px;
+}
+
+.detail-grid h1 {
+  font-size: 40px;
+  margin-block: 18px;
+}
+
+.detail-grid figcaption {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.disclosure {
+  background: var(--surface-soft);
+  padding: 24px;
+  border-radius: 16px;
+  margin-block: 24px;
+}
+
+.disclosure h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.disclosure p {
+  color: var(--muted);
+}
+
+.notice {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-block: 24px;
+}
+
+.profile-banner {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  padding: 40px;
+  border-radius: 24px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  margin-top: 24px;
+}
+
+.profile-banner .avatar {
+  width: 100px;
+  height: 100px;
+  background: var(--surface);
+  font-size: 36px;
+}
+
+.profile-banner p {
+  margin-top: 12px;
+}
+
+.profile-banner h1 {
+  font-size: 36px;
+}

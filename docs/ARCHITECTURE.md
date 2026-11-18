@@ -46,6 +46,14 @@ src/
     routing.ts
   lib/
     format.ts
+  styles/
+    tokens.css            # @theme inline + light/dark semantic tokens
+    base.css              # reset, element defaults, container, skip link
+    responsive.css        # breakpoints + reduced motion (imported last)
+    layout/               # header.css, footer.css
+    marketplace/          # search.css, listings.css
+    pages/                # detail.css (equipment detail + seller profile)
+    sections/             # hero, inspection, features, how-it-works, faq, community
   proxy.ts
 ```
 
@@ -56,6 +64,7 @@ src/
 - `src/components/ui`: reusable presentational primitives (`section-header.tsx`).
 - `src/features/marketplace`: equipment domain UI, explicitly typed demo fixtures, URL search/category filtering, and detail/seller views. Future production repository functions must be separate from fixtures.
 - `src/lib`: shared formatting helpers (`format.ts`).
+- `src/styles`: global CSS partials grouped like the components they style. `src/app/globals.css` is only the ordered `@import` entry; import order is the cascade order, so keep `tokens.css`/`base.css` first and `responsive.css` last. Add new rules to the partial for that area rather than to `globals.css`.
 - `src/i18n` & `messages`: supported locales (`en`, `ar`), request messages, and localized navigation.
 - `tests/e2e`: Playwright browser behavior tests (`foundation.spec.ts`).
 - `docs`: canonical product, design, architecture, and live handoff documentation (`PROGRESS.md`, `PRODUCT_PLAN.md`, `DESIGN_SPEC.md`, `ARCHITECTURE.md`).
@@ -63,7 +72,7 @@ src/
 Add `src/server` for server-only integrations and `supabase/migrations` when database work starts. Do not introduce empty service/repository wrappers.
 
 ## Boundaries and deployment
-Server-render routes and filter data on the server. Theme selection (`Preferences`) and the interactive disclosure showcase (`InspectionShowcase`) are small client islands. next-intl owns locale routing and message lookup. Tailwind v4 (`@theme inline`) and semantic CSS tokens in `src/app/globals.css` provide the shared visual vocabulary.
+Server-render routes and filter data on the server. Theme selection (`Preferences`) and the interactive disclosure showcase (`InspectionShowcase`) are small client islands. next-intl owns locale routing and message lookup. Tailwind v4 (`@theme inline`) and semantic CSS tokens in `src/styles/tokens.css` (imported by `src/app/globals.css`) provide the shared visual vocabulary.
 
 Use the supported Webpack bundler (`next dev --webpack` / `next build --webpack`). TypeScript 6.0.3 is pinned for lint-tool compatibility.
 

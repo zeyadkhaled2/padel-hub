@@ -1,0 +1,68 @@
+/* ==========================================================================
+   Site Footer
+   ========================================================================== */
+
+.site-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  padding-block: 36px 48px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.footer-brand-block {
+  max-width: 440px;
+}
+
+.footer-tagline {
+  margin-top: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.footer-meta-block {
+  display: grid;
+  gap: 8px;
+  text-align: end;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.footer-signoff {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.site-footer .wordmark {
+  color: var(--text);
+  font-size: 22px;
+}
+
+.site-footer .wordmark span {
+  color: var(--text);
+}
+
+.site-footer .wordmark .brand-hub {
+  color: var(--accent);
+}
+
+.site-footer .wordmark img {
+  width: 32px;
+  height: 32px;
+}

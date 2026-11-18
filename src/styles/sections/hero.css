@@ -1,0 +1,116 @@
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 0;
+  margin-block: 32px 24px;
+  background: var(--hero);
+  color: var(--hero-ink);
+  border-radius: 24px;
+  overflow: hidden;
+  align-items: stretch;
+}
+
+.hero-copy {
+  padding: 44px;
+  align-self: center;
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.hero .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--hero-ink);
+  font-weight: 650;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 4.3vw, 3.75rem);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  max-width: 480px;
+}
+
+[dir="rtl"] .hero h1 {
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.hero-intro {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--hero-ink);
+  margin-top: 20px;
+  max-width: 440px;
+}
+
+.hero-highlights {
+  list-style: none;
+  padding: 0;
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+
+.hero-highlights li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--hero-ink);
+}
+
+.hero-equipment {
+  position: relative;
+  min-width: 0;
+}
+
+.hero-equipment .equipment-art {
+  height: 100%;
+  min-height: 360px;
+  border-radius: 0;
+}
+
+.equipment-art {
+  height: 245px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--surface-soft);
+}
+
+.equipment-art img {
+  object-fit: cover;
+}
+
+.hero-equipment figcaption {
+  position: absolute;
+  inset-inline: 20px;
+  bottom: 20px;
+  width: fit-content;
+  padding: 8px 14px;
+  background: #ffffff;
+  color: #17243e;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  margin: 0;
+}
