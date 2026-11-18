@@ -55,7 +55,7 @@ export async function CategoryPills({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5 sm:gap-2"
+      className="flex flex-wrap items-center gap-2"
       role="group"
       aria-label={t('category')}
     >
@@ -79,18 +79,18 @@ export async function CategoryPills({
               },
               hash: 'equipment-heading',
             }}
-            className={`inline-flex min-h-[44px] items-center gap-1.5 sm:gap-2 rounded-[11px] border px-2 sm:px-2.5 py-1.5 text-[12px] sm:text-[13px] font-semibold transition-colors duration-200 ${
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-[12px] px-2.5 sm:px-3 py-1.5 text-[12.5px] sm:text-[13px] font-bold transition-colors duration-200 ${
               isSelected
-                ? 'border-ink bg-ink text-base'
-                : 'border-line bg-base/60 text-ink hover:border-accent hover:bg-surface-soft/60'
+                ? 'bg-ink text-base dark:bg-hero dark:text-hero-ink'
+                : 'border border-line bg-base/70 text-ink hover:border-accent/60 hover:bg-surface-soft/75'
             }`}
             aria-current={category === item ? 'true' : undefined}
           >
             <span
-              className={`grid h-5 w-5 sm:h-6 sm:w-6 shrink-0 place-items-center rounded-[6px] sm:rounded-[7px] ${
+              className={`grid h-6 w-6 shrink-0 place-items-center rounded-[7px] ${
                 isSelected
-                  ? 'bg-base/15 text-base'
-                  : 'border border-line/70 bg-surface text-accent'
+                  ? 'bg-base/15 text-base dark:bg-hero-ink/12 dark:text-hero-ink'
+                  : 'bg-surface text-accent'
               }`}
               aria-hidden="true"
             >
@@ -107,9 +107,9 @@ export async function CategoryPills({
 
             <span
               aria-hidden="true"
-              className={`rounded-[6px] px-1.5 py-0.5 text-[10.5px] sm:text-[11px] font-bold tabular-nums leading-none ${
+              className={`rounded-[6px] px-1.5 py-0.5 text-[11px] font-extrabold tabular-nums leading-none ${
                 isSelected
-                  ? 'bg-base/15 text-base'
+                  ? 'bg-base/15 text-base dark:bg-hero-ink/12 dark:text-hero-ink'
                   : 'bg-surface-soft text-muted'
               }`}
             >

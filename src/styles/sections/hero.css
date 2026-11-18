@@ -1,20 +1,36 @@
 /* ==========================================================================
-   Hero 2.5D Stage — Courtside backdrop, pointer parallax & gentle float
-   (Hero layout & typography use Tailwind utilities in hero-section.tsx)
+   Courtside Hero Backdrop, 2.5D Parallax & Gentle Float
    ========================================================================== */
+
+.hero-courtside {
+  background:
+    radial-gradient(ellipse 68% 95% at 78% 18%, rgba(44, 92, 240, 0.44), transparent 64%),
+    radial-gradient(ellipse 46% 70% at 14% 92%, rgba(246, 217, 87, 0.14), transparent 60%),
+    linear-gradient(135deg, #0d1a38 0%, var(--hero-stage) 54%, var(--hero-stage-deep) 100%);
+}
+
+[dir="rtl"] .hero-courtside {
+  background:
+    radial-gradient(ellipse 68% 95% at 22% 18%, rgba(44, 92, 240, 0.44), transparent 64%),
+    radial-gradient(ellipse 46% 70% at 86% 92%, rgba(246, 217, 87, 0.14), transparent 60%),
+    linear-gradient(225deg, #0d1a38 0%, var(--hero-stage) 54%, var(--hero-stage-deep) 100%);
+}
+
+.courtside-showcase {
+  background:
+    radial-gradient(ellipse 60% 80% at 82% 15%, rgba(44, 92, 240, 0.32), transparent 62%),
+    linear-gradient(145deg, #0d1a38 0%, #13254d 58%, #0a142d 100%);
+}
+
+[dir="rtl"] .courtside-showcase {
+  background:
+    radial-gradient(ellipse 60% 80% at 18% 15%, rgba(44, 92, 240, 0.32), transparent 62%),
+    linear-gradient(215deg, #0d1a38 0%, #13254d 58%, #0a142d 100%);
+}
 
 .hero-stage {
   --px: 0;
   --py: 0;
-  background:
-    radial-gradient(circle at 24% 18%, rgba(36, 75, 216, 0.42), transparent 58%),
-    linear-gradient(155deg, var(--hero-stage) 0%, var(--hero-stage-deep) 100%);
-}
-
-[dir="rtl"] .hero-stage {
-  background:
-    radial-gradient(circle at 76% 18%, rgba(36, 75, 216, 0.42), transparent 58%),
-    linear-gradient(205deg, var(--hero-stage) 0%, var(--hero-stage-deep) 100%);
 }
 
 .hero-layer {

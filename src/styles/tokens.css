@@ -1,3 +1,5 @@
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 @theme inline {
   --color-base: var(--canvas);
   --color-surface: var(--surface);
@@ -11,7 +13,8 @@
   --color-hero: var(--hero);
   --color-hero-ink: var(--hero-ink);
   --color-hero-stage: var(--hero-stage);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
   --radius-sm: 8px;
   --radius-md: 16px;
   --radius-lg: 24px;
@@ -22,40 +25,51 @@
 
 :root {
   color-scheme: light;
-  --canvas: #f5f6fa;
+  --font-body: var(--font-body-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+  --font-heading: var(--font-display-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+  --canvas: #f3f5fa;
   --surface: #ffffff;
-  --surface-soft: #eaf0ff;
-  --text: #17243e;
-  --muted: #556278;
-  --border: #dce2ec;
+  --surface-soft: #e9effd;
+  --text: #111c33;
+  --muted: #52607a;
+  --border: #dce3ef;
   --accent: #244bd8;
   --accent-text: #ffffff;
-  --header: #ffffff;
-  --header-text: #17243e;
+  --header: rgba(255, 255, 255, 0.88);
+  --header-text: #111c33;
   --focus: #e96640;
   --hero: #f6d957;
-  --hero-ink: #17243e;
-  --hero-stage: #122144;
-  --hero-stage-deep: #0b1630;
-  --mint: #244bd8;
+  --hero-ink: #111c33;
+  --hero-stage: #132550;
+  --hero-stage-deep: #0b1633;
+  --shadow-card: 0 1px 2px rgba(17, 28, 51, 0.05), 0 8px 24px -10px rgba(17, 28, 51, 0.1);
+  --shadow-card-hover: 0 4px 12px -2px rgba(17, 28, 51, 0.08), 0 18px 34px -14px rgba(17, 28, 51, 0.18);
+  --shadow-dock: 0 4px 14px -4px rgba(17, 28, 51, 0.08), 0 20px 44px -18px rgba(17, 28, 51, 0.16);
+}
+
+[dir="rtl"] {
+  --font-body: var(--font-arabic), var(--font-body-latin), Tahoma, Arial, sans-serif;
+  --font-heading: var(--font-arabic), var(--font-display-latin), Tahoma, Arial, sans-serif;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #0e1525;
-  --surface: #172237;
-  --surface-soft: #22314e;
-  --text: #f3f5fc;
-  --muted: #b1bfd6;
-  --border: #2f3e59;
-  --accent: #a7bcff;
-  --accent-text: #101b3d;
-  --header: #131c2e;
-  --header-text: #f3f5fc;
+  --canvas: #0b1220;
+  --surface: #131e33;
+  --surface-soft: #1d2c49;
+  --text: #f3f6fc;
+  --muted: #aebcd4;
+  --border: #263653;
+  --accent: #9cb5ff;
+  --accent-text: #0d1838;
+  --header: rgba(11, 18, 32, 0.86);
+  --header-text: #f3f6fc;
   --focus: #ff9e7e;
   --hero: #eacb51;
-  --hero-ink: #17243e;
-  --hero-stage: #15254b;
-  --hero-stage-deep: #0c1732;
-  --mint: #a7bcff;
+  --hero-ink: #111c33;
+  --hero-stage: #152754;
+  --hero-stage-deep: #0b1530;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 26px -12px rgba(0, 0, 0, 0.45);
+  --shadow-card-hover: 0 6px 16px -4px rgba(0, 0, 0, 0.35), 0 20px 38px -14px rgba(0, 0, 0, 0.55);
+  --shadow-dock: 0 8px 24px -8px rgba(0, 0, 0, 0.45), 0 24px 48px -18px rgba(0, 0, 0, 0.6);
 }

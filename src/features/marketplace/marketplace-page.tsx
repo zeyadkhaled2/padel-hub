@@ -76,11 +76,11 @@ export async function MarketplacePage({
 
       <section
         aria-label={tMarket('search')}
-        className="rounded-[16px] border border-line bg-surface p-2.5 sm:p-4"
+        className="relative z-20 -mt-5 sm:-mt-6 md:-mt-6 mx-1.5 sm:mx-3 md:mx-5 rounded-[18px] bg-surface p-3 sm:p-3.5 md:p-4 shadow-[var(--shadow-dock)] dark:ring-1 dark:ring-white/[0.08]"
       >
         <SearchPanel query={query} category={category} sort={sort} />
 
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/80 pt-2.5 sm:mt-3 sm:pt-3">
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/75 pt-2.5">
           <CategoryPills
             query={query}
             category={category}
@@ -91,7 +91,7 @@ export async function MarketplacePage({
           {hasActiveFilters && listings.length > 0 ? (
             <Link
               href="/"
-              className="inline-flex min-h-[36px] items-center rounded-[8px] px-2.5 text-[12.5px] font-semibold text-muted transition-colors hover:bg-surface-soft/70 hover:text-accent"
+              className="inline-flex min-h-[38px] items-center rounded-[10px] px-3 text-[12.5px] font-bold text-muted transition-colors hover:bg-surface-soft/80 hover:text-accent"
             >
               {tMarket('reset')}
             </Link>
@@ -100,44 +100,49 @@ export async function MarketplacePage({
       </section>
 
       <section
-        className="mt-4 mb-10 md:mt-5 md:mb-14"
+        className="mt-5 mb-12 md:mt-6 md:mb-16"
         aria-labelledby="equipment-heading"
       >
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div className="mb-3.5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2
               id="equipment-heading"
-              className="text-[19px] md:text-[22px] font-bold tracking-[-0.02em] text-ink"
+              className="scroll-mt-32 md:scroll-mt-24 font-display text-[21px] md:text-[25px] font-extrabold tracking-[-0.025em] text-ink"
             >
               {tMarket('heading')}
             </h2>
-            <p className="mt-0.5 text-[13.5px] text-muted">
-              {tMarket('subheading')} ·{' '}
-              <span className="demo-inline-note">{tMarket('demo')}</span>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] sm:text-[14px] text-muted">
+              <span>{tMarket('subheading')}</span>
+              <span aria-hidden="true" className="text-line">
+                ·
+              </span>
+              <span className="font-semibold text-accent">
+                {tMarket('demo')}
+              </span>
             </p>
           </div>
-          <span className="whitespace-nowrap rounded-[8px] bg-surface-soft px-2.5 py-1 text-[12.5px] font-semibold text-muted">
+          <span className="whitespace-nowrap rounded-[10px] bg-surface-soft px-3 py-1.5 font-display text-[12.5px] font-bold tabular-nums text-accent">
             {tMarket('count', { count: listings.length })}
           </span>
         </div>
 
         {listings.length > 0 ? (
-          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4">
+          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
             {listings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
             ))}
           </div>
         ) : (
-          <div className="rounded-[16px] border border-line bg-surface px-6 py-10 text-center">
-            <h3 className="text-[18px] font-bold text-ink">
+          <div className="rounded-[18px] bg-surface px-6 py-12 text-center shadow-[var(--shadow-card)] dark:ring-1 dark:ring-white/[0.08]">
+            <h3 className="font-display text-[20px] font-bold text-ink">
               {tMarket('empty')}
             </h3>
-            <p className="mt-2 mb-5 text-[14.5px] text-muted">
+            <p className="mt-2 mb-6 text-[14.5px] text-muted">
               {tMarket('emptyHint')}
             </p>
             <Link
               href="/"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-[11px] bg-accent px-5 py-2.5 text-[14px] font-semibold text-accent-ink transition-[filter] duration-200 hover:brightness-95"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] bg-accent px-5.5 py-2.5 text-[14px] font-bold text-accent-ink transition-[filter] duration-200 hover:brightness-105"
             >
               {tMarket('reset')}
             </Link>

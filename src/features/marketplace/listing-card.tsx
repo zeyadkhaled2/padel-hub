@@ -1,5 +1,5 @@
 import { getTranslations, getLocale } from 'next-intl/server';
-import { MapPin } from 'lucide-react';
+import { ChevronRight, MapPin } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { formatAmount } from '@/lib/format';
 import { EquipmentArt } from './equipment-art';
@@ -15,60 +15,75 @@ export async function ListingCard({ listing }: ListingCardProps) {
   const isNew = listing.condition === 'new';
 
   return (
-    <article className="listing-card group relative flex min-w-0 flex-col overflow-hidden rounded-[14px] border border-line bg-surface transition-colors duration-200 hover:border-accent">
+    <article className="listing-card group relative flex min-w-0 flex-col overflow-hidden rounded-[16px] bg-surface shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] dark:ring-1 dark:ring-white/[0.08]">
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-soft">
         <EquipmentArt
           listing={listing}
           label={t('illustration')}
-          imageClassName="transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+          imageClassName="transition-transform duration-300 ease-out group-hover:scale-[1.04]"
         />
         <span
-          className={`pointer-events-none absolute top-2 start-2 z-10 rounded-[7px] px-2 py-0.5 text-[11px] font-bold leading-tight ${
+          className={`pointer-events-none absolute top-2.5 start-2.5 z-10 rounded-[8px] px-2.5 py-1 text-[11px] font-bold leading-none ${
             isNew
               ? 'bg-hero text-hero-ink'
-              : 'border border-line/70 bg-surface/95 text-ink'
+              : 'bg-[#0e1b38]/85 text-white backdrop-blur-sm'
           }`}
         >
           {t(listing.condition)}
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col p-2.5 sm:p-3.5">
-        <div className="flex items-baseline justify-between gap-1.5">
-          <p className="text-[16px] sm:text-[18px] font-extrabold leading-tight tracking-[-0.02em] text-ink tabular-nums">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="font-display text-[17.5px] sm:text-[21px] font-extrabold leading-none tracking-[-0.025em] text-ink tabular-nums">
             {t('price', { amount: formatAmount(listing.price, locale) })}
           </p>
-          <span className="hidden shrink-0 text-[11px] font-medium text-muted sm:inline">
+          <span className="hidden shrink-0 rounded-[6px] bg-surface-soft px-2 py-0.5 text-[11px] font-bold text-accent sm:inline-block">
             {t('sale')}
           </span>
         </div>
 
-        <h3 className="mt-1 text-[13.5px] sm:text-[14.5px] font-semibold leading-[1.35] text-ink line-clamp-2">
+        <h3 className="mt-2 font-sans text-[14px] sm:text-[15.5px] font-bold leading-[1.35] tracking-normal text-ink line-clamp-2">
           <Link
             href={`/equipment/${listing.id}`}
-            className="transition-colors hover:text-accent after:absolute after:inset-0 after:content-['']"
+            className="transition-colors group-hover:text-accent after:absolute after:inset-0 after:content-['']"
           >
             <bdi>{listing.name}</bdi>
           </Link>
         </h3>
 
-        <p className="mt-1.5 mb-2.5 inline-flex items-center gap-1 text-[11.5px] sm:text-[12px] text-muted">
-          <MapPin size={13} className="shrink-0" aria-hidden="true" />
-          <span className="truncate">{t('location')}</span>
+        <p className="mt-1.5 mb-3 flex items-center gap-x-1.5 text-[12px] font-medium text-muted">
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <MapPin size={13} className="shrink-0 text-accent" aria-hidden="true" />
+            <span className="truncate">{t('location')}</span>
+          </span>
+          <span aria-hidden="true" className="hidden text-line sm:inline">
+            ·
+          </span>
+          <span className="hidden shrink-0 font-semibold text-ink/85 sm:inline">
+            <bdi>{listing.brand}</bdi>
+          </span>
         </p>
 
-        <div className="mt-auto border-t border-line/80 pt-2">
+        <div className="mt-auto border-t border-line/70 pt-2.5">
           <Link
             href="/sellers/omar_padel"
-            className="relative z-10 -mx-1 -my-1.5 inline-flex min-h-[44px] w-[calc(100%+0.5rem)] items-center gap-2 rounded-[8px] px-1 text-[12px] sm:text-[12.5px] font-medium text-muted transition-colors hover:text-ink"
+            className="relative z-10 -mx-1 -my-1.5 flex min-h-[44px] w-[calc(100%+0.5rem)] items-center justify-between gap-2 rounded-[10px] px-1 text-[12.5px] font-semibold text-muted transition-colors hover:text-ink"
           >
-            <span
-              className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-surface-soft text-[11px] font-bold text-accent"
-              aria-hidden="true"
-            >
-              O
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <span
+                className="grid h-6.5 w-6.5 shrink-0 place-items-center rounded-full bg-surface-soft font-display text-[11.5px] font-extrabold text-accent"
+                aria-hidden="true"
+              >
+                O
+              </span>
+              <span className="truncate">{t('seller')}</span>
             </span>
-            <span className="truncate">{t('seller')}</span>
+            <ChevronRight
+              size={14}
+              className="shrink-0 text-muted/70 transition-transform duration-200 group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+              aria-hidden="true"
+            />
           </Link>
         </div>
       </div>

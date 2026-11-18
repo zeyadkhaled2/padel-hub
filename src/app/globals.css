@@ -5,23 +5,5 @@
 @import "../styles/tokens.css";
 @import "../styles/base.css";
 
-/* Site chrome */
-@import "../styles/layout/header.css";
-
-/* Marketing sections and marketplace browsing (page order) */
+/* Courtside hero backdrop, 2.5D parallax & float keyframes */
 @import "../styles/sections/hero.css";
-@import "../styles/marketplace/listings.css";
-@import "../styles/sections/inspection.css";
-@import "../styles/sections/features.css";
-@import "../styles/sections/how-it-works.css";
-@import "../styles/sections/faq.css";
-@import "../styles/sections/community.css";
-
-/* Site chrome */
-@import "../styles/layout/footer.css";
-
-/* Equipment detail and seller profile pages */
-@import "../styles/pages/detail.css";
-
-/* Breakpoints and reduced motion: keep last so overrides win */
-@import "../styles/responsive.css";
