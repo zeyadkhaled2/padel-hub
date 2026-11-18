@@ -83,8 +83,12 @@ Frontend preview deployment is connected to GitHub `main` on Vercel (`padel-hub-
 
 ## Listing editor
 
-`src/features/listings` contains owner listing summaries, category-specific forms and authenticated Server Actions. Thin `/account/listings` routes use the existing draft/save/submit/withdraw RPCs; migration 008 adds only the owner summary query. Ownership and expected versions are checked in the database; stale forms retain input and require reload. Photo management remains in the existing photo page. Public browsing is implemented; admin dashboard UI remains unfinished.
+`src/features/listings` contains owner listing summaries, category-specific forms and authenticated Server Actions. Thin `/account/listings` routes use the existing draft/save/submit/withdraw RPCs; migration 008 adds only the owner summary query. Ownership and expected versions are checked in the database; stale forms retain input and require reload. Photo management remains in the existing photo page. Public browsing is implemented; a minimal admin review UI now exists; dashboard visual refinement remains.
 
 ## Public buyer journey
 
 Migration 009 provides explicit public listing projections under a read-only capability. Browse, detail and contact share approved-content/media, profile visibility, account status and consent checks. Anonymous browse uses the publishable key; only the server contact redirect reads a consented phone number. No shared caching is used for inventory/contact or protected photos. `/demo` owns all illustrative inventory; the main marketplace never falls back to demo records. `/api/contact/[id]` creates only a fixed `https://wa.me/` destination and rechecks eligibility on each request. Public seller profiles and analytics remain unfinished.
+
+## Admin review
+
+`src/features/admin` owns MFA enrollment/challenge and the minimal queue/review UI. Migration 010 adds role/MFA access status, paginated pending summaries, authorized photo reads and owner rejection reasons. All decisions still use migration 005 snapshot/version checks. Admin photo delivery reuses the bounded, hash-verified private proxy; it rechecks the session-authorized RPC before returning bytes. No role provisioning endpoint is exposed. See ADMIN_REVIEW.md for operations and the UI refinement prompt.

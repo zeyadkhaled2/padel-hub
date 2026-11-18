@@ -5,7 +5,7 @@ import { refreshSession } from './server/supabase/proxy';
 
 const internationalize = createMiddleware(routing);
 export default function proxy(request: NextRequest) {
-  if (/^\/(en|ar)\/(auth|account)(\/|$)/.test(request.nextUrl.pathname)) {
+  if (/^\/(en|ar)\/(auth|account|admin)(\/|$)/.test(request.nextUrl.pathname)) {
     return refreshSession(request, () => internationalize(request));
   }
   return internationalize(request);

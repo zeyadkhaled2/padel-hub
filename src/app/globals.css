@@ -1538,3 +1538,11 @@ nav a:hover,
 .public-gallery img { width: 100%; height: auto; border-radius: 16px; background: var(--surface-soft); }
 .user-copy { white-space: pre-wrap; overflow-wrap: anywhere; }
 .filter-fields input { width: 100%; min-height: 44px; padding: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; }
+
+.mfa-secret { overflow-wrap: anywhere; padding: 1rem; background: var(--surface-soft); user-select: all; }
+.admin-queue { list-style: none; padding: 0; }
+.admin-queue li { padding-block: 1rem; border-bottom: 1px solid var(--border); display: grid; gap: .5rem; }
+.admin-queue a { min-height: 44px; display: flex; align-items: center; }
+.review-details > div { padding-block: .75rem; border-bottom: 1px solid var(--border); }
+.review-details dt { font-weight: 700; }
+.review-details dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

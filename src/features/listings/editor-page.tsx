@@ -14,5 +14,7 @@ export default async function EditorPage({ params }: { params: Promise<{ locale:
   const t = await getTranslations('listingEditor');
   if (error) return <main id="main" className="container account-page"><p role="alert">{t('unavailable')}</p></main>;
   if (!data) notFound();
-  return <main id="main" className="container account-page"><Link href="/account/listings">{t('myListings')}</Link><h1>{t('heading')}</h1><p className="account-intro">{t('intro')}</p><ListingForm initial={data} /></main>;
+  const decision = data.status === 'rejected' ? await client.rpc('get_my_listing_decision', {p_listing:id}) : null;
+  const admin = await getTranslations('admin');
+  return <main id="main" className="container account-page"><Link href="/account/listings">{t('myListings')}</Link><h1>{t('heading')}</h1><p className="account-intro">{t('intro')}</p>{decision?.error && <p role="alert">{admin('unavailable')}</p>}{decision?.data && <div className="form-notice"><h2>{admin('rejection')}</h2><p className="user-copy">{decision.data.reason}</p></div>}<ListingForm initial={data} /></main>;
 }

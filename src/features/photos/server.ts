@@ -109,10 +109,10 @@ export async function uploadPhoto(request: Request, listing: string) {
   } finally { inFlight--; }
 }
 
-export async function deliverPhoto(request: Request, asset: string) {
+export async function deliverPhoto(request: Request, asset: string, reviewListing?: string) {
   if (!UUID.test(asset)) return failure('notFound', 404);
   const url = new URL(request.url);
-  const listing = url.searchParams.get('listing');
+  const listing = reviewListing ?? url.searchParams.get('listing');
   const variant = url.searchParams.get('variant') ?? 'card';
   if ((listing && !UUID.test(listing)) || !['thumb', 'card', 'full'].includes(variant)) return failure('notFound', 404);
   const admin = storageClient();
@@ -122,7 +122,11 @@ export async function deliverPhoto(request: Request, asset: string) {
     const client = await serverClient();
     const user = client ? (await client.auth.getUser()).data.user : null;
     const args = { p_asset: asset, p_viewer: user?.email_confirmed_at ? user.id : null, p_listing: listing };
-    const first = await admin.rpc('get_photo_delivery', args);
+    const readManifest = () => reviewListing
+      ? client?.rpc('admin_photo_delivery', { p_listing: reviewListing, p_asset: asset })
+      : admin.rpc('get_photo_delivery', args);
+    const first = await readManifest();
+    if (!first) return failure('notFound', 404);
     if (first.error) return failure('unavailable', 503);
     if (!first.data) return failure('notFound', 404);
     if (request.headers.has('range')) return failure('rangeUnsupported', 416);
@@ -134,7 +138,8 @@ export async function deliverPhoto(request: Request, asset: string) {
     if (!object.ok) return failure('unavailable', 503);
     const bytes = await boundedBody(object.body);
     if (bytes.length !== selected.bytes || digest(bytes) !== selected.sha256) return failure('unavailable', 503);
-    const second = await admin.rpc('get_photo_delivery', args);
+    const second = await readManifest();
+    if (!second) return failure('notFound', 404);
     if (second.error) return failure('unavailable', 503);
     if (!second.data || JSON.stringify(second.data) !== JSON.stringify(first.data)) return failure('notFound', 404);
     return new Response(request.method === 'HEAD' ? null : new Uint8Array(bytes), { headers: { ...headers, 'Content-Type': 'image/webp', 'Content-Length': String(bytes.length) } });

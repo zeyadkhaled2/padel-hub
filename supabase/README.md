@@ -14,7 +14,7 @@ Use `npx supabase stop --project-id padelhub-local` only when a stop is intended
 
 ## Implemented migrations
 
-Nine migrations are applied locally: schema, reference data, profiles, listing drafts/submission/withdrawal, MFA-admin review, Auth-schema privileges, synchronous equipment-photo save/delivery capabilities, an owner-only listing index, and public marketplace/contact projections. Direct browser table writes remain denied. Public listing/search projections are implemented. Remaining lifecycle/admin operations are unfinished.
+Ten migrations are applied locally: schema, reference data, profiles, listing drafts/submission/withdrawal, MFA-admin review, Auth-schema privileges, synchronous equipment-photo save/delivery capabilities, an owner-only listing index, public marketplace/contact projections, and MFA-protected admin queue/photo access with owner rejection reasons. Direct browser table writes remain denied. Public listing/search projections are implemented. Remaining lifecycle/admin operations are unfinished.
 
 Migration 007 replaced an **unapplied** queue/worker draft. It now contains direct photo-save and visibility functions, draft reads and a bounded upload rate counter. No worker leases, processing queue or scheduled cleanup is used. Existing future-use tables are retained without building services around them. See [photo flow](../docs/PHOTOS.md).
 
@@ -28,7 +28,7 @@ node scripts/local-app.mjs serve
 
 In another terminal, `node scripts/local-app.mjs test --workers=1` runs browser checks with local Auth/Storage. The launcher prepares/checks the private local bucket and supplies credentials only in memory. It preserves `.env.local`. No hosted fallback is used.
 
-The database runner creates a random `padelhub_test_<hex>` database, copies the vendor Auth schema without data, replays migrations, runs transactional tests and removes only its own scratch database. It also checks installed Auth-schema privileges, which a scratch schema's different ownership could otherwise mask. Current SQL suite: 435 assertions plus concurrency/isolation checks. The old `padelhub_t02b_test` schema-only debugging database is not the current test baseline; it is left untouched.
+The database runner creates a random `padelhub_test_<hex>` database, copies the vendor Auth schema without data, replays migrations, runs transactional tests and removes only its own scratch database. It also checks installed Auth-schema privileges, which a scratch schema's different ownership could otherwise mask. Current SQL suite: 456 assertions plus concurrency/isolation checks. The old `padelhub_t02b_test` schema-only debugging database is not the current test baseline; it is left untouched.
 
 ## Auth grant prerequisite
 
@@ -48,3 +48,5 @@ Email confirmation is enabled. Use http://127.0.0.1:3100 with its exact EN/AR ca
 The documented network option did not restrict Docker's published ports: all-interface bindings were observed. Use synthetic data until a scoped loopback remedy is verified. No global firewall/daemon changes were made. Original Auth container `supabase_auth_padelhub-local_before_t03` remains stopped for rollback; do not run it alongside the current Auth container.
 
 Saved photos are retained. Interrupted/conflicting uploads can leave private unreferenced objects for manual review; no automatic deletion or physical-erasure guarantee. Replaced files remain private and count toward the account's retained-photo allowance. Hosted limits and backups must be checked before launch.
+
+Admin setup and review contracts: [ADMIN_REVIEW.md](../docs/ADMIN_REVIEW.md). TOTP is enabled locally; the pre-MFA Auth container remains stopped for rollback.

@@ -12,12 +12,14 @@ Updated 2026-11-18. Earlier day estimates were not measured and are withdrawn. T
 
 - Approved marketplace browse/search/filter/sort/pagination, listing details and fresh WhatsApp contact checks. Demo inventory lives under `/demo`.
 
+- MFA-protected admin queue/review, approval/rejection and owner-visible rejection reasons.
+
 ## Remaining, in order
-1. **Admin review UI:** connect the existing MFA-protected approval/rejection backend; show rejection reasons to owners. Prepare the dashboard UI prompt for the user's chosen agent when the review queue and admin sign-in contracts are ready. Optional racket specifications remain to connect.
+1. **Admin UI refinement:** minimal MFA/queue/photo/decision UI works. UI-agent prompt and contracts are in ADMIN_REVIEW.md; no specialist orchestration is running.
 2. **Marketplace controls:** reserved/sold/traded/archive/relist, public profiles/aliases/QR, reports, hide/suspend, configurable limits and basic views/contact counts. Clicks are not successful sales.
 3. **Production readiness:** recovery, Google login, external email, deletion flows, abuse protections, backups/restore, monitoring and final accessibility/privacy/security checks.
 4. **Hosted pilot:** user-approved hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness.
 
 No new specialist orchestration or handoff reports. Keep one dependent feature in progress. No checkout, payments, automatic expiry or automatic deletion of saved photos. Seller-reported deal counts still require a product decision.
 
-Current next milestone: admin review UI. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
+Current next functional milestone: seller listing lifecycle controls. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.

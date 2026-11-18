@@ -1,6 +1,6 @@
 # Local accounts and profiles
 
-This is a local integration, separate from demo inventory. It supports email signup and confirmation, password sign-in, sign-out, server-verified sessions, private profile creation, profile edits, username changes and explicit WhatsApp consent. Google OAuth, password recovery, public storefront pages and the full listing UI are unfinished. Equipment photo upload/preview now works; see PHOTOS.md and use scripts/local-app.mjs to enable its server-only Storage access. Do not use this setup for production accounts.
+This is a local integration, separate from demo inventory. It supports email signup and confirmation, password sign-in, sign-out, server-verified sessions, private profile creation, profile edits, username changes and explicit WhatsApp consent. Google OAuth, password recovery and public storefront pages are unfinished. Listing drafts, buyer browsing and admin review are implemented locally; see ADMIN_REVIEW.md. Equipment photo upload/preview now works; see PHOTOS.md and use scripts/local-app.mjs to enable its server-only Storage access. Do not use this setup for production accounts.
 
 ## Run
 
