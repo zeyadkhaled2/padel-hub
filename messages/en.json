@@ -73,7 +73,9 @@
     "courtCaption": "Made for more court time.",
     "specShape": "Shape & balance",
     "specWeight": "Weight class",
-    "specSurface": "Surface check"
+    "specSurface": "Surface check",
+    "shoes": "Padel shoes",
+    "bags": "Bags"
   },
   "marketing": {
     "inspection": {
@@ -248,7 +250,9 @@
     "notAllowed": "This upload is not allowed.",
     "notFound": "This draft is unavailable.",
     "unavailable": "The photo could not be saved. Your existing photos are unchanged. Try again.",
-    "reload": "Reload draft"
+    "reload": "Reload draft",
+    "shoes": "Padel shoes",
+    "bags": "Bags"
   },
   "listingEditor": {
     "heading": "Listing details",
@@ -316,7 +320,11 @@
     "statusUpdated": "Listing status updated.",
     "completedHint": "Only mark a deal completed after the handover. The listing leaves search and stops accepting inquiries.",
     "archiveHint": "Archive to remove this listing from public view. Saved details and photos are kept.",
-    "relistHint": "Relisting sends the saved details and photos for approval again. It stays off the marketplace until approved."
+    "relistHint": "Relisting sends the saved details and photos for approval again. It stays off the marketplace until approved.",
+    "shoes": "Padel shoes",
+    "bags": "Bags",
+    "shoe_size_eu": "Shoe size (EU)",
+    "shoeSizeHint": "Use the EU size on the label. Half sizes are supported; size is required before approval."
   },
   "buyer": {
     "approvedOnly": "Approved listings only",
@@ -398,6 +406,13 @@
     "pages": "Profile listing pages",
     "previous": "Previous",
     "next": "Next",
-    "view": "View public profile"
+    "view": "View public profile",
+    "showQr": "Show QR code",
+    "hideQr": "Hide QR code",
+    "qrLoading": "Creating QR code…",
+    "qrError": "Could not create the QR code. Try again.",
+    "qrAlt": "QR code for @{username}",
+    "qrHint": "Scan to open this profile.",
+    "downloadQr": "Download QR code"
   }
 }

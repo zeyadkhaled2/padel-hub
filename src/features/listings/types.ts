@@ -1,5 +1,5 @@
 export type Listing = {
-  id: string; version: number; category: 'rackets' | 'balls'; status: string;
+  id: string; version: number; category: 'rackets' | 'balls' | 'shoes' | 'bags'; status: string;
   media_ids: string[]; is_negotiable: boolean;
   [key: string]: string | number | boolean | string[] | null;
 };

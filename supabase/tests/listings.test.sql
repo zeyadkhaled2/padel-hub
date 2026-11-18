@@ -34,7 +34,7 @@ insert into fixture values('draft',(public.create_listing_draft('balls')->>'id')
 select is(public.get_my_listing((select id from fixture where name='draft'))->>'status','draft','category-only draft saved');
 select is(public.get_my_listing((select id from fixture where name='draft'))->>'title',null::text,'partial draft needs no title');
 select is(public.get_my_listing((select id from fixture where name='draft'))->'media_ids','[]'::jsonb,'partial draft needs no photos');
-select throws_ok($$select public.create_listing_draft('shoes')$$,'23514',null,'invalid category denied');
+select throws_ok($$select public.create_listing_draft('helmets')$$,'23514',null,'invalid category denied');
 select throws_ok($$select public.create_listing_draft(null)$$,'23502',null,'category required');
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),1,'{"status":"active"}')$$,'22023',null,'status injection denied');
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),1,'{"seller_id":"22222222-2222-4222-8222-222222222222"}')$$,'22023',null,'ownership injection denied');

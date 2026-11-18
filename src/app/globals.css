@@ -1546,3 +1546,6 @@ nav a:hover,
 .review-details > div { padding-block: .75rem; border-bottom: 1px solid var(--border); }
 .review-details dt { font-weight: 700; }
 .review-details dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.profile-qr { margin-block: 1rem; }
+.profile-qr img { display: block; max-inline-size: 100%; block-size: auto; background: white; }

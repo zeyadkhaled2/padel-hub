@@ -100,3 +100,7 @@ Migration 011 adds `change_listing_status`: owner/version checks, offer-compatib
 ## Public profile URLs
 
 Thin `[locale]/[handle]` route accepts only `@username`; decoded parameters are validated. Locale-neutral shared links negotiate the visitor locale via next-intl. Migration 012 provides an anonymous safe projection, gated by public/active profile status, with approved-active inventory resolved through immutable seller identity. No auth ID or phone is returned. Rename execution is revoked for API roles; legacy alias tests grant permission only within disposable test scopes. Profile public IDs and existing aliases are preserved for a later rename/QR decision.
+
+## QR and expanded equipment
+Migration 013 resolves public profile IDs to usernames only while public/active. `/api/profiles/[id]` returns a temporary no-store redirect to locale-neutral `/@username`; malformed/private/suspended/missing targets return 404, backend failure 503. Client-side QR generation is lazy-loaded and downloads a PNG without storage or external services.
+Migration 014 adds shoes/bags and numeric `shoe_size_eu`; submission requires valid shoe sizing, accessories are sale-only, and existing ownership/version/approval/media checks remain. Owner, moderation and public projections include size. No old migration was rewritten.

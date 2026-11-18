@@ -8,7 +8,7 @@ interface CategoryPillsProps {
   sort: string; base?: string; values?: Record<string,string>;
 }
 
-const CATEGORIES = ['', 'rackets', 'balls'] as const;
+const CATEGORIES = ['', 'rackets', 'balls', 'shoes', 'bags'] as const;
 
 export async function CategoryPills({
   query,
@@ -22,7 +22,7 @@ export async function CategoryPills({
       {CATEGORIES.map((item, index) => {
         const isSelected =
           category === item ||
-          (!['rackets', 'balls'].includes(category) && !item);
+          (!['rackets', 'balls', 'shoes', 'bags'].includes(category) && !item);
 
         return (
           <Link

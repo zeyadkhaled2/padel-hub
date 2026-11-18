@@ -28,6 +28,7 @@ export function ListingForm({ initial }: { initial: Listing }) {
           {select('governorate_slug', governorates)}{field('district_text')}{select('condition',['new','used'])}{field('condition_disclosure',true)}
           {listing.category === 'rackets' && <>{field('racket_damage_repair_disclosure',true)}{select('offer_type',['sale','swap','both'])}{field('swap_preference',true)}</>}
           {listing.category === 'balls' && <>{field('balls_quantity_packaging')}{field('balls_availability_note')}</>}
+          {listing.category === 'shoes' && <label>{t('shoe_size_eu')}<input name="shoe_size_eu" type="number" min="20" max="55" step="0.5" defaultValue={value('shoe_size_eu')} /><span className="field-hint">{t('shoeSizeHint')}</span></label>}
           <label>{t('price_egp')}<input name="price_egp" type="number" min="1" max="500000" step="1" defaultValue={value('price_egp')} /></label>
           <label className="checkbox-label"><input name="is_negotiable" type="checkbox" defaultChecked={state.values ? state.values.is_negotiable === 'on' : listing.is_negotiable} />{t('is_negotiable')}</label>
           <p className="field-hint">{t('offerHint')}</p>

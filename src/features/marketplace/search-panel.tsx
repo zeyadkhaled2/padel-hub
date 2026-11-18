@@ -52,7 +52,7 @@ export async function SearchPanel({
             <select name="category" defaultValue={category}>
               <option value="">{t('all')}</option>
               <option value="rackets">{t('rackets')}</option>
-              <option value="balls">{t('balls')}</option>
+              <option value="balls">{t('balls')}</option><option value="shoes">{t('shoes')}</option><option value="bags">{t('bags')}</option>
             </select>
           </label>
 

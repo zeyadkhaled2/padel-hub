@@ -10,7 +10,7 @@ export async function createListing(locale: string, form: FormData) {
   const client = await verifiedClient();
   if (!client) redirect(`/${localeValue(locale)}/auth/signin`);
   const category = form.get('category');
-  if (category !== 'rackets' && category !== 'balls') return;
+  if (!['rackets','balls','shoes','bags'].includes(String(category))) return;
   const { data, error } = await client.rpc('create_listing_draft', { p_category: category });
   if (error || !data) redirect(`/${localeValue(locale)}/account/photos?error=unavailable`);
   redirect(`/${localeValue(locale)}/account/listings/${data.id}`);
@@ -51,10 +51,12 @@ export async function saveListing(previous: ListingState, form: FormData): Promi
     }
     patch.price_egp = values.price_egp ? Number(values.price_egp) : null;
     if (patch.price_egp !== null && !z.number().int().min(1).max(500000).safeParse(patch.price_egp).success) return fail('invalid');
+    patch.shoe_size_eu = listing.category === 'shoes' && values.shoe_size_eu ? Number(values.shoe_size_eu) : null;
+    if (patch.shoe_size_eu !== null && (!Number.isFinite(patch.shoe_size_eu) || Number(patch.shoe_size_eu) < 20 || Number(patch.shoe_size_eu) > 55 || Number(patch.shoe_size_eu)*2 % 1 !== 0)) return fail('invalid');
     patch.is_negotiable = values.is_negotiable === 'on';
     if (patch.brand_slug !== 'other') patch.brand_custom = null;
-    if (listing.category === 'balls') { patch.offer_type = 'sale'; patch.racket_damage_repair_disclosure = null; }
-    else { patch.balls_quantity_packaging = null; patch.balls_availability_note = null; }
+    if (listing.category !== 'rackets') { patch.offer_type = 'sale'; patch.racket_damage_repair_disclosure = null; }
+    if (listing.category !== 'balls') { patch.balls_quantity_packaging = null; patch.balls_availability_note = null; }
     if (patch.offer_type === 'sale') patch.swap_preference = null;
     if (patch.offer_type === 'swap') { patch.price_egp = null; patch.is_negotiable = false; }
     const result = await client.rpc('update_listing_draft', { ...args, p_patch: patch });

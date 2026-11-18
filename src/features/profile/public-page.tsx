@@ -21,7 +21,7 @@ export async function PublicProfilePage({ params, searchParams }: {
   const client = publicClient();
   const result = client ? await client.rpc('get_public_profile', { p_username: handle.slice(1), p_page: page }) : null;
   if (!result || result.error) return <main id="main" className="container account-page"><p role="alert">{t('unavailable')}</p></main>;
-  const profile = result.data as { username: string; display_name: string; account_type: string; bio: string | null; governorate_slug: string; district_text: string | null; favorite_racket: string | null; items: PublicListing[]; total: number } | null;
+  const profile = result.data as { public_id: string; username: string; display_name: string; account_type: string; bio: string | null; governorate_slug: string; district_text: string | null; favorite_racket: string | null; items: PublicListing[]; total: number } | null;
   if (!profile) notFound();
   const href = `/@${profile.username}`;
   return <main id="main" className="container account-page">
@@ -29,7 +29,7 @@ export async function PublicProfilePage({ params, searchParams }: {
       <p>{a(`governorates.${profile.governorate_slug}`)}{profile.district_text && <> · <bdi>{profile.district_text}</bdi></>}</p>
       {profile.bio && <p className="user-copy"><bdi>{profile.bio}</bdi></p>}
       {profile.favorite_racket && <p>{a('favorite_racket')}: <bdi>{profile.favorite_racket}</bdi></p>}
-      <ShareProfile username={profile.username} />
+      <ShareProfile username={profile.username} publicId={profile.public_id} />
     </header>
     <h2>{t('listings')}</h2>
     {profile.items.length ? <div className="listing-grid">{profile.items.map(listing => <PublicCard key={listing.id} listing={listing} />)}</div> : <p>{t('empty')}</p>}

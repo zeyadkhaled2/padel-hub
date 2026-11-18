@@ -3,6 +3,8 @@
 Updated: 2026-11-18. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
 
 ## Completed locally
+- QR show/hide and PNG download, generated on demand in-browser. Permanent public-ID links resolve only public active profiles, then use visitor language. No external QR service or stored image.
+- Categories: rackets, balls, padel shoes and bags. Shoes require EU size (20–55, half sizes) before submission; shoes/bags are sale-only with 1–6 photos. Category filters, owner/editor, admin review and public details updated.
 - Public `/@username` profiles show opt-in profile details and approved active listings, with pagination and locale-neutral Copy profile link. Visitor language selection uses the existing locale cookie/browser preference. Usernames fixed after creation; migration 012 revokes rename API access while preserving public IDs and dormant alias data.
 - Verified email accounts, private-by-default profiles and contact preferences. Everyone can buy and sell.
 - Owner listing editor, protected photo upload/replacement, submission and withdrawal with stale-edit protection.
@@ -12,21 +14,19 @@ Updated: 2026-11-18. Verified locally; hosted backend is not configured. Main-br
 - Migration 010 applied locally. TOTP enabled in running Auth; previous Auth container retained stopped. User-selected verified account received local admin access; its authenticator setup is user-controlled.
 
 ## Verification
-- Public profiles: `npm run check` passed; 486 SQL assertions and existing races passed. Initial browser run: 14 passed, 2 failed on encoded @ handling; fixed and both affected desktop/mobile account tests passed. 12 locale/theme/width checks passed and mobile screenshots inspected. Migration 012 applied locally.
-- Vercel failure fixed: unanchored `supabase` in `.vercelignore` removed `src/server/supabase`, causing missing-module build errors. Changed to `/supabase/` (commit `686fb6d`); `npm run check` and 10/10 foundation browser tests passed. Vercel production deployment `dpl_DF9JPWfy1GrmetE5U6y4K2YBsVtB` is Ready; live `/en`, `/ar`, `/en/demo`, `/en/auth/signin` returned HTTP 200. Hosted backend remains unconfigured.
-- `npm run check`: lint, TypeScript and production build passed on the final code.
-- Full browser suite: 16/16 passed; after the final encrypted-snapshot change, both affected admin tests passed again (2/2).
-- Admin checks cover real TOTP, invalid codes, fresh challenge after sign-in, private photos, rejection reasons, stale decisions, approval and revocation. 32 queue/review locale/theme/width combinations passed; screenshots inspected.
-- Lifecycle verification: full browser suite 16/16 passed; database 476 assertions plus concurrency/isolation checks passed. 12 EN/AR theme/width combinations passed; mobile screenshots inspected. `git diff --check` passed.
-- Synthetic test roles revoked; active/pending fixture listings withdrawn; saved images retained. Tests did not enroll or read the real user's authenticator.
+- Latest `npm run check`: lint, TypeScript and production build passed.
+- Full browser suite: 16/16 passed, including downloaded QR PNG decoded independently, no-store ID redirect, visitor Arabic preference, shoe half-size persistence, bags, existing auth/admin/listing flows.
+- Database: 504 assertions plus existing concurrency/isolation checks passed. Migrations 013–014 applied locally; no hosted migrations.
+- 24 QR/profile and shoe-form locale/theme/width checks passed; mobile screenshots inspected. `git diff --check` passed.
+- Earlier Vercel missing-module failure fixed by anchoring `/supabase/` in `.vercelignore`. Hosted backend remains unconfigured.
 
 ## Next
 1. User completes authenticator setup at `/en/admin`. Minimal review UI works; refinement prompt is in [ADMIN_REVIEW.md](ADMIN_REVIEW.md).
-2. Optional racket specifications, profile QR display/download, reports and basic analytics.
+2. Optional racket specifications, reports and basic analytics.
 3. Hosted auth/email, recovery including MFA recovery, backups/restore and deployment checks before launch.
 
 ## Latest scope decision
-- Usernames fixed for MVP. Share `/@username` without language; permanent public profile IDs remain internal identities and future QR targets. Username changes/alias policy deferred.
+- Usernames fixed for MVP. Share `/@username` without language; permanent public profile IDs remain internal identities and QR targets. Username changes/alias policy deferred.
 - 2026-11-18: reservation and available-again controls deferred until after MVP; sold/traded/archive/relist now implemented locally. Existing reservation schema support retained, with no reservation controls exposed.
 
 ## Constraints and preview

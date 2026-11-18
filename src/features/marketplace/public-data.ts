@@ -9,6 +9,7 @@ export type PublicListing = {
   condition_disclosure: string; offer_type: string; price_egp: number | null; is_negotiable: boolean;
   swap_preference: string | null; racket_damage_repair_disclosure: string | null; racket_year: number | null;
   racket_shape: string | null; racket_weight_grams: number | null; racket_purchase_date: string | null;
+  shoe_size_eu: number | null;
   balls_quantity_packaging: string | null; balls_availability_note: string | null;
   last_confirmed_available_at: string | null; media_ids: string[];
   seller: { display_name: string; username: string; account_type: string };

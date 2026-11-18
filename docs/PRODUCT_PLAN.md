@@ -5,7 +5,7 @@ Approved product and engineering plan supplied by Ziad on 2026-11-13.
 **Execution gate resolved (2026-11-13):** Three visual directions were presented. Ziad selected Sport-focused, with a much friendlier, more comfortable feel, dark-mode support, maintainable file organization and a continuously updated Markdown handoff. Local foundation implementation may proceed. See DESIGN_SPEC.md and PROGRESS.md. Do not create paid services or publish without relevant authorization.
 
 ## 1. Product brief and scope
-Build an Egypt-first, Arabic/English responsive website for players and businesses to sell padel rackets and balls, with racket swaps secondary. Currency EGP. It is a connection bridge: anonymous visitors browse, tap WhatsApp, and arrange payment/meeting directly with sellers. No platform checkout, commissions, delivery, escrow or inventory reservations. Website first; native mobile later.
+Build an Egypt-first, Arabic/English responsive website for players and businesses to sell padel rackets, balls, shoes and bags, with racket swaps secondary. Currency EGP. It is a connection bridge: anonymous visitors browse, tap WhatsApp, and arrange payment/meeting directly with sellers. No platform checkout, commissions, delivery, escrow or inventory reservations. Website first; native mobile later.
 
 Launch free for individuals and businesses. Later validate featured listings (initial hypothesis 50–100 EGP for three days) and monthly business accounts, but implement no payments or monetization now. No internal messaging, push notifications, automatic matching, multi-user business teams, public ratings, court booking or native app in MVP.
 
@@ -29,12 +29,14 @@ Show desktop/mobile marketplace, product details and public seller profile for e
 ### Accounts and profiles
 Individual/business profile with unique username, display name, photo, bio, governorate/district, optional favorite racket, WhatsApp number and explicit public-contact consent. Visibility defaults private; users may publish an empty profile. A business label does not imply verified identity.
 
-Username: 3–24 Latin letters/digits/underscores, case-insensitive uniqueness enforced by DB; reserve admin/system routes. Display names support Arabic. MVP usernames are fixed after creation. Shareable links use `/@username` without a language prefix; the visitor chooses the display language. Permanent public profile IDs remain stable. Future QR links target that ID; username changes and alias/reuse policy are deferred. Private/suspended profiles must not leak through aliases, QR or metadata. Native share/copy link and social metadata. Explain that public WhatsApp numbers become visible when contacted.
+Username: 3–24 Latin letters/digits/underscores, case-insensitive uniqueness enforced by DB; reserve admin/system routes. Display names support Arabic. MVP usernames are fixed after creation. Shareable links use `/@username` without a language prefix; the visitor chooses the display language. Permanent public profile IDs remain stable. QR links target that ID; username changes and alias/reuse policy are deferred. Private/suspended profiles must not leak through aliases, QR or metadata. Native share/copy link and social metadata. Explain that public WhatsApp numbers become visible when contacted.
 
 ### Listings
 Common fields: category, title, brand, description, location, new/used condition, disclosures, photos and seller contact.
 Rackets: model, damage/repair disclosure, sale/swap/both; price required for sale/both, negotiable flag, desired swap description. 3–6 photos covering faces/frame. Optional year/shape/weight/purchase date; unknown values left blank.
 Balls: brand/model, condition, quantity/packaging, price for the whole stated offer, 1–6 photos. Sale only. Describe availability manually; no checkout stock reservation.
+Shoes: sale only, required EU shoe size 20–55 including half sizes before submission, 1–6 photos. Bags: sale only, common equipment details and 1–6 photos. Existing manual approval and retention rules apply.
+
 Curated brands plus Other; model free text.
 Initial configurable limits: 5 active+pending individual listings, 20 business listings.
 

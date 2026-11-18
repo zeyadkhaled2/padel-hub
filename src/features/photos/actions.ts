@@ -7,7 +7,7 @@ export async function createPhotoDraft(locale: string, form: FormData) {
   const base = `/${localeValue(locale)}/account/photos`;
   if (!client) redirect(`/${localeValue(locale)}/auth/signin`);
   const category = form.get('category');
-  if (category !== 'rackets' && category !== 'balls') redirect(`${base}?error=invalidFile`);
+  if (!['rackets','balls','shoes','bags'].includes(String(category))) redirect(`${base}?error=invalidFile`);
   const { data, error } = await client.rpc('create_listing_draft', { p_category: category });
   if (error || !data) redirect(`${base}?error=unavailable`);
   redirect(`${base}?listing=${data.id}`);

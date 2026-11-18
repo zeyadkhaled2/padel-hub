@@ -1,5 +1,7 @@
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
 import sharp from 'sharp';
+import jsQR from 'jsqr';
+import { readFile } from 'node:fs/promises';
 import { approveLocalListing } from './local-review';
 test.use({ trace: 'off', screenshot: 'off', video: 'off' }); // Never record authentication credentials.
 
@@ -264,9 +266,27 @@ test.describe('local verified accounts', () => {
     await buyerPage.goto(`/@${username}`);
     await expect(buyerPage).toHaveURL(new RegExp(`/en/@${username}$`));
     await expect(buyerPage.locator('.listing-card')).toHaveCount(1);
+    await buyerPage.getByRole('button', { name: 'Show QR code', exact: true }).click();
+    const qrImage = buyerPage.getByRole('img', { name: `QR code for @${username}`, exact: true });
+    await expect(qrImage).toBeVisible();
+    const downloadEvent = buyerPage.waitForEvent('download');
+    await buyerPage.getByRole('link', { name: 'Download QR code', exact: true }).click();
+    const download = await downloadEvent;
+    expect(download.suggestedFilename()).toBe(`padelhub-${username}-qr.png`);
+    const png = await readFile((await download.path())!);
+    const decodedImage = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const code = jsQR(new Uint8ClampedArray(decodedImage.data), decodedImage.info.width, decodedImage.info.height);
+    expect(code?.data).toMatch(/^http:\/\/127\.0\.0\.1:3100\/api\/profiles\/[a-f0-9-]{36}$/);
+    const qrTarget = code!.data;
+    const qrResponse = await buyer.request.get(qrTarget, { maxRedirects: 0 });
+    expect(qrResponse.status()).toBe(302);
+    expect(qrResponse.headers().location).toBe(`/@${username}`);
+    expect(qrResponse.headers()['cache-control']).toContain('no-store');
+    await buyerPage.getByRole('button', { name: 'Hide QR code', exact: true }).click();
+    await expect(qrImage).toHaveCount(0);
     expect(await buyerPage.content()).not.toContain('+201000000000');
     await buyer.addCookies([{name:'NEXT_LOCALE', value:'ar', url:'http://127.0.0.1:3100'}]);
-    await buyerPage.goto(`/@${username}`);
+    await buyerPage.goto(qrTarget);
     await expect(buyerPage).toHaveURL(new RegExp(`/ar/@${username}$`));
     await expect(buyerPage.locator('html')).toHaveAttribute('dir','rtl');
     await expect(buyerPage.getByRole('button', { name: 'نسخ رابط الملف' })).toBeVisible();
@@ -331,6 +351,21 @@ test.describe('local verified accounts', () => {
     await expect(page.getByRole('status')).toContainText('Submission needs');
     await page.reload();
     await expect(page.getByLabel('Ball quantity and packaging')).toHaveValue('Three sealed balls');
+    for (const category of ['shoes','bags']) {
+      await page.goto('/en/account/listings');
+      await page.locator('#category').selectOption(category);
+      await page.getByRole('button', { name: 'Create listing', exact: true }).click();
+      await page.getByLabel('Listing title', { exact: true }).fill(`Synthetic ${category} ${suffix}`);
+      await expect(page.getByLabel('Offer type', { exact: true })).toHaveCount(0);
+      await expect(page.getByLabel('Ball quantity and packaging')).toHaveCount(0);
+      if (category === 'shoes') await page.getByLabel('Shoe size (EU)', { exact: false }).fill('42.5');
+      else await expect(page.locator('input[name="shoe_size_eu"]')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('Draft saved');
+      await page.reload();
+      await expect(page.getByLabel('Listing title', { exact: true })).toHaveValue(`Synthetic ${category} ${suffix}`);
+      if (category === 'shoes') await expect(page.locator('input[name="shoe_size_eu"]')).toHaveValue('42.5');
+    }
     const listingVisitor = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
     const visitorPage = await listingVisitor.newPage();
     await visitorPage.goto(editorUrl);

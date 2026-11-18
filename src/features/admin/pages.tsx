@@ -48,7 +48,7 @@ export async function AdminReviewPage({ params }: { params: Promise<{locale:stri
     'use server';
     return decideListing(locale, snapshot, state, form);
   }
-  const fields = ['category','title','brand_slug','brand_custom','model','description','governorate_slug','district_text','condition','condition_disclosure','offer_type','price_egp','is_negotiable','swap_preference','racket_damage_repair_disclosure','racket_year','racket_shape','racket_weight_grams','racket_purchase_date','balls_quantity_packaging','balls_availability_note'];
+  const fields = ['category','title','brand_slug','brand_custom','model','description','governorate_slug','district_text','condition','condition_disclosure','offer_type','price_egp','is_negotiable','swap_preference','racket_damage_repair_disclosure','racket_year','racket_shape','racket_weight_grams','racket_purchase_date','shoe_size_eu','balls_quantity_packaging','balls_availability_note'];
   return <main id="main" className="container account-page"><Link href="/admin">{t('queue')}</Link><h1>{t('review')}</h1><p className="form-notice">{t('reviewHint')}</p>
     <p><bdi>{String(snapshot.profile.display_name)} · @{String(snapshot.profile.username)}</bdi></p>
     <p>{t('eligibility',{visibility:snapshot.profile.is_public?t('yes'):t('no'),contact:snapshot.profile.public_contact_consent && snapshot.profile.has_contact?t('yes'):t('no'),status:String(snapshot.profile.account_status)})}</p>

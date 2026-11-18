@@ -21,7 +21,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     <Link href="/account">{t('back')}</Link><h1>{t('title')}</h1><p className="account-intro">{t('intro')}</p>
     {(error || result?.error || query.error) && <p role="alert" className="form-notice">{t('unavailable')}</p>}
     <form action={createPhotoDraft.bind(null, locale)} className="account-form">
-      <label htmlFor="category">{t('category')}</label><select id="category" name="category"><option value="rackets">{t('rackets')}</option><option value="balls">{t('balls')}</option></select>
+      <label htmlFor="category">{t('category')}</label><select id="category" name="category"><option value="rackets">{t('rackets')}</option><option value="balls">{t('balls')}</option><option value="shoes">{t('shoes')}</option><option value="bags">{t('bags')}</option></select>
       <button className="button secondary">{t('create')}</button>
     </form>
     {items.length > 0 && <form className="account-form" method="get"><label htmlFor="listing">{t('draft')}</label><select id="listing" name="listing" defaultValue={selected?.id}>{items.map((item,index) => <option key={item.id} value={item.id}>{item.title || `${t(item.category)} · ${index+1}`}</option>)}</select><button className="button secondary">{t('open')}</button></form>}

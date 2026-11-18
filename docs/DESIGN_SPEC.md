@@ -46,4 +46,4 @@ Use a zero-network local system sans-serif stack with Arabic-capable fallbacks (
 
 Focused native signup/signin forms and a profile page inherit existing navy/cobalt semantic themes. Usernames are chosen once at profile creation and then displayed read-only. Profile details and WhatsApp consent have separate saves; privacy and contact are opt-in and visually distinct. EN/AR labels, logical spacing, responsive controls and status feedback are included. Personal/Business are account types, with one account able to buy and sell. Local-only notices distinguish saved preferences from unfinished public storefront features.
 
-Public profiles use the existing marketplace cards, semantic themes and RTL layout, with a locale-neutral Copy profile link action. Empty profiles remain usable; QR display/download remains pending.
+Public profiles use the existing marketplace cards, semantic themes and RTL layout, with a locale-neutral Copy profile link action. Empty profiles remain usable; QR show/hide and PNG download use an unstyled black-on-white code with a four-module quiet zone in both themes.

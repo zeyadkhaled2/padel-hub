@@ -16,7 +16,7 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
   if (error) return <main id="main" className="container detail-page"><p role="alert">{t('unavailable')}</p><Link href="/">{market('back')}</Link></main>;
   if (!data) notFound();
   const listing = data as PublicListing;
-  const fields = ['model','description','condition_disclosure','racket_damage_repair_disclosure','swap_preference','balls_quantity_packaging','balls_availability_note'] as const;
+  const fields = ['shoe_size_eu','model','description','condition_disclosure','racket_damage_repair_disclosure','swap_preference','balls_quantity_packaging','balls_availability_note'] as const;
   return <main id="main" className="container detail-page"><Link href="/">{market('back')}</Link>
     <div className="detail-grid"><section aria-label={t('gallery')} className="public-gallery">{listing.media_ids.map((media,index) => <img key={media} src={`/api/media/${media}?listing=${id}&variant=full`} alt={t('photo', { title: listing.title, number: index+1 })} width={800} height={600} loading={index === 0 ? 'eager' : 'lazy'} />)}</section>
     <section><p className="condition">{e(listing.status)} · {e(listing.condition)} · {e(listing.offer_type)}</p><h1><bdi>{listing.title}</bdi></h1>
