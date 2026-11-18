@@ -17,6 +17,7 @@ export async function SiteHeader() {
         <nav aria-label={t('navigation')}>
           <Link href="/">{t('explore')}</Link>
           <Link href="/about">{t('how')}</Link>
+          <Link href="/account" prefetch={false}>{t('account')}</Link>
         </nav>
 
         <Suspense>

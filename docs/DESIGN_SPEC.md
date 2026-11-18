@@ -41,3 +41,7 @@ Use a zero-network local system sans-serif stack with Arabic-capable fallbacks (
 ## Required state behavior
 - **Loading / Empty / Error**: Stable geometry, respect `prefers-reduced-motion`, explain why no listings match with a filter reset link, and retain entered inputs.
 - **Moderation & Lifecycle (Stage 2–4 backlog)**: Draft/pending listings stay private; rejected listings retain images for correction; active listings require manual approval and public-contact consent; reserved/sold/traded states disable contact.
+
+## Account surfaces — 2026-11-17
+
+Focused native signup/signin forms and a profile page inherit existing navy/cobalt semantic themes. Profile details, username and WhatsApp consent have separate saves; privacy and contact are opt-in and visually distinct. EN/AR labels, logical spacing, responsive controls and status feedback are included. Personal/Business are account types, with one account able to buy and sell. Local-only notices distinguish saved preferences from unfinished public storefront features.

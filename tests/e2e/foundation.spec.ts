@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('search, empty state, detail and seller navigation', async ({ page }) => {
-  await page.goto('/en');
+  await page.goto('/en/demo');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Your next game starts here.',
   );
@@ -32,14 +32,14 @@ test('search, empty state, detail and seller navigation', async ({ page }) => {
 test('theme persists and locale switch preserves filters without overflow', async ({
   page,
 }) => {
-  await page.goto('/en?category=balls&sort=low');
+  await page.goto('/en/demo?category=balls&sort=low');
   await expect(page.locator('.listing-card')).toHaveCount(1);
   await page.getByRole('combobox', { name: 'Color theme' }).selectOption('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.getByRole('link', { name: 'العربية' }).click();
-  await expect(page).toHaveURL(/\/ar\?.*category=balls/);
+  await expect(page).toHaveURL(/\/ar\/demo\?.*category=balls/);
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.locator('.listing-card')).toHaveCount(1);
   await page
@@ -57,7 +57,7 @@ test('both locales and themes fit a narrow screen', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 780 });
   for (const locale of ['en', 'ar']) {
     for (const theme of ['light', 'dark']) {
-      await page.goto(`/${locale}`);
+      await page.goto(`/${locale}/demo`);
       await page
         .getByRole('combobox', {
           name: locale === 'en' ? 'Color theme' : 'مظهر الموقع',
@@ -76,7 +76,7 @@ test('both locales and themes fit a narrow screen', async ({ page }) => {
 test('category shortcuts preserve search and sort, and equipment images load', async ({
   page,
 }) => {
-  await page.goto('/en?q=Head&sort=low');
+  await page.goto('/en/demo?q=Head&sort=low');
   await page
     .getByRole('group', { name: 'Equipment' })
     .getByRole('link', { name: 'Balls', exact: true })
@@ -103,7 +103,7 @@ test('category shortcuts preserve search and sort, and equipment images load', a
 test('interactive inspection showcase and FAQ sections work in both locales', async ({
   page,
 }) => {
-  await page.goto('/en');
+  await page.goto('/en/demo');
   await expect(
     page.getByRole('heading', {
       name: 'Every listing requires structured court-ready disclosures.',

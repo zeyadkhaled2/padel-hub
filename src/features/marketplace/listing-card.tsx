@@ -26,7 +26,7 @@ export async function ListingCard({ listing }: ListingCardProps) {
         </div>
 
         <h3>
-          <Link href={`/equipment/${listing.id}`}>
+          <Link href={`/demo/equipment/${listing.id}`}>
             <bdi>{listing.name}</bdi>
           </Link>
         </h3>
@@ -40,7 +40,7 @@ export async function ListingCard({ listing }: ListingCardProps) {
           {t('location')}
         </p>
 
-        <Link href="/sellers/omar_padel" className="seller-link">
+        <Link href="/demo/sellers/omar_padel" className="seller-link">
           <span className="avatar small" aria-hidden>
             O
           </span>

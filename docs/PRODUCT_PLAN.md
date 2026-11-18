@@ -96,3 +96,7 @@ Handoff deliverables inside future repository:
 PRD/exclusions, approved UI design, user journeys, prioritized backlog with acceptance criteria, architecture decisions, data model/migrations, interface and permission documentation, tests, launch checklist, operating/restore/rollback runbooks, risk/decision log and pilot metrics definition.
 
 Later phases: improve market liquidity first, validate paid placements/business demand, then separately approve billing; consider staff access, alerts and credible reputation later.
+
+## Account terminology clarification — approved 2026-11-17
+
+Every account can buy and sell. There is no exclusive buyer/seller role selection; anonymous visitors may browse/contact. UI uses Account type / نوع الحساب with Personal / شخصي and Business / نشاط تجاري. The profile heading is Your profile / ملفي الشخصي. Explain: You can buy and sell with the same account / تقدر تبيع وتشتري بنفس الحساب. This is a wording clarification; internal individual/business values and configurable 5/20 active+pending limits remain unchanged. Business status does not imply verification.

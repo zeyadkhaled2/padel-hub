@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 interface CategoryPillsProps {
   query: string;
   category: string;
-  sort: string;
+  sort: string; base?: string; values?: Record<string,string>;
 }
 
 const CATEGORIES = ['', 'rackets', 'balls'] as const;
@@ -13,7 +13,7 @@ const CATEGORIES = ['', 'rackets', 'balls'] as const;
 export async function CategoryPills({
   query,
   category,
-  sort,
+  sort, base = "/", values = {},
 }: CategoryPillsProps) {
   const t = await getTranslations('market');
 
@@ -29,8 +29,9 @@ export async function CategoryPills({
             key={item || 'all'}
             prefetch={false}
             href={{
-              pathname: '/',
+              pathname: base,
               query: {
+                ...values, page: undefined, category: undefined,
                 ...(query ? { q: query } : {}),
                 ...(sort ? { sort } : {}),
                 ...(item ? { category: item } : {}),

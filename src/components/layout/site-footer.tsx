@@ -17,7 +17,7 @@ export async function SiteFooter() {
           <Link href="/">{t('explore')}</Link>
           <Link href="/about">{t('how')}</Link>
         </div>
-        <p>{t('demo')}</p>
+        <Link href="/demo">{t('demoLink')}</Link>
         <span className="footer-signoff">{t('made')}</span>
       </div>
     </footer>

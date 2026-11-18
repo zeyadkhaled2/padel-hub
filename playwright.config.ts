@@ -8,7 +8,7 @@ export default defineConfig({
   workers: 2,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3100',
+    baseURL: process.env.PADELHUB_AUTH_E2E === '1' ? 'http://127.0.0.1:3100' : 'http://localhost:3100',
     trace: 'retain-on-failure',
     channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     launchOptions: process.env.PLAYWRIGHT_EXECUTABLE_PATH
@@ -21,7 +21,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev -- --port 3100',
-    url: 'http://localhost:3100/en',
+    url: process.env.PADELHUB_AUTH_E2E === '1' ? 'http://127.0.0.1:3100/en' : 'http://localhost:3100/en',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

@@ -8,7 +8,7 @@ export async function SellerProfileView() {
 
   return (
     <main id="main" className="container detail-page">
-      <Link href="/" className="text-link">
+      <Link href="/demo" className="text-link">
         {t('back')}
       </Link>
 

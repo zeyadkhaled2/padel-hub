@@ -19,7 +19,7 @@ export async function EquipmentDetailView({
 
   return (
     <main id="main" className="container detail-page">
-      <Link href="/" className="text-link">
+      <Link href="/demo" className="text-link">
         {t('back')}
       </Link>
 
@@ -51,7 +51,7 @@ export async function EquipmentDetailView({
             <p>{disclosureCopy}</p>
           </div>
 
-          <Link href="/sellers/omar_padel" className="seller-link">
+          <Link href="/demo/sellers/omar_padel" className="seller-link">
             <span className="avatar">O</span>
             <span>
               {t('seller')}

@@ -1493,3 +1493,48 @@ nav a:hover,
     animation: none !important;
   }
 }
+
+/* Account tasks inherit the marketplace's semantic themes and native controls. */
+.account-page { max-width: 760px; padding-block: 40px 64px; }
+.auth-page { max-width: 540px; }
+.account-page h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); }
+.account-page h2 { font-size: 1.35rem; margin-block: 0 12px; }
+.account-intro { color: var(--muted); margin-block: 12px 24px; }
+.account-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.account-form { display: flex; flex-direction: column; gap: 12px; padding-block: 24px; }
+.account-form label { font-weight: 600; }
+.account-form input:not([type="checkbox"]), .account-form select, .account-form textarea { width: 100%; min-height: 48px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); padding: 12px; font: inherit; }
+.account-form textarea { resize: vertical; }
+.account-form .button { align-self: flex-start; margin-block-start: 8px; }
+.account-form .button:disabled { cursor: not-allowed; opacity: .65; }
+.form-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.form-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field-hint { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.field-error { color: var(--text); font-size: 14px; font-weight: 650; }
+[aria-invalid="true"] { outline: 2px solid var(--focus); outline-offset: 2px; }
+.form-notice { background: var(--surface-soft); border-radius: 12px; padding: 16px; margin-block: 16px; overflow-wrap: anywhere; }
+.form-notice a, .account-switch a { text-decoration: underline; text-underline-offset: 4px; }
+.profile-sections .account-form + .account-form { border-block-start: 1px solid var(--border); margin-block-start: 16px; }
+.profile-visibility { margin-block-start: 24px; font-weight: 650; }
+.account-form .check-field { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding-block: 8px; }
+.check-field input { width: 20px; height: 20px; flex-shrink: 0; margin-block-start: 3px; accent-color: var(--accent); }
+.account-switch { margin-block-start: 16px; }
+@media (max-width: 600px) { .account-page { padding-block-start: 24px; } .form-columns { grid-template-columns: 1fr; } .account-form .button { width: 100%; } }
+.photo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-block: 24px; }
+.photo-grid figure, .photo-preview { margin: 0; min-width: 0; }
+.photo-grid img, .photo-preview img { display: block; width: 100%; height: 220px; object-fit: contain; background: var(--surface); border-radius: 12px; }
+.photo-grid figcaption, .photo-preview figcaption { margin-block: 8px; color: var(--muted); }
+.photo-preview { max-width: 360px; }
+.account-form progress { width: 100%; accent-color: var(--accent); }
+@media (max-width: 600px) { .photo-grid { grid-template-columns: 1fr; } }
+
+.listing-fields { display: grid; gap: 1rem; border: 0; padding: 0; margin: 0; min-inline-size: 0; }
+.listing-fields label { display: grid; gap: .4rem; }
+.listing-fields .checkbox-label { display: flex; align-items: center; }
+
+.public-photo { display: block; aspect-ratio: 3 / 2; overflow: hidden; }
+.public-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.public-gallery { display: grid; gap: 1rem; align-content: start; }
+.public-gallery img { width: 100%; height: auto; border-radius: 16px; background: var(--surface-soft); }
+.user-copy { white-space: pre-wrap; overflow-wrap: anywhere; }
+.filter-fields input { width: 100%; min-height: 44px; padding: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; }
