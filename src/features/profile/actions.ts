@@ -38,11 +38,6 @@ export async function saveProfile(_previous: ProfileState, form: FormData): Prom
       if (!parsed.success) return fail('invalidFields', Object.fromEntries(parsed.error.issues.map(issue => [String(issue.path[0]), 'invalidField'])));
       rpc = 'update_seller_profile';
       args = { p_expected_version: expected.data, p_patch: { ...parsed.data, is_public: values.is_public === 'on' } };
-    } else if (intent === 'rename') {
-      const parsed = username.safeParse(values.username);
-      if (!parsed.success) return fail('invalidFields', { username: 'usernameHint' });
-      rpc = 'rename_seller_username';
-      args = { p_expected_version: expected.data, p_username: parsed.data };
     } else if (intent === 'contact') {
       const phone = (values.whatsapp_e164 ?? '').trim();
       const contactVersion = version.safeParse(values.contact_version);

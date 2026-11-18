@@ -1,4 +1,8 @@
 begin;
+-- Exercise preserved post-MVP alias implementation in this rolled-back scratch test only.
+grant padelhub_profile_writer to postgres;
+grant execute on function public.rename_seller_username(integer,text) to authenticated;
+revoke padelhub_profile_writer from postgres;
 create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;

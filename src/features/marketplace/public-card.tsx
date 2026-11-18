@@ -14,6 +14,6 @@ export async function PublicCard({ listing }: { listing: PublicListing }) {
     <div className="listing-content"><div className="card-topline"><span className="condition">{e(listing.condition)}</span><span>{e(listing.offer_type)}</span></div>
       <h3><Link href={`/equipment/${listing.id}`} prefetch={false}><bdi>{listing.title}</bdi></Link></h3>
       <p className="price">{listing.price_egp === null ? e('swap') : t('price', { amount: formatAmount(listing.price_egp, locale) })}</p>
-      <p>{a(`governorates.${listing.governorate_slug}`)}</p><p><bdi>{listing.seller.display_name}</bdi></p>
+      <p>{a(`governorates.${listing.governorate_slug}`)}</p><p><Link href={`/@${listing.seller.username}`} prefetch={false}><bdi>{listing.seller.display_name}</bdi></Link></p>
     </div></article>;
 }

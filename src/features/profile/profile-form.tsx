@@ -2,11 +2,13 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { saveProfile } from './actions';
 import { governorates, type Profile, type ProfileState } from './types';
 
 export function ProfileForm({ initial }: { initial: Profile | null }) {
   const t = useTranslations('account');
+  const publicText = useTranslations('publicProfile');
   const [state, action, pending] = useActionState<ProfileState, FormData>(saveProfile, { profile: initial });
   // Controlled drafts survive action resets and saves in a different section.
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -48,10 +50,11 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
         <label className="check-field"><input type="checkbox" name="is_public" checked={draft.is_public === undefined ? p.is_public : draft.is_public === 'on'} onChange={event => change('is_public', event.target.checked ? 'on' : '')} /><span>{t('is_public')}</span></label>
         <p className="field-hint">{t('visibilityHint')}</p>{button('details', 'saveDetails')}
       </form>
-      <form action={action} className="account-form" key={`rename-${p.version}-${state.message}`}>
-        <h2>{t('usernameTitle')}</h2>{hidden}{field('username', p.username, { dir: 'ltr', required: true, maxLength: 24, hint: 'usernameHint' })}
-        <p className="field-hint">{t('renameHint')}</p>{button('rename', 'saveUsername')}
-      </form>
+      <section className="account-form">
+        <h2>{t('usernameTitle')}</h2><p><bdi>@{p.username}</bdi></p>
+        <p className="field-hint">{t('usernameFixed')}</p>
+        {p.is_public && p.account_status === 'active' && <Link href={`/@${p.username}`} prefetch={false}>{publicText('view')}</Link>}
+      </section>
       <form action={action} className="account-form" key={`contact-${p.version}-${state.message}`}>
         <h2>{t('contactTitle')}</h2>{hidden}<input type="hidden" name="contact_version" value={p.contact_version} />
         {field('whatsapp_e164', p.whatsapp_e164 ?? '', { dir: 'ltr', maxLength: 16, hint: 'phoneHint' })}

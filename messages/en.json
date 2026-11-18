@@ -151,7 +151,7 @@
     "createProfile": "Create profile",
     "privateDefault": "Your profile starts private, with public contact off. You can choose these settings after saving.",
     "username": "Username",
-    "usernameHint": "3–24 Latin letters, numbers or underscores. No spaces.",
+    "usernameHint": "3–24 Latin letters, numbers or underscores. No spaces. Choose carefully: it cannot be changed after creation.",
     "display_name": "Display name",
     "governorate_slug": "Governorate",
     "chooseLocation": "Choose a governorate",
@@ -167,8 +167,6 @@
     "profileDetails": "Profile details",
     "saveDetails": "Save profile details",
     "usernameTitle": "Your username",
-    "saveUsername": "Save username",
-    "renameHint": "Previous usernames are retained as aliases. Public links and QR sharing are not available in this preview.",
     "contactTitle": "WhatsApp and consent",
     "whatsapp_e164": "WhatsApp number (optional)",
     "phoneHint": "Use international format with the country code. A number is required when public contact is enabled.",
@@ -215,7 +213,8 @@
       "qena": "Qena",
       "north_sinai": "North Sinai",
       "sohag": "Sohag"
-    }
+    },
+    "usernameFixed": "Your username is fixed after profile creation."
   },
   "photos": {
     "title": "Equipment photos",
@@ -388,5 +387,17 @@
     "racket_shape": "Racket shape",
     "racket_weight_grams": "Weight (grams)",
     "racket_purchase_date": "Purchase date"
+  },
+  "publicProfile": {
+    "copy": "Copy profile link",
+    "copied": "Profile link copied.",
+    "copyManually": "Copy the link below.",
+    "unavailable": "This profile could not be loaded. Try again.",
+    "listings": "Available equipment",
+    "empty": "No available listings right now.",
+    "pages": "Profile listing pages",
+    "previous": "Previous",
+    "next": "Next",
+    "view": "View public profile"
   }
 }

@@ -140,6 +140,8 @@ try {
        (select version from public.seller_profiles limit 1)<>2 then raise exception 'race state invalid'; end if;
     end $$;`);
   console.log("PASS: committed race state and deferred constraints verified.");
+  // Scratch-only coverage of dormant alias implementation.
+  sql("grant padelhub_profile_writer to postgres; grant execute on function public.rename_seller_username(integer,text) to authenticated; revoke padelhub_profile_writer from postgres;");
   for (const [version, name] of [[2, "race_alias"], [3, "race_player"], [4, "race_alias"], [5, "race_player"]]) {
     sql(`${asCaller("aaaaaaaa-1111-4111-8111-111111111111")} select public.rename_seller_username(${version},'${name}'); commit;`);
   }
@@ -149,7 +151,8 @@ try {
        (select kind from public.username_registry where username_lower='race_alias')<>'alias'
     then raise exception 'repeated alias reclaim state invalid'; end if;
     end $$;`);
-  console.log("PASS: A -> B -> A -> B -> A renames committed independently with deferred invariants.");
+  sql("grant padelhub_profile_writer to postgres; revoke execute on function public.rename_seller_username(integer,text) from authenticated; revoke padelhub_profile_writer from postgres;");
+  console.log("PASS: dormant alias implementation preserves deferred invariants; permission revoked again.");
   for (const [user, username, accountType, cap] of [
     ["cccccccc-3333-4333-8333-333333333333", "race_individual", "individual", 5],
     ["dddddddd-4444-4444-8444-444444444444", "race_business", "business", 20],

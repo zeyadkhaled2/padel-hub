@@ -16,9 +16,11 @@ Updated 2026-11-18. Earlier day estimates were not measured and are withdrawn. T
 
 - Seller sold/traded, archive and relist-for-approval controls, retaining photos and rejecting stale updates. Reservation is deferred.
 
+- Public `/@username` profile pages, active approved listings and copy-link sharing; fixed MVP usernames and visitor language selection.
+
 ## Remaining, in order
 1. **Admin UI refinement:** minimal MFA/queue/photo/decision UI works. UI-agent prompt and contracts are in ADMIN_REVIEW.md; no specialist orchestration is running.
-2. **Marketplace controls:** public profiles/aliases/QR, reports, hide/suspend, configurable limits and basic views/contact counts. Clicks are not successful sales.
+2. **Marketplace controls:** profile QR display/download, reports, hide/suspend, configurable limits and basic views/contact counts. Clicks are not successful sales.
 3. **Production readiness:** recovery, Google login, external email, deletion flows, abuse protections, backups/restore, monitoring and final accessibility/privacy/security checks.
 4. **Hosted pilot:** user-approved hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness.
 

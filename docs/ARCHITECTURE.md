@@ -96,3 +96,7 @@ Migration 009 provides explicit public listing projections under a read-only cap
 ## Seller lifecycle
 
 Migration 011 adds `change_listing_status`: owner/version checks, offer-compatible sold/traded transitions, archive from active/pending, and atomic relist through the existing submission checks. Relisting requires fresh approval; failed submissions roll back status/version/audit changes. Existing public projections hide non-active inventory from search and block contact while retaining eligible sold/traded detail pages. No photo deletion or reservation controls.
+
+## Public profile URLs
+
+Thin `[locale]/[handle]` route accepts only `@username`; decoded parameters are validated. Locale-neutral shared links negotiate the visitor locale via next-intl. Migration 012 provides an anonymous safe projection, gated by public/active profile status, with approved-active inventory resolved through immutable seller identity. No auth ID or phone is returned. Rename execution is revoked for API roles; legacy alias tests grant permission only within disposable test scopes. Profile public IDs and existing aliases are preserved for a later rename/QR decision.

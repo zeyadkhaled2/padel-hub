@@ -75,18 +75,9 @@ test.describe('local verified accounts', () => {
     await expect(page.getByLabel('Allow my seller profile to be public')).not.toBeChecked();
     await expect(page.getByLabel(/I agree to let buyers/)).not.toBeChecked();
 
-    // Validation must retain typed content after a Server Action reset.
-    await page.getByLabel('Username', { exact: true }).fill('bad username');
-    await save(page, 'Save username');
-    await expect(page.getByRole('status')).toContainText('Check the highlighted fields');
-    await expect(page.getByLabel('Username', { exact: true })).toHaveValue('bad username');
-    await page.getByLabel('Username', { exact: true }).fill('admin');
-    await save(page, 'Save username');
-    await expect(page.getByRole('status')).toContainText('That username is unavailable');
-    await expect(page.getByLabel('Username', { exact: true })).toHaveValue('admin');
-    await page.getByLabel('Username', { exact: true }).fill(`${username}x`);
-    await save(page, 'Save username');
-    await expect(page.getByRole('status')).toContainText('Saved successfully');
+    await expect(page.getByLabel('Username', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Your username is fixed after profile creation.', { exact: true })).toBeVisible();
+    expect((await request.get(`/en/@${username}`)).status()).toBe(404);
 
     await page.getByLabel('WhatsApp number (optional)').fill('not-a-number');
     await page.getByLabel('About you (optional)').fill('Unsaved biography remains across contact saves.');
@@ -270,6 +261,15 @@ test.describe('local verified accounts', () => {
     approveLocalListing(listingId!);
     const buyer = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
     const buyerPage = await buyer.newPage();
+    await buyerPage.goto(`/@${username}`);
+    await expect(buyerPage).toHaveURL(new RegExp(`/en/@${username}$`));
+    await expect(buyerPage.locator('.listing-card')).toHaveCount(1);
+    expect(await buyerPage.content()).not.toContain('+201000000000');
+    await buyer.addCookies([{name:'NEXT_LOCALE', value:'ar', url:'http://127.0.0.1:3100'}]);
+    await buyerPage.goto(`/@${username}`);
+    await expect(buyerPage).toHaveURL(new RegExp(`/ar/@${username}$`));
+    await expect(buyerPage.locator('html')).toHaveAttribute('dir','rtl');
+    await expect(buyerPage.getByRole('button', { name: 'نسخ رابط الملف' })).toBeVisible();
     await buyerPage.goto(`/en?q=${encodeURIComponent(`Latest racket title ${suffix}`)}&category=rackets&governorate=cairo&brand=head&condition=used&offer=sale&min=2000&max=3000&sort=low`);
     await expect(buyerPage.locator('.listing-card')).toHaveCount(1);
     const publicImage = buyerPage.locator('.listing-card img');
@@ -293,6 +293,8 @@ test.describe('local verified accounts', () => {
     await expect(page.getByRole('button', { name: 'Mark as traded', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Mark as sold', exact: true }).click();
     await expect(page.getByText('Status: Sold', { exact: true })).toBeVisible();
+    await buyerPage.goto(`/en/@${username}`);
+    await expect(buyerPage.locator('.listing-card')).toHaveCount(0);
     await staleStatus.getByRole('button', { name: 'Archive listing', exact: true }).click();
     await expect(staleStatus.getByRole('status')).toContainText('changed elsewhere');
     await staleStatus.close();

@@ -29,7 +29,7 @@ Show desktop/mobile marketplace, product details and public seller profile for e
 ### Accounts and profiles
 Individual/business profile with unique username, display name, photo, bio, governorate/district, optional favorite racket, WhatsApp number and explicit public-contact consent. Visibility defaults private; users may publish an empty profile. A business label does not imply verified identity.
 
-Username: 3–24 Latin letters/digits/underscores, case-insensitive uniqueness enforced by DB; reserve admin/system routes. Display names support Arabic. Preserve prior usernames as aliases with redirects. QR targets an immutable profile identifier so renames work. Private/suspended profiles must not leak through aliases, QR or metadata. Native share/copy link and social metadata. Explain that public WhatsApp numbers become visible when contacted.
+Username: 3–24 Latin letters/digits/underscores, case-insensitive uniqueness enforced by DB; reserve admin/system routes. Display names support Arabic. MVP usernames are fixed after creation. Shareable links use `/@username` without a language prefix; the visitor chooses the display language. Permanent public profile IDs remain stable. Future QR links target that ID; username changes and alias/reuse policy are deferred. Private/suspended profiles must not leak through aliases, QR or metadata. Native share/copy link and social metadata. Explain that public WhatsApp numbers become visible when contacted.
 
 ### Listings
 Common fields: category, title, brand, description, location, new/used condition, disclosures, photos and seller contact.

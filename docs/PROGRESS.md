@@ -3,6 +3,7 @@
 Updated: 2026-11-18. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
 
 ## Completed locally
+- Public `/@username` profiles show opt-in profile details and approved active listings, with pagination and locale-neutral Copy profile link. Visitor language selection uses the existing locale cookie/browser preference. Usernames fixed after creation; migration 012 revokes rename API access while preserving public IDs and dormant alias data.
 - Verified email accounts, private-by-default profiles and contact preferences. Everyone can buy and sell.
 - Owner listing editor, protected photo upload/replacement, submission and withdrawal with stale-edit protection.
 - Approved marketplace search/filters/sort/pagination, listing details and server-checked WhatsApp contact. Demo inventory is separate under `/demo`; EN/AR and light/dark supported.
@@ -11,6 +12,7 @@ Updated: 2026-11-18. Verified locally; hosted backend is not configured. Main-br
 - Migration 010 applied locally. TOTP enabled in running Auth; previous Auth container retained stopped. User-selected verified account received local admin access; its authenticator setup is user-controlled.
 
 ## Verification
+- Public profiles: `npm run check` passed; 486 SQL assertions and existing races passed. Initial browser run: 14 passed, 2 failed on encoded @ handling; fixed and both affected desktop/mobile account tests passed. 12 locale/theme/width checks passed and mobile screenshots inspected. Migration 012 applied locally.
 - Vercel failure fixed: unanchored `supabase` in `.vercelignore` removed `src/server/supabase`, causing missing-module build errors. Changed to `/supabase/` (commit `686fb6d`); `npm run check` and 10/10 foundation browser tests passed. Vercel production deployment `dpl_DF9JPWfy1GrmetE5U6y4K2YBsVtB` is Ready; live `/en`, `/ar`, `/en/demo`, `/en/auth/signin` returned HTTP 200. Hosted backend remains unconfigured.
 - `npm run check`: lint, TypeScript and production build passed on the final code.
 - Full browser suite: 16/16 passed; after the final encrypted-snapshot change, both affected admin tests passed again (2/2).
@@ -20,10 +22,11 @@ Updated: 2026-11-18. Verified locally; hosted backend is not configured. Main-br
 
 ## Next
 1. User completes authenticator setup at `/en/admin`. Minimal review UI works; refinement prompt is in [ADMIN_REVIEW.md](ADMIN_REVIEW.md).
-2. Optional racket specifications, public profiles/aliases/QR, reports and basic analytics.
+2. Optional racket specifications, profile QR display/download, reports and basic analytics.
 3. Hosted auth/email, recovery including MFA recovery, backups/restore and deployment checks before launch.
 
 ## Latest scope decision
+- Usernames fixed for MVP. Share `/@username` without language; permanent public profile IDs remain internal identities and future QR targets. Username changes/alias policy deferred.
 - 2026-11-18: reservation and available-again controls deferred until after MVP; sold/traded/archive/relist now implemented locally. Existing reservation schema support retained, with no reservation controls exposed.
 
 ## Constraints and preview
