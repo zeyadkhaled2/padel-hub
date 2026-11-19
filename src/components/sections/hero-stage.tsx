@@ -96,7 +96,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
       ref={stageRef}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className="hero-stage relative m-0 h-[152px] md:h-auto md:min-h-[220px] lg:min-h-[238px] min-w-0 overflow-visible select-none"
+      className="hero-stage relative m-0 h-[132px] md:h-auto md:min-h-[168px] lg:min-h-[178px] min-w-0 overflow-visible select-none"
     >
       {/* Ambient volumetric emerald/volt halo shifting gently in reverse depth */}
       <div
@@ -118,7 +118,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
         className="pointer-events-none absolute bottom-1 start-1/2 z-10 -translate-x-1/2 rtl:translate-x-1/2 md:bottom-0"
       >
         <div style={depth(-7, -3)} className="hero-layer">
-          <div className="hero-floor-shadow h-5 w-[112px] md:h-7 md:w-[164px] rounded-full" />
+          <div className="hero-floor-shadow h-5 w-[104px] md:h-6 md:w-[144px] rounded-full" />
         </div>
       </div>
 
@@ -128,7 +128,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
         style={depth(14, 6)}
         className="hero-layer pointer-events-none absolute -bottom-1 end-[6%] z-10 hidden md:block lg:end-[7%]"
       >
-        <div className="hero-ball-shadow h-3.5 w-[56px] rounded-full" />
+        <div className="hero-ball-shadow h-3.5 w-[48px] rounded-full" />
       </div>
 
       {/* True 3D perspective camera rig holding all 4 studio-lit depth planes */}
@@ -137,7 +137,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
         <div
           aria-hidden="true"
           style={depth(-10, -6)}
-          className="hero-layer absolute top-[7%] start-[7%] z-10 md:top-[8%] md:start-[5%]"
+          className="hero-layer absolute top-[6%] start-[7%] z-10 md:top-[7%] md:start-[5%]"
         >
           <div className="hero-float-far">
             <Image
@@ -146,29 +146,29 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
               width={160}
               height={160}
               decoding="async"
-              sizes="(max-width: 767px) 32px, 46px"
+              sizes="(max-width: 767px) 28px, 38px"
               draggable={false}
-              className="h-auto w-[30px] md:w-[40px] lg:w-[46px] opacity-90 drop-shadow-[0_10px_14px_rgba(16,19,23,0.18)] dark:drop-shadow-[0_12px_18px_rgba(0,0,0,0.62)]"
+              className="h-auto w-[28px] md:w-[34px] lg:w-[38px] opacity-90 drop-shadow-[0_12px_18px_rgba(0,0,0,0.65)]"
             />
           </div>
         </div>
 
-        {/* Layer 2: Floating photorealistic 12K Carbon Padel Racket (focal LCP image) */}
+        {/* Layer 2: Floating flagship aluminized 18K Padel Racket (focal LCP image) */}
         <div
           style={depth(15, 10)}
           className="hero-layer absolute inset-0 z-20 flex items-center justify-center"
         >
-          <div className="translate-x-5 -translate-y-2 rtl:-translate-x-5 md:-translate-x-2 md:-translate-y-1.5 md:rtl:translate-x-2">
+          <div className="translate-x-5 -translate-y-1.5 rtl:-translate-x-5 md:-translate-x-2 md:-translate-y-1 md:rtl:translate-x-2">
             <div className="hero-float-racket">
               <Image
-                src="/images/hero/padel-racket-tour.webp"
+                src="/images/hero/padel-racket-flagship.webp"
                 alt={alt}
                 width={290}
                 height={500}
                 preload={true}
-                sizes="(max-width: 767px) 92px, (max-width: 1024px) 132px, 146px"
+                sizes="(max-width: 767px) 80px, (max-width: 1024px) 108px, 118px"
                 draggable={false}
-                className="h-[136px] md:h-[212px] lg:h-[232px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_22px_26px_rgba(20,20,22,0.24)] dark:drop-shadow-[0_26px_34px_rgba(0,0,0,0.84)]"
+                className="h-[120px] md:h-[164px] lg:h-[176px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_24px_32px_rgba(0,0,0,0.8)]"
               />
             </div>
           </div>
@@ -178,7 +178,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
         <div
           aria-hidden="true"
           style={depth(26, 18)}
-          className="hero-layer absolute top-[5%] end-[11%] z-30 md:top-[6%] md:end-[9%]"
+          className="hero-layer absolute top-[4%] end-[11%] z-30 md:top-[5%] md:end-[9%]"
         >
           <div className="hero-float-mid">
             <Image
@@ -187,9 +187,9 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
               width={200}
               height={200}
               decoding="async"
-              sizes="(max-width: 767px) 38px, 56px"
+              sizes="(max-width: 767px) 36px, 50px"
               draggable={false}
-              className="h-auto w-[36px] md:w-[48px] lg:w-[56px] drop-shadow-[0_14px_18px_rgba(16,19,23,0.22)] dark:drop-shadow-[0_18px_24px_rgba(0,0,0,0.68)]"
+              className="h-auto w-[34px] md:w-[44px] lg:w-[50px] drop-shadow-[0_16px_22px_rgba(0,0,0,0.72)]"
             />
           </div>
         </div>
@@ -207,15 +207,15 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
               width={280}
               height={280}
               decoding="async"
-              sizes="(max-width: 767px) 58px, 90px"
+              sizes="(max-width: 767px) 54px, 80px"
               draggable={false}
-              className="h-auto w-[54px] md:w-[78px] lg:w-[90px] drop-shadow-[0_18px_24px_rgba(16,19,23,0.28)] dark:drop-shadow-[0_24px_32px_rgba(0,0,0,0.82)]"
+              className="h-auto w-[50px] md:w-[70px] lg:w-[80px] drop-shadow-[0_22px_30px_rgba(0,0,0,0.84)]"
             />
           </div>
         </div>
       </div>
 
-      <figcaption className="absolute bottom-1.5 start-0 md:bottom-2 md:start-1 z-50 m-0 w-fit max-w-[calc(100%-82px)] md:max-w-[calc(100%-104px)] rounded-full border border-border/75 bg-card/85 px-3 py-1 text-[10.5px] md:text-[11.5px] font-medium leading-snug text-muted-foreground backdrop-blur-md">
+      <figcaption className="absolute bottom-1 start-0 md:bottom-1.5 md:start-1 z-50 m-0 w-fit max-w-[calc(100%-78px)] md:max-w-[calc(100%-96px)] rounded-[6px] border border-white/15 bg-black/55 px-2.5 py-1 text-[10.5px] md:text-[11px] font-medium leading-snug text-zinc-200 backdrop-blur-md">
         {caption}
       </figcaption>
     </figure>

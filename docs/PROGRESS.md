@@ -275,6 +275,30 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Limitations: All equipment/seller records on `v2` remain demo fixtures (`noindex`); local Lighthouse CLI and physical mobile device testing were not run in this session; no backend/database/auth/form behavior was modified.
 - Next steps: Review the live inline preview or run locally (`git pull origin v2 && npm install && npm run dev`); when ready, integrate `v2` UI with `origin/main` backend features on a dedicated merge branch.
 
+## Top-performer commerce redesign (StockX × GOAT × KREAM) & performance optimization — 2026-11-19 (branch `v2`, UI-only)
+- Following Ziad's candid feedback to discard the soft tinted/SaaS look, adopt proven design patterns from top-performing resale marketplaces (**StockX, GOAT, KREAM, Vinted**), and treat site performance as a first-class marketplace metric:
+  - **Pure-neutral high-contrast palette & sharp commerce geometry (`src/styles/tokens.css`, `src/components/ui/{card,button,badge,input,native-select}.tsx`, `public/brand/padelhub-mark.svg`, `src/app/icon.svg`)**:
+    - Replaced warm tinted backgrounds and soft 16–20px SaaS bubbles with a pure `#ffffff` (Light) / `#09090b` (Dark) commerce canvas, crisp `#f4f4f5` / `#18181c` wells, monochrome primary actions (`#0f0f10` / `#fafafa`), sharp `6px–10px` control/card radii (`--radius: 0.5rem`), `4px` status tags, and **StockX Verified Green** (`#006340` Light / `#17c981` Dark, 7.35:1+ AAA) reserved strictly for authenticity, brand, and verified cues.
+    - Updated `padelhub-mark.svg` and `icon.svg` to sharp `rx="14"` `#006340` + white perforated racket + Optic Volt `#D4F838` ball.
+  - **Search-first top bar, KREAM underline header, dark editorial billboard & sharp commerce cards (`src/components/layout/{site-header,header-nav}.tsx`, `src/features/marketplace/{marketplace-page,category-pills,listing-card,seller-profile-view}.tsx`, `src/components/sections/{hero-section,hero-stage,inspection-showcase,features-section,how-it-works-section,faq-section,community-cta-section}.tsx`, `src/styles/sections/hero.css`)**:
+    - Converted `HeaderNav` to KREAM/StockX hairline bottom-underline tabs on a crisp 64px header bar (`border-b border-border`).
+    - Moved the native GET search bar (`q`, `category`, `sort`) and sharp `6px` category filter buttons into a dedicated top hairline utility strip directly below the header (StockX/Vinted pattern), followed by a compact high-contrast dark obsidian editorial billboard (`.hero-billboard`) framing the emerald-silver flagship 18K racket (`padel-racket-flagship.webp`) & 3 optic-yellow felt balls, so all 3 listing photos, titles, and bold tabular EGP prices appear above the `1440×900` desktop fold (`firstCardTop: 521px`, `firstPriceBottom: 902px`).
+    - Restructured `ListingCard` to StockX × GOAT scan order (`Brand · Location` → `Title` → bold tabular `Price` + `For sale` → hairline seller row) with `4px` corner tags and `150ms` hover states.
+    - Stripped bloated outer SaaS card cages below the fold (`InspectionShowcase`, `HowItWorksSection` 01/02/03 hairline columns, borderless `FaqSection`, matching dark obsidian `CommunityCtaSection`), reducing document height by ~600px (`3529px`).
+  - **Marketplace performance engineering (`next.config.ts`, `src/features/marketplace/equipment-art.tsx`, `public/images/demo/*.webp`, `public/images/hero/padel-racket-flagship.webp`)**:
+    - Re-compressed demo catalog images from `631.3 KB` down to `313.0 KB` (`-50%`, `960×640` WebP) and kept all 4 hero assets at `74.1 KB` source (`27.9 KB` flagship racket).
+    - Enabled `images.formats: ['image/avif', 'image/webp']`, `minimumCacheTTL: 31536000`, `compress: true`, and `experimental.optimizePackageImports: ['lucide-react', 'radix-ui']` in `next.config.ts`, plus accurate responsive `sizes` and `decoding="async"` on non-LCP imagery.
+  - Updated `docs/DESIGN_SPEC.md`.
+- Checks:
+  - `npm run check`: **PASS** (0 ESLint errors/warnings, `next typegen`, `tsc --noEmit`, production `next build --webpack`).
+  - `./.agents/skills/impeccable/scripts/impeccable detect --json src`: **PASS** (`[]`, exit 0).
+  - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e` against `next start --port 3100`: **PASS** (`10/10` desktop & mobile in `25.8s`).
+  - Multi-viewport visual QA (`38/38` checks across `1440px`, `768px`, `390px`, `320px` × `en`/`ar` × `light`/`dark`): **0 failures**, `noOverflow: true`, zero console/page errors.
+  - Local Chromium performance audit (`/en`, `1440×900` production server): **`LCP: 636ms`**, **`CLS: 0.0083`**, **`DOM nodes: 474`**, **all 8 rendered images served as AVIF totaling `64.4 KB` over the wire** (`8.2 KB` flagship racket, `4.3 KB` for all 3 hero balls, `23.3 KB` for all 3 product cards).
+- Limitations: All equipment/seller records on `v2` remain demo fixtures (`noindex`); performance figures are local headless Chromium measurements against `next start` (not field RUM or physical mobile devices); no backend/database/auth/form behavior was modified.
+- Next steps: Review the inline preview and screenshot gallery or run locally (`git pull origin v2 && npm install && npm run dev`); when ready, integrate `v2` UI with `origin/main` backend features on a dedicated merge branch.
+
+
 
 
 

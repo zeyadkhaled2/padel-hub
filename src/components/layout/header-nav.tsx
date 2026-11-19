@@ -1,7 +1,7 @@
 'use client';
 
 import { Link, usePathname } from '@/i18n/navigation';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface HeaderNavProps {
   ariaLabel: string;
@@ -24,28 +24,32 @@ export function HeaderNav({
   return (
     <nav
       aria-label={ariaLabel}
-      className="order-3 flex w-full items-center gap-1 border-t border-border/70 pt-2 md:order-none md:w-auto md:border-t-0 md:pt-0"
+      className="order-3 flex w-full items-center gap-5 border-t border-border pt-1 md:order-none md:w-auto md:gap-7 md:border-t-0 md:pt-0"
     >
-      <Button
-        asChild
-        variant={isExplore ? 'soft' : 'ghost'}
-        size="sm"
-        className="text-[13.5px]"
+      <Link
+        href="/"
+        aria-current={isExplore ? 'page' : undefined}
+        className={cn(
+          'inline-flex min-h-[40px] md:min-h-[64px] items-center border-b-2 text-[13.5px] sm:text-[14px] transition-colors duration-150',
+          isExplore
+            ? 'border-foreground font-bold text-foreground'
+            : 'border-transparent font-medium text-muted-foreground hover:text-foreground',
+        )}
       >
-        <Link href="/" aria-current={isExplore ? 'page' : undefined}>
-          {exploreLabel}
-        </Link>
-      </Button>
-      <Button
-        asChild
-        variant={isAbout ? 'soft' : 'ghost'}
-        size="sm"
-        className="text-[13.5px]"
+        {exploreLabel}
+      </Link>
+      <Link
+        href="/about"
+        aria-current={isAbout ? 'page' : undefined}
+        className={cn(
+          'inline-flex min-h-[40px] md:min-h-[64px] items-center border-b-2 text-[13.5px] sm:text-[14px] transition-colors duration-150',
+          isAbout
+            ? 'border-foreground font-bold text-foreground'
+            : 'border-transparent font-medium text-muted-foreground hover:text-foreground',
+        )}
       >
-        <Link href="/about" aria-current={isAbout ? 'page' : undefined}>
-          {howLabel}
-        </Link>
-      </Button>
+        {howLabel}
+      </Link>
     </nav>
   );
 }

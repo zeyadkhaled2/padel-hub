@@ -16,7 +16,7 @@ export function EquipmentArt({
   listing,
   label,
   hero = false,
-  sizes = '(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw',
+  sizes = '(max-width: 359px) 92vw, (max-width: 767px) 46vw, (max-width: 1240px) 31vw, 384px',
   imageClassName,
 }: EquipmentArtProps) {
   const source =
@@ -34,6 +34,7 @@ export function EquipmentArt({
         fill
         sizes={sizes}
         preload={hero}
+        decoding={hero ? 'sync' : 'async'}
         className={imageClassName}
       />
     </div>

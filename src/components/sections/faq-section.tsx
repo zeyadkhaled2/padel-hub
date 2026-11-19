@@ -5,7 +5,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Card } from '@/components/ui/card';
 
 export async function FaqSection() {
   const t = await getTranslations('marketing.faq');
@@ -18,18 +17,21 @@ export async function FaqSection() {
   ] as const;
 
   return (
-    <section className="my-12 md:my-20" aria-labelledby="faq-heading">
-      <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.28fr)] lg:gap-12">
+    <section
+      className="my-10 border-t border-border pt-10 md:my-14 md:pt-14"
+      aria-labelledby="faq-heading"
+    >
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.28fr)] lg:gap-12">
         <div className="lg:sticky lg:top-24">
           <h2
             id="faq-heading"
-            className="font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-foreground"
+            className="font-display text-[clamp(1.45rem,2.6vw,2rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-foreground"
           >
             {t('title')}
           </h2>
         </div>
 
-        <Card className="px-5 sm:px-7">
+        <div className="border-y border-border">
           <Accordion type="single" collapsible defaultValue="q1">
             {questions.map((item) => (
               <AccordionItem key={item.id} value={item.id}>
@@ -38,7 +40,7 @@ export async function FaqSection() {
               </AccordionItem>
             ))}
           </Accordion>
-        </Card>
+        </div>
       </div>
     </section>
   );

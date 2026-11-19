@@ -9,8 +9,8 @@ export async function SiteHeader() {
   const t = await getTranslations('shell');
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/50 bg-[var(--header)] text-foreground backdrop-blur-xl">
-      <div className="container flex min-h-[68px] flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5 md:flex-nowrap md:py-0">
+    <header className="sticky top-0 z-40 border-b border-border bg-[var(--header)] text-foreground backdrop-blur-md">
+      <div className="container flex min-h-[60px] flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2 md:min-h-[64px] md:flex-nowrap md:py-0">
         <Link
           className="inline-flex min-h-[44px] items-center transition-opacity hover:opacity-90"
           href="/"

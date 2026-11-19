@@ -69,40 +69,40 @@
   color-scheme: light;
   --font-body: var(--font-body-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
   --font-heading: var(--font-display-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
-  /* Warm Porcelain, Carbon & Court Amber — Light */
-  --background: #faf9f7;
-  --foreground: #141416;
+  /* StockX x GOAT Precision Commerce — Light */
+  --background: #ffffff;
+  --foreground: #0f0f10;
   --card: #ffffff;
-  --card-foreground: #141416;
+  --card-foreground: #0f0f10;
   --popover: #ffffff;
-  --popover-foreground: #141416;
-  --primary: #141416;
-  --primary-hover: #29292e;
+  --popover-foreground: #0f0f10;
+  --primary: #0f0f10;
+  --primary-hover: #27272a;
   --primary-foreground: #ffffff;
-  --secondary: #f3f1ee;
-  --secondary-foreground: #141416;
-  --muted: #f3f1ee;
-  --muted-foreground: #5e5d63;
-  --accent: #fff2e3;
-  --accent-foreground: #a34400;
-  --destructive: #c93b2b;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #0f0f10;
+  --muted: #f4f4f5;
+  --muted-foreground: #52525b;
+  --accent: #eef7f3;
+  --accent-foreground: #005536;
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #e8e5e0;
-  --border-strong: #d3cec7;
-  --input: #e8e5e0;
-  --ring: #e07000;
+  --border: #e4e4e7;
+  --border-strong: #c4c4cc;
+  --input: #e4e4e7;
+  --ring: #006340;
 
-  /* PadelHub brand, chrome & elevation */
-  --brand: #b84e00;
-  --court-gold: #ff9412;
-  --court-gold-foreground: #140d03;
-  --gold-soft: #ffeed9;
-  --header: rgba(250, 249, 247, 0.82);
-  --shadow-card: 0 1px 2px rgba(20, 20, 22, 0.035);
-  --shadow-card-hover: 0 12px 28px -14px rgba(20, 20, 22, 0.14);
-  --shadow-dock: 0 1px 2px rgba(20, 20, 22, 0.035), 0 20px 48px -20px rgba(20, 20, 22, 0.12);
+  /* PadelHub brand, verified status & chrome */
+  --brand: #006340;
+  --court-gold: #006340;
+  --court-gold-foreground: #ffffff;
+  --gold-soft: #eef7f3;
+  --header: rgba(255, 255, 255, 0.94);
+  --shadow-card: none;
+  --shadow-card-hover: 0 8px 24px -12px rgba(9, 9, 11, 0.14);
+  --shadow-dock: 0 1px 2px rgba(9, 9, 11, 0.04);
 
   /* Legacy CSS custom property aliases for cross-branch compatibility */
   --canvas: var(--background);
@@ -123,36 +123,36 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Warm Carbon Obsidian & Signal Amber — Dark */
-  --background: #0d0d0f;
-  --foreground: #f5f5f7;
-  --card: #151518;
-  --card-foreground: #f5f5f7;
-  --popover: #151518;
-  --popover-foreground: #f5f5f7;
-  --primary: #ff9412;
-  --primary-hover: #ffa633;
-  --primary-foreground: #140d03;
-  --secondary: #1d1d21;
-  --secondary-foreground: #f5f5f7;
-  --muted: #1d1d21;
-  --muted-foreground: #9b9aa2;
-  --accent: #271c0e;
-  --accent-foreground: #ffa834;
-  --destructive: #e05245;
+  /* StockX x GOAT Precision Commerce — Dark */
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #111114;
+  --card-foreground: #fafafa;
+  --popover: #111114;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-hover: #e4e4e7;
+  --primary-foreground: #09090b;
+  --secondary: #18181c;
+  --secondary-foreground: #fafafa;
+  --muted: #18181c;
+  --muted-foreground: #a1a1aa;
+  --accent: #0b261c;
+  --accent-foreground: #34d399;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #26262c;
-  --border-strong: #3a3a43;
-  --input: #26262c;
-  --ring: #ff9e22;
+  --border: #26262b;
+  --border-strong: #3f3f46;
+  --input: #26262b;
+  --ring: #17c981;
 
-  /* PadelHub brand, chrome & elevation */
-  --brand: #ff9e22;
-  --court-gold: #ff9412;
-  --court-gold-foreground: #140d03;
-  --gold-soft: rgba(255, 148, 18, 0.14);
-  --header: rgba(13, 13, 15, 0.8);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28);
-  --shadow-card-hover: 0 16px 34px -14px rgba(0, 0, 0, 0.68);
-  --shadow-dock: 0 4px 16px -4px rgba(0, 0, 0, 0.46), 0 24px 56px -18px rgba(0, 0, 0, 0.72);
+  /* PadelHub brand, verified status & chrome */
+  --brand: #17c981;
+  --court-gold: #17c981;
+  --court-gold-foreground: #032114;
+  --gold-soft: rgba(23, 201, 129, 0.14);
+  --header: rgba(9, 9, 11, 0.92);
+  --shadow-card: none;
+  --shadow-card-hover: 0 12px 28px -12px rgba(0, 0, 0, 0.65);
+  --shadow-dock: 0 1px 2px rgba(0, 0, 0, 0.4);
 }

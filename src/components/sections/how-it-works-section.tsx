@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server';
-import { Card } from '@/components/ui/card';
 import { SectionHeader } from '@/components/ui/section-header';
 
 interface HowItWorksSectionProps {
@@ -16,7 +15,11 @@ export async function HowItWorksSection({
 
   return (
     <section
-      className="my-12 md:my-20"
+      className={
+        showHeader
+          ? 'my-10 border-t border-border pt-10 md:my-14 md:pt-14'
+          : 'my-8'
+      }
       aria-labelledby={showHeader ? 'workflow-heading' : undefined}
     >
       {showHeader ? (
@@ -27,19 +30,22 @@ export async function HowItWorksSection({
         />
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
         {steps.map((stepKey, index) => (
-          <Card key={stepKey} className="relative p-6 sm:p-7">
-            <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-accent font-display text-[16px] font-extrabold tabular-nums text-accent-foreground">
-              {index + 1}
+          <div
+            key={stepKey}
+            className="border-t-2 border-border pt-5 transition-colors hover:border-brand"
+          >
+            <span className="inline-flex items-center font-display text-[13px] font-extrabold tabular-nums text-brand">
+              0{index + 1}
             </span>
-            <h3 className="mt-5 font-display text-[18.5px] sm:text-[19.5px] font-bold text-foreground">
+            <h3 className="mt-2 font-display text-[17.5px] sm:text-[18.5px] font-bold text-foreground">
               {tMarket(stepKey)}
             </h3>
-            <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.62] text-muted-foreground">
+            <p className="mt-1.5 text-[14px] sm:text-[14.5px] leading-[1.6] text-muted-foreground">
               {tMarket(`${stepKey}Body`)}
             </p>
-          </Card>
+          </div>
         ))}
       </div>
     </section>

@@ -32,18 +32,18 @@ export async function FeaturesSection() {
   return (
     <section
       id="why-padelhub"
-      className="my-12 md:my-20"
+      className="my-10 border-t border-border pt-10 md:my-14 md:pt-14"
       aria-labelledby="features-heading"
     >
-      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.22fr)] lg:gap-12">
+      <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.24fr)] lg:gap-12">
         <div className="lg:sticky lg:top-24">
           <h2
             id="features-heading"
-            className="font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-foreground"
+            className="font-display text-[clamp(1.45rem,2.6vw,2rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-foreground"
           >
             {t('title')}
           </h2>
-          <p className="mt-3 max-w-[440px] text-[15px] sm:text-[15.5px] leading-[1.62] text-muted-foreground">
+          <p className="mt-2.5 max-w-[420px] text-[14.5px] sm:text-[15px] leading-[1.6] text-muted-foreground">
             {t('subtitle')}
           </p>
         </div>
@@ -54,22 +54,22 @@ export async function FeaturesSection() {
             return (
               <article
                 key={item.key}
-                className="flex items-start gap-4 py-6 sm:gap-5 sm:py-7"
+                className="flex items-start gap-4 py-5 sm:gap-5 sm:py-6"
               >
                 <span
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-accent text-accent-foreground"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-[8px] border border-border bg-muted text-brand"
                   aria-hidden="true"
                 >
-                  <Icon size={20} />
+                  <Icon size={18} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-display text-[18px] sm:text-[19px] font-bold text-foreground">
+                    <h3 className="font-display text-[17px] sm:text-[18px] font-bold text-foreground">
                       {item.title}
                     </h3>
                     <Badge variant="secondary">{item.badge}</Badge>
                   </div>
-                  <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.62] text-muted-foreground">
+                  <p className="mt-1.5 text-[14px] sm:text-[14.5px] leading-[1.6] text-muted-foreground">
                     {item.body}
                   </p>
                 </div>

@@ -81,10 +81,10 @@ export async function CategoryPills({
               hash: 'equipment-heading',
             }}
             className={cn(
-              'inline-flex min-h-[40px] items-center gap-2 rounded-full border px-3 py-1.5 text-[12.5px] sm:text-[13px] font-semibold transition-colors duration-200',
+              'inline-flex min-h-[36px] items-center gap-2 rounded-[6px] border px-3 py-1 text-[12.5px] sm:text-[13px] font-semibold transition-colors duration-150',
               isSelected
                 ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border/80 bg-transparent text-foreground hover:border-border-strong hover:bg-muted',
+                : 'border-border bg-card text-foreground hover:border-border-strong hover:bg-muted',
             )}
             aria-current={category === item ? 'true' : undefined}
           >
@@ -109,7 +109,7 @@ export async function CategoryPills({
             <span
               aria-hidden="true"
               className={cn(
-                'rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none',
+                'rounded-[4px] px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none',
                 isSelected
                   ? 'bg-primary-foreground/15 text-primary-foreground'
                   : 'bg-muted text-muted-foreground',

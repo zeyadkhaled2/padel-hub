@@ -38,10 +38,10 @@ export function NativeSelect({
         data-slot="native-select"
         data-size={size}
         className={cn(
-          'w-full min-w-0 cursor-pointer appearance-none truncate border border-input font-semibold text-foreground transition-colors hover:border-border-strong focus:border-brand disabled:pointer-events-none disabled:opacity-65',
+          'w-full min-w-0 cursor-pointer appearance-none truncate border border-input font-semibold text-foreground transition-colors hover:border-border-strong focus:border-foreground disabled:pointer-events-none disabled:opacity-65',
           size === 'sm'
-            ? 'min-h-[38px] rounded-[10px] bg-card pe-7 text-[12.5px] sm:text-[13px]'
-            : 'min-h-[44px] rounded-[11px] bg-muted py-2 pe-8 text-[13px] sm:text-[13.5px] focus:bg-card',
+            ? 'min-h-[36px] rounded-[7px] bg-card pe-7 text-[12.5px] sm:text-[13px]'
+            : 'min-h-[42px] rounded-[8px] bg-muted py-2 pe-8 text-[13px] sm:text-[13.5px] focus:bg-card',
           leadingIcon
             ? size === 'sm'
               ? 'ps-8'
