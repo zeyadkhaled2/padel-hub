@@ -49,7 +49,7 @@ export function Preferences() {
           disabled={!mounted}
           value={activeTheme}
           onChange={(event) => setTheme(event.target.value)}
-          className="min-h-[40px] max-w-[120px] sm:max-w-[136px] cursor-pointer appearance-none rounded-[10px] border border-line bg-base/75 ps-8 pe-7 text-[12.5px] sm:text-[13px] font-semibold text-ink transition-colors hover:border-accent/60 hover:bg-surface focus:border-accent focus:bg-surface disabled:opacity-70"
+          className="min-h-[38px] max-w-[120px] sm:max-w-[136px] cursor-pointer appearance-none rounded-[10px] border border-line bg-surface ps-8 pe-7 text-[12.5px] sm:text-[13px] font-semibold text-ink transition-colors hover:border-line-strong focus:border-accent disabled:opacity-70"
         >
           <option value="system">{t('system')}</option>
           <option value="light">{t('light')}</option>
@@ -66,7 +66,7 @@ export function Preferences() {
       <a
         href={languageHref}
         lang={otherLocale}
-        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-[10px] border border-line bg-base/75 px-3 text-[12.5px] sm:text-[13px] font-semibold text-ink transition-colors hover:border-accent/60 hover:bg-surface hover:text-accent"
+        className="inline-flex min-h-[38px] items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3 text-[12.5px] sm:text-[13px] font-semibold text-ink transition-colors hover:border-line-strong hover:text-accent"
       >
         <Globe size={14} className="shrink-0 text-accent" aria-hidden="true" />
         <span>{locale === 'en' ? 'العربية' : 'English'}</span>

@@ -93,7 +93,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
             height={280}
             sizes="(max-width: 767px) 28px, 44px"
             draggable={false}
-            className="h-auto w-[26px] md:w-[36px] lg:w-[42px] opacity-85 blur-[0.45px] drop-shadow-[0_8px_12px_rgba(5,10,24,0.45)]"
+            className="h-auto w-[26px] md:w-[36px] lg:w-[42px] opacity-85 blur-[0.45px] drop-shadow-[0_6px_10px_rgba(22,30,46,0.18)] dark:drop-shadow-[0_8px_12px_rgba(0,0,0,0.5)]"
           />
         </div>
       </div>
@@ -103,7 +103,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
         style={depth(12, 9)}
         className="hero-layer pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
       >
-        <div className="-translate-x-2 -translate-y-1 rtl:translate-x-2 md:-translate-x-2.5 md:-translate-y-1 md:rtl:translate-x-2.5">
+        <div className="translate-x-5 -translate-y-2.5 rtl:-translate-x-5 md:-translate-x-2.5 md:-translate-y-1 md:rtl:translate-x-2.5">
           <div className="hero-float-racket">
             <Image
               src="/images/hero/padel-racket.webp"
@@ -113,7 +113,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
               preload={true}
               sizes="(max-width: 767px) 105px, (max-width: 1024px) 148px, 164px"
               draggable={false}
-              className="h-[112px] md:h-[172px] lg:h-[186px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_20px_26px_rgba(4,9,22,0.68)]"
+              className="h-[104px] md:h-[172px] lg:h-[186px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_14px_20px_rgba(22,30,46,0.22)] dark:drop-shadow-[0_20px_26px_rgba(0,0,0,0.68)]"
             />
           </div>
         </div>
@@ -133,7 +133,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
             height={280}
             sizes="(max-width: 767px) 34px, 52px"
             draggable={false}
-            className="h-auto w-[32px] md:w-[44px] lg:w-[50px] drop-shadow-[0_14px_18px_rgba(5,10,24,0.55)]"
+            className="h-auto w-[32px] md:w-[44px] lg:w-[50px] drop-shadow-[0_10px_14px_rgba(22,30,46,0.2)] dark:drop-shadow-[0_14px_18px_rgba(0,0,0,0.55)]"
           />
         </div>
       </div>
@@ -152,12 +152,12 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
             height={320}
             sizes="(max-width: 767px) 54px, 84px"
             draggable={false}
-            className="h-auto w-[50px] md:w-[70px] lg:w-[80px] md:blur-[0.5px] drop-shadow-[0_20px_26px_rgba(4,8,20,0.72)]"
+            className="h-auto w-[50px] md:w-[70px] lg:w-[80px] md:blur-[0.5px] drop-shadow-[0_14px_18px_rgba(22,30,46,0.24)] dark:drop-shadow-[0_20px_26px_rgba(0,0,0,0.7)]"
           />
         </div>
       </div>
 
-      <figcaption className="absolute bottom-3 start-3.5 md:bottom-3 md:start-2 z-50 m-0 w-fit max-w-[calc(100%-82px)] md:max-w-[calc(100%-96px)] rounded-[8px] bg-white/[0.1] px-2.5 py-1 text-[11px] md:text-[11.5px] font-semibold leading-snug text-[#e6eefc] backdrop-blur-md">
+      <figcaption className="absolute bottom-2 start-3 md:bottom-3 md:start-2 z-50 m-0 w-fit max-w-[calc(100%-82px)] md:max-w-[calc(100%-96px)] rounded-[8px] border border-line/80 bg-surface/90 px-2.5 py-1 text-[10.5px] md:text-[11.5px] font-semibold leading-snug text-ink backdrop-blur-sm">
         {caption}
       </figcaption>
     </figure>

@@ -30,15 +30,15 @@ export async function HowItWorksSection({
         {steps.map((stepKey, index) => (
           <article
             key={stepKey}
-            className="relative flex flex-col rounded-[18px] bg-surface p-6 sm:p-7 shadow-[var(--shadow-card)] dark:ring-1 dark:ring-white/[0.08]"
+            className="relative flex flex-col rounded-[16px] border border-line bg-surface p-6 sm:p-7"
           >
-            <span className="grid h-11 w-11 place-items-center rounded-[12px] bg-hero font-display text-[17px] font-extrabold tabular-nums text-hero-ink">
+            <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-surface-soft font-display text-[16px] font-extrabold tabular-nums text-accent">
               {index + 1}
             </span>
-            <h3 className="mt-5 font-display text-[19px] sm:text-[20px] font-bold text-ink">
+            <h3 className="mt-5 font-display text-[18.5px] sm:text-[19.5px] font-bold text-ink">
               {tMarket(stepKey)}
             </h3>
-            <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.6] text-muted">
+            <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.62] text-muted">
               {tMarket(`${stepKey}Body`)}
             </p>
           </article>

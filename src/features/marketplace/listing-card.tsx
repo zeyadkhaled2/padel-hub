@@ -15,18 +15,18 @@ export async function ListingCard({ listing }: ListingCardProps) {
   const isNew = listing.condition === 'new';
 
   return (
-    <article className="listing-card group relative flex min-w-0 flex-col overflow-hidden rounded-[16px] bg-surface shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] dark:ring-1 dark:ring-white/[0.08]">
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-soft">
+    <article className="listing-card group relative flex min-w-0 flex-col overflow-hidden rounded-[15px] border border-line bg-surface transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[var(--shadow-card-hover)]">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-subtle ring-1 ring-inset ring-black/[0.04] dark:ring-white/[0.05]">
         <EquipmentArt
           listing={listing}
           label={t('illustration')}
-          imageClassName="transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+          imageClassName="transition-transform duration-300 ease-out group-hover:scale-[1.03]"
         />
         <span
-          className={`pointer-events-none absolute top-2.5 start-2.5 z-10 rounded-[8px] px-2.5 py-1 text-[11px] font-bold leading-none ${
+          className={`pointer-events-none absolute top-2.5 start-2.5 z-10 rounded-[7px] px-2.5 py-1 text-[11px] font-bold leading-none ${
             isNew
               ? 'bg-hero text-hero-ink'
-              : 'bg-[#0e1b38]/85 text-white backdrop-blur-sm'
+              : 'border border-line/70 bg-surface/92 text-ink backdrop-blur-md'
           }`}
         >
           {t(listing.condition)}
@@ -38,7 +38,7 @@ export async function ListingCard({ listing }: ListingCardProps) {
           <p className="font-display text-[17.5px] sm:text-[21px] font-extrabold leading-none tracking-[-0.025em] text-ink tabular-nums">
             {t('price', { amount: formatAmount(listing.price, locale) })}
           </p>
-          <span className="hidden shrink-0 rounded-[6px] bg-surface-soft px-2 py-0.5 text-[11px] font-bold text-accent sm:inline-block">
+          <span className="hidden shrink-0 rounded-[6px] bg-surface-subtle px-2 py-0.5 text-[11px] font-semibold text-muted sm:inline-block">
             {t('sale')}
           </span>
         </div>
@@ -54,18 +54,22 @@ export async function ListingCard({ listing }: ListingCardProps) {
 
         <p className="mt-1.5 mb-3 flex items-center gap-x-1.5 text-[12px] font-medium text-muted">
           <span className="inline-flex min-w-0 items-center gap-1">
-            <MapPin size={13} className="shrink-0 text-accent" aria-hidden="true" />
+            <MapPin
+              size={13}
+              className="shrink-0 text-muted"
+              aria-hidden="true"
+            />
             <span className="truncate">{t('location')}</span>
           </span>
-          <span aria-hidden="true" className="hidden text-line sm:inline">
+          <span aria-hidden="true" className="hidden text-line-strong sm:inline">
             ·
           </span>
-          <span className="hidden shrink-0 font-semibold text-ink/85 sm:inline">
+          <span className="hidden shrink-0 font-semibold text-ink/80 sm:inline">
             <bdi>{listing.brand}</bdi>
           </span>
         </p>
 
-        <div className="mt-auto border-t border-line/70 pt-2.5">
+        <div className="mt-auto border-t border-line/80 pt-2.5">
           <Link
             href="/sellers/omar_padel"
             className="relative z-10 -mx-1 -my-1.5 flex min-h-[44px] w-[calc(100%+0.5rem)] items-center justify-between gap-2 rounded-[10px] px-1 text-[12.5px] font-semibold text-muted transition-colors hover:text-ink"
@@ -81,7 +85,7 @@ export async function ListingCard({ listing }: ListingCardProps) {
             </span>
             <ChevronRight
               size={14}
-              className="shrink-0 text-muted/70 transition-transform duration-200 group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+              className="shrink-0 text-muted/75 transition-transform duration-200 group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
               aria-hidden="true"
             />
           </Link>

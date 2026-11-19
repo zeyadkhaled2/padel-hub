@@ -177,4 +177,20 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Limitations: All equipment/seller records remain demo fixtures (`noindex`); local Lighthouse CLI and physical mobile device testing were not run in this session; no backend/database/auth/form behavior was modified.
 - Next steps: Review the updated `v2` branch locally (`git pull origin v2 && npm run dev`) and proceed with Stage 1 backend/Supabase integration when ready.
 
-
+## Club Blue & Warm Stone / Neutral Graphite palette & calm surface refinement — 2026-11-18 (branch `v2`, UI-only)
+- Following Ziad's request to refine the frontend design further with a more comfortable, professional color palette across Light and Dark modes (preserving 100% of functionality, forms, routing, RTL, and accessibility), Ziad selected **Club Blue & Warm Stone** paired with **calm theme-matched surfaces**:
+  - **Refined Light & Dark semantic token system (`src/styles/tokens.css`, `public/brand/padelhub-mark.svg`, `src/app/icon.svg`)**:
+    - **Light (Club Blue & Warm Stone)**: Warm alabaster canvas (`#f7f7f5`), crisp `#ffffff` cards, recessed warm-stone wells (`--surface-subtle: #f1f2ee`), soft court-blue highlight tint (`--surface-soft: #eaf0fb`), composed court cobalt (`#2553b8`), deeper action hover (`#1e4499`), and restrained court-gold micro-accents (`--hero: #f2d15b`, `--gold-soft: #fbf4d8`).
+    - **Dark (Club Blue & Neutral Graphite)**: Replaced cold navy-black glare with restful neutral-cool graphite (`--canvas: #111317`, `--surface: #181c23`, `--surface-subtle: #1f242e`, `--border: #282f3c`, `--border-strong: #394356`). Split solid button fills (`--action: #3465d8` / `--action-hover: #4173e6` / `--action-text: #ffffff`, WCAG AA contrast without pastel washout) from high-legibility text/icon accents (`--accent: #7da8ff`), with muted brass-gold micro-accents (`--hero: #d9ba4e`, `--gold-soft: rgba(217, 186, 78, 0.14)`).
+    - Updated brand SVG mark and favicon fills from `#244bd8`/`#f6d957` to `#2553b8`/`#f2d15b` to match the composed palette.
+  - **Calm theme-matched surfaces across all sections & subpages (`src/styles/sections/hero.css`, `src/components/layout/*`, `src/components/sections/*`, `src/features/marketplace/*`, `src/app/[locale]/about/page.tsx`)**:
+    - Replaced heavy dark-navy blocks in Light mode (`HeroSection`, `InspectionShowcase`, `SellerProfileView`) and the blinding full-width yellow slab in `CommunityCtaSection` with cohesive theme-matched surfaces—soft studio-tinted hero and crisp light cards in Light mode, deep layered graphite throughout Dark mode.
+    - Refined elevation hierarchy to crisp `1px` borders at rest with subtle hover lift (`--shadow-card-hover`) and reserved dock shadow (`--shadow-dock`) for the overlapping search bar; structured `EquipmentDetailView` specifications into a clean 2-column `<dl>` (`Equipment` + `Individual seller` / `Maadi, Cairo`); improved mobile `HeroStage` racket/caption clearance and inline catalog subheading wrapping across EN and AR RTL.
+  - Updated `docs/DESIGN_SPEC.md` and `docs/ARCHITECTURE.md` to document the new semantic tokens and calm surface behavior.
+- Checks:
+  - `npm run check`: PASS (0 ESLint errors/warnings, `next typegen`, `tsc --noEmit`, production `next build --webpack`).
+  - `./.agents/skills/impeccable/scripts/impeccable detect --json src`: PASS (`[]`, exit 0).
+  - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e`: PASS (`10/10` desktop & mobile tests against `next start --port 3100`).
+  - Multi-viewport visual & layout QA (`38/38` checks across `1440px`, `768px`, `390px`, `320px` × `en`/`ar` × `light`/`dark` covering `/`, `/equipment/head-delta-motion`, `/sellers/omar_padel`, and `/about`): `0` failures, `noOverflow: true` everywhere, zero console/page errors, self-hosted `Outfit` (EN) and `Cairo` (AR) verified, and updated desktop/mobile EN Light & AR Dark screenshots visually inspected.
+- Limitations: All equipment/seller records remain demo fixtures (`noindex`); local Lighthouse CLI and physical mobile device testing were not run in this session; no backend/database/auth/form behavior was modified.
+- Next steps: Pull `v2` locally (`git pull origin v2 && npm run dev`) to review the Club Blue & Warm Stone Light and Neutral Graphite Dark themes, then proceed with Stage 1 backend/Supabase integration when ready.

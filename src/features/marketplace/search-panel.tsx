@@ -1,5 +1,10 @@
 import { getTranslations } from 'next-intl/server';
-import { ArrowUpDown, ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
+import {
+  ArrowUpDown,
+  ChevronDown,
+  Search,
+  SlidersHorizontal,
+} from 'lucide-react';
 
 interface SearchPanelProps {
   query: string;
@@ -21,10 +26,10 @@ export async function SearchPanel({
       role="search"
     >
       <label className="col-span-2 sm:col-span-3 lg:col-span-1 flex min-w-0 flex-col gap-1.5">
-        <span className="text-[11.5px] font-bold tracking-[-0.01em] text-muted">
+        <span className="text-[11.5px] font-semibold tracking-[-0.01em] text-muted">
           {t('search')}
         </span>
-        <span className="flex min-h-[44px] w-full min-w-0 items-center gap-2.5 rounded-[12px] border border-line bg-base/65 px-3.5 transition-colors hover:border-accent/50 focus-within:border-accent focus-within:bg-surface">
+        <span className="flex min-h-[44px] w-full min-w-0 items-center gap-2.5 rounded-[11px] border border-line bg-surface-subtle px-3.5 transition-colors hover:border-line-strong focus-within:border-accent focus-within:bg-surface">
           <Search
             size={17}
             className="shrink-0 text-accent"
@@ -40,7 +45,7 @@ export async function SearchPanel({
       </label>
 
       <label className="col-span-1 flex min-w-0 flex-col gap-1.5">
-        <span className="text-[11.5px] font-bold tracking-[-0.01em] text-muted">
+        <span className="text-[11.5px] font-semibold tracking-[-0.01em] text-muted">
           {t('category')}
         </span>
         <span className="relative flex min-h-[44px] w-full min-w-0 items-center">
@@ -52,7 +57,7 @@ export async function SearchPanel({
           <select
             name="category"
             defaultValue={category}
-            className="min-h-[44px] w-full min-w-0 cursor-pointer appearance-none truncate rounded-[12px] border border-line bg-base/65 ps-8.5 pe-8 py-2 text-[13px] sm:text-[13.5px] font-semibold text-ink transition-colors hover:border-accent/55 focus:border-accent focus:bg-surface"
+            className="min-h-[44px] w-full min-w-0 cursor-pointer appearance-none truncate rounded-[11px] border border-line bg-surface-subtle ps-8.5 pe-8 py-2 text-[13px] sm:text-[13.5px] font-semibold text-ink transition-colors hover:border-line-strong focus:border-accent focus:bg-surface"
           >
             <option value="">{t('all')}</option>
             <option value="rackets">{t('rackets')}</option>
@@ -67,7 +72,7 @@ export async function SearchPanel({
       </label>
 
       <label className="col-span-1 flex min-w-0 flex-col gap-1.5">
-        <span className="text-[11.5px] font-bold tracking-[-0.01em] text-muted">
+        <span className="text-[11.5px] font-semibold tracking-[-0.01em] text-muted">
           {t('sort')}
         </span>
         <span className="relative flex min-h-[44px] w-full min-w-0 items-center">
@@ -79,7 +84,7 @@ export async function SearchPanel({
           <select
             name="sort"
             defaultValue={sort}
-            className="min-h-[44px] w-full min-w-0 cursor-pointer appearance-none truncate rounded-[12px] border border-line bg-base/65 ps-8.5 pe-8 py-2 text-[13px] sm:text-[13.5px] font-semibold text-ink transition-colors hover:border-accent/55 focus:border-accent focus:bg-surface"
+            className="min-h-[44px] w-full min-w-0 cursor-pointer appearance-none truncate rounded-[11px] border border-line bg-surface-subtle ps-8.5 pe-8 py-2 text-[13px] sm:text-[13.5px] font-semibold text-ink transition-colors hover:border-line-strong focus:border-accent focus:bg-surface"
           >
             <option value="">{t('newest')}</option>
             <option value="low">{t('low')}</option>
@@ -95,7 +100,7 @@ export async function SearchPanel({
 
       <button
         type="submit"
-        className="col-span-2 sm:col-span-1 inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-[12px] bg-accent px-5.5 py-2.5 text-[14px] font-bold text-accent-ink transition-[filter,transform] duration-200 hover:brightness-105 active:translate-y-px"
+        className="col-span-2 sm:col-span-1 inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-[11px] bg-action px-5.5 py-2.5 text-[14px] font-bold text-action-ink transition-[background-color,transform] duration-200 hover:bg-action-hover active:translate-y-px"
       >
         {t('submit')}
       </button>

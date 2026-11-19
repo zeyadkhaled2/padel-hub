@@ -14,7 +14,10 @@ export function HeaderNav({
   howLabel,
 }: HeaderNavProps) {
   const pathname = usePathname();
-  const isExplore = pathname === '/' || pathname.startsWith('/equipment') || pathname.startsWith('/sellers');
+  const isExplore =
+    pathname === '/' ||
+    pathname.startsWith('/equipment') ||
+    pathname.startsWith('/sellers');
   const isAbout = pathname.startsWith('/about');
 
   return (
@@ -25,10 +28,10 @@ export function HeaderNav({
       <Link
         href="/"
         aria-current={isExplore ? 'page' : undefined}
-        className={`inline-flex min-h-[40px] md:min-h-[40px] items-center rounded-[10px] px-3.5 text-[13.5px] font-semibold transition-colors ${
+        className={`inline-flex min-h-[38px] items-center rounded-[10px] px-3.5 text-[13.5px] font-semibold transition-colors ${
           isExplore
             ? 'bg-surface-soft text-accent'
-            : 'text-muted hover:bg-base hover:text-ink'
+            : 'text-muted hover:bg-surface-subtle hover:text-ink'
         }`}
       >
         {exploreLabel}
@@ -36,10 +39,10 @@ export function HeaderNav({
       <Link
         href="/about"
         aria-current={isAbout ? 'page' : undefined}
-        className={`inline-flex min-h-[40px] md:min-h-[40px] items-center rounded-[10px] px-3.5 text-[13.5px] font-semibold transition-colors ${
+        className={`inline-flex min-h-[38px] items-center rounded-[10px] px-3.5 text-[13.5px] font-semibold transition-colors ${
           isAbout
             ? 'bg-surface-soft text-accent'
-            : 'text-muted hover:bg-base hover:text-ink'
+            : 'text-muted hover:bg-surface-subtle hover:text-ink'
         }`}
       >
         {howLabel}

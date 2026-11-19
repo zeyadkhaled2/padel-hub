@@ -25,7 +25,7 @@ export default async function AboutPage() {
 
       <FaqSection />
 
-      <div className="my-8 flex items-start gap-3 rounded-[16px] bg-surface-soft/80 p-4 sm:p-5 text-[14px] font-medium leading-relaxed text-ink">
+      <div className="my-8 flex items-start gap-3 rounded-[14px] border border-line bg-surface p-4 sm:p-5 text-[14px] font-medium leading-relaxed text-muted">
         <Info
           size={18}
           className="mt-0.5 shrink-0 text-accent"
@@ -36,7 +36,7 @@ export default async function AboutPage() {
 
       <Link
         href="/"
-        className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[12px] bg-accent px-5.5 py-2.5 text-[14px] font-bold text-accent-ink transition-[filter] duration-200 hover:brightness-105"
+        className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[11px] bg-action px-5.5 py-2.5 text-[14px] font-bold text-action-ink transition-colors duration-200 hover:bg-action-hover"
       >
         <ArrowLeft
           size={16}

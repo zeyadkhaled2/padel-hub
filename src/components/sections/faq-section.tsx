@@ -17,19 +17,19 @@ export async function FaqSection() {
         <div className="lg:sticky lg:top-24">
           <h2
             id="faq-heading"
-            className="font-display text-[clamp(1.55rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-ink"
+            className="font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-ink"
           >
             {t('title')}
           </h2>
         </div>
 
-        <div className="divide-y divide-line rounded-[18px] bg-surface px-5 sm:px-7 shadow-[var(--shadow-card)] dark:ring-1 dark:ring-white/[0.08]">
+        <div className="divide-y divide-line rounded-[16px] border border-line bg-surface px-5 sm:px-7">
           {questions.map((item, index) => (
             <details key={item.id} className="group py-1" open={index === 0}>
               <summary className="flex min-h-[56px] list-none items-center justify-between gap-4 py-3 font-display text-[16px] sm:text-[17px] font-bold text-ink transition-colors hover:text-accent [&::-webkit-details-marker]:hidden">
                 <span>{item.question}</span>
                 <span
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-soft text-accent transition-transform duration-200 group-open:rotate-45 group-open:bg-accent group-open:text-accent-ink"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-subtle text-muted transition-all duration-200 group-hover:text-accent group-open:rotate-45 group-open:bg-action group-open:text-action-ink"
                   aria-hidden="true"
                 >
                   <Plus size={15} />

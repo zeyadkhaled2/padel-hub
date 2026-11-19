@@ -37,17 +37,17 @@ export function InspectionShowcase({
 
   return (
     <section
-      className="courtside-showcase relative my-12 md:my-20 overflow-hidden rounded-[22px] md:rounded-[28px] p-5 sm:p-8 md:p-10 text-white shadow-[var(--shadow-dock)]"
+      className="my-12 md:my-20 overflow-hidden rounded-[20px] border border-line bg-surface p-5 sm:p-8 md:p-9"
       aria-labelledby="inspection-heading"
     >
       <div className="max-w-[680px]">
         <h2
           id="inspection-heading"
-          className="font-display text-[clamp(1.55rem,2.9vw,2.2rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-white"
+          className="font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-ink"
         >
           {title}
         </h2>
-        <p className="mt-2.5 text-[14.5px] sm:text-[16px] leading-[1.6] text-[#c5d3ee]">
+        <p className="mt-2.5 text-[14.5px] sm:text-[15.5px] leading-[1.6] text-muted">
           {subtitle}
         </p>
       </div>
@@ -68,27 +68,27 @@ export function InspectionShowcase({
                 id={`inspection-tab-${item.id}`}
                 aria-selected={isSelected}
                 aria-controls={`inspection-panel-${item.id}`}
-                className={`group flex w-full flex-1 min-h-[64px] items-center gap-4 rounded-[16px] p-4 sm:p-5 text-start transition-colors duration-200 ${
+                className={`group flex w-full flex-1 min-h-[64px] items-center gap-4 rounded-[14px] border p-4 sm:p-5 text-start transition-colors duration-200 ${
                   isSelected
-                    ? 'bg-white/[0.14] text-white ring-1 ring-inset ring-hero/45'
-                    : 'bg-white/[0.04] text-[#dbe5fa] hover:bg-white/[0.08] ring-1 ring-inset ring-white/[0.06]'
+                    ? 'border-accent/45 bg-surface-soft text-ink'
+                    : 'border-line bg-surface-subtle/70 text-ink hover:border-line-strong hover:bg-surface-subtle'
                 }`}
                 onClick={() => setActiveId(item.id)}
               >
                 <span
-                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-[11px] transition-colors ${
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-[10px] transition-colors ${
                     isSelected
-                      ? 'bg-hero text-hero-ink'
-                      : 'bg-white/[0.09] text-hero group-hover:bg-white/[0.14]'
+                      ? 'bg-action text-action-ink'
+                      : 'bg-surface text-accent border border-line/80'
                   }`}
                 >
                   {renderIcon(item.id)}
                 </span>
                 <span className="grid min-w-0 gap-1">
-                  <strong className="font-display text-[15px] sm:text-[16px] font-bold leading-snug text-white">
+                  <strong className="font-display text-[15px] sm:text-[16px] font-bold leading-snug text-ink">
                     {item.tabLabel}
                   </strong>
-                  <span className="text-[12.5px] sm:text-[13px] leading-snug text-[#bdd0f2]">
+                  <span className="text-[12.5px] sm:text-[13px] leading-snug text-muted">
                     {item.meta}
                   </span>
                 </span>
@@ -102,9 +102,9 @@ export function InspectionShowcase({
           role="tabpanel"
           id={`inspection-panel-${activeItem.id}`}
           aria-labelledby={`inspection-tab-${activeItem.id}`}
-          className="flex flex-col overflow-hidden rounded-[18px] bg-[#091228]/75"
+          className="flex flex-col overflow-hidden rounded-[16px] border border-line bg-surface-subtle/60"
         >
-          <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#0e1b38]">
+          <div className="relative aspect-[16/9] w-full overflow-hidden bg-surface-subtle">
             <Image
               src={activeItem.imageSrc}
               alt={illustrationAlt}
@@ -115,13 +115,13 @@ export function InspectionShowcase({
           </div>
 
           <div className="flex flex-1 flex-col justify-center p-5 sm:p-6">
-            <span className="w-fit rounded-[7px] bg-hero px-2.5 py-1 text-[11.5px] font-bold leading-none text-hero-ink">
+            <span className="w-fit rounded-[7px] bg-gold-soft px-2.5 py-1 text-[11.5px] font-bold leading-none text-ink">
               {activeItem.meta}
             </span>
-            <h3 className="mt-3 font-display text-[19px] sm:text-[22px] font-bold text-white">
+            <h3 className="mt-3 font-display text-[19px] sm:text-[21px] font-bold text-ink">
               {activeItem.title}
             </h3>
-            <p className="mt-1.5 text-[14.5px] sm:text-[15px] leading-[1.6] text-[#c8d5ef]">
+            <p className="mt-1.5 text-[14.5px] sm:text-[15px] leading-[1.6] text-muted">
               {activeItem.body}
             </p>
           </div>

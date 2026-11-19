@@ -79,18 +79,18 @@ export async function CategoryPills({
               },
               hash: 'equipment-heading',
             }}
-            className={`inline-flex min-h-[44px] items-center gap-2 rounded-[12px] px-2.5 sm:px-3 py-1.5 text-[12.5px] sm:text-[13px] font-bold transition-colors duration-200 ${
+            className={`inline-flex min-h-[42px] items-center gap-2 rounded-[11px] border px-2.5 sm:px-3 py-1.5 text-[12.5px] sm:text-[13px] font-semibold transition-colors duration-200 ${
               isSelected
-                ? 'bg-ink text-base dark:bg-hero dark:text-hero-ink'
-                : 'border border-line bg-base/70 text-ink hover:border-accent/60 hover:bg-surface-soft/75'
+                ? 'border-ink bg-ink text-base dark:border-action dark:bg-action dark:text-action-ink'
+                : 'border-line bg-surface text-ink hover:border-line-strong hover:bg-surface-subtle'
             }`}
             aria-current={category === item ? 'true' : undefined}
           >
             <span
               className={`grid h-6 w-6 shrink-0 place-items-center rounded-[7px] ${
                 isSelected
-                  ? 'bg-base/15 text-base dark:bg-hero-ink/12 dark:text-hero-ink'
-                  : 'bg-surface text-accent'
+                  ? 'bg-base/15 text-base dark:bg-white/15 dark:text-white'
+                  : 'bg-surface-soft text-accent'
               }`}
               aria-hidden="true"
             >
@@ -107,10 +107,10 @@ export async function CategoryPills({
 
             <span
               aria-hidden="true"
-              className={`rounded-[6px] px-1.5 py-0.5 text-[11px] font-extrabold tabular-nums leading-none ${
+              className={`rounded-[6px] px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none ${
                 isSelected
-                  ? 'bg-base/15 text-base dark:bg-hero-ink/12 dark:text-hero-ink'
-                  : 'bg-surface-soft text-muted'
+                  ? 'bg-base/15 text-base dark:bg-white/18 dark:text-white'
+                  : 'bg-surface-subtle text-muted'
               }`}
             >
               {itemCount}

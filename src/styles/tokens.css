@@ -3,23 +3,29 @@
 @theme inline {
   --color-base: var(--canvas);
   --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
   --color-surface-soft: var(--surface-soft);
   --color-ink: var(--text);
   --color-muted: var(--muted);
   --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-text);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-ink: var(--action-text);
   --color-coral: var(--focus);
   --color-hero: var(--hero);
   --color-hero-ink: var(--hero-ink);
+  --color-gold-soft: var(--gold-soft);
   --color-hero-stage: var(--hero-stage);
   --font-sans: var(--font-body);
   --font-display: var(--font-heading);
   --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-control: 12px;
-  --radius-panel: 24px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-control: 11px;
+  --radius-panel: 20px;
   --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -27,24 +33,32 @@
   color-scheme: light;
   --font-body: var(--font-body-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
   --font-heading: var(--font-display-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
-  --canvas: #f3f5fa;
+
+  /* Club Blue & Warm Stone — Light */
+  --canvas: #f7f7f5;
   --surface: #ffffff;
-  --surface-soft: #e9effd;
-  --text: #111c33;
-  --muted: #52607a;
-  --border: #dce3ef;
-  --accent: #244bd8;
+  --surface-subtle: #f1f2ee;
+  --surface-soft: #eaf0fb;
+  --text: #161e2e;
+  --muted: #5a6577;
+  --border: #e3e5e9;
+  --border-strong: #cdd2dc;
+  --accent: #2553b8;
   --accent-text: #ffffff;
-  --header: rgba(255, 255, 255, 0.88);
-  --header-text: #111c33;
-  --focus: #e96640;
-  --hero: #f6d957;
-  --hero-ink: #111c33;
-  --hero-stage: #132550;
-  --hero-stage-deep: #0b1633;
-  --shadow-card: 0 1px 2px rgba(17, 28, 51, 0.05), 0 8px 24px -10px rgba(17, 28, 51, 0.1);
-  --shadow-card-hover: 0 4px 12px -2px rgba(17, 28, 51, 0.08), 0 18px 34px -14px rgba(17, 28, 51, 0.18);
-  --shadow-dock: 0 4px 14px -4px rgba(17, 28, 51, 0.08), 0 20px 44px -18px rgba(17, 28, 51, 0.16);
+  --action: #2553b8;
+  --action-hover: #1e4499;
+  --action-text: #ffffff;
+  --header: rgba(247, 247, 245, 0.88);
+  --header-text: #161e2e;
+  --focus: #d95b38;
+  --hero: #f2d15b;
+  --hero-ink: #2a2209;
+  --gold-soft: #fbf4d8;
+  --hero-stage: #e4ecf9;
+  --hero-stage-deep: #d6e3f7;
+  --shadow-card: 0 1px 2px rgba(22, 30, 46, 0.04);
+  --shadow-card-hover: 0 8px 24px -10px rgba(22, 30, 46, 0.14);
+  --shadow-dock: 0 2px 6px rgba(22, 30, 46, 0.04), 0 16px 36px -18px rgba(22, 30, 46, 0.14);
 }
 
 [dir="rtl"] {
@@ -54,22 +68,30 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #0b1220;
-  --surface: #131e33;
-  --surface-soft: #1d2c49;
-  --text: #f3f6fc;
-  --muted: #aebcd4;
-  --border: #263653;
-  --accent: #9cb5ff;
-  --accent-text: #0d1838;
-  --header: rgba(11, 18, 32, 0.86);
-  --header-text: #f3f6fc;
-  --focus: #ff9e7e;
-  --hero: #eacb51;
-  --hero-ink: #111c33;
-  --hero-stage: #152754;
-  --hero-stage-deep: #0b1530;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 26px -12px rgba(0, 0, 0, 0.45);
-  --shadow-card-hover: 0 6px 16px -4px rgba(0, 0, 0, 0.35), 0 20px 38px -14px rgba(0, 0, 0, 0.55);
-  --shadow-dock: 0 8px 24px -8px rgba(0, 0, 0, 0.45), 0 24px 48px -18px rgba(0, 0, 0, 0.6);
+
+  /* Club Blue & Neutral Graphite — Dark */
+  --canvas: #111317;
+  --surface: #181c23;
+  --surface-subtle: #1f242e;
+  --surface-soft: #1d283c;
+  --text: #edf0f5;
+  --muted: #98a3b6;
+  --border: #282f3c;
+  --border-strong: #394356;
+  --accent: #7da8ff;
+  --accent-text: #0e1524;
+  --action: #3465d8;
+  --action-hover: #4173e6;
+  --action-text: #ffffff;
+  --header: rgba(17, 19, 23, 0.86);
+  --header-text: #edf0f5;
+  --focus: #f08c6c;
+  --hero: #d9ba4e;
+  --hero-ink: #1a1608;
+  --gold-soft: rgba(217, 186, 78, 0.14);
+  --hero-stage: #1a212e;
+  --hero-stage-deep: #141923;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 12px 28px -12px rgba(0, 0, 0, 0.5);
+  --shadow-dock: 0 6px 18px -6px rgba(0, 0, 0, 0.38), 0 20px 44px -18px rgba(0, 0, 0, 0.55);
 }

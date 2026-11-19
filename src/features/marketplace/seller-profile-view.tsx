@@ -11,7 +11,7 @@ export async function SellerProfileView() {
     <main id="main" className="container py-5 pb-14 md:py-7 md:pb-16">
       <Link
         href="/"
-        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-[10px] bg-surface px-3.5 py-1.5 text-[13.5px] font-bold text-muted shadow-[var(--shadow-card)] transition-colors hover:text-accent"
+        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3.5 py-1.5 text-[13.5px] font-semibold text-muted transition-colors hover:border-line-strong hover:text-accent"
       >
         <ArrowLeft
           size={15}
@@ -21,33 +21,33 @@ export async function SellerProfileView() {
         <span>{t('back')}</span>
       </Link>
 
-      <section className="courtside-showcase relative mt-4 flex flex-col items-start gap-5 overflow-hidden rounded-[22px] p-6 sm:p-8 text-white shadow-[var(--shadow-dock)] sm:flex-row sm:items-center">
+      <section className="hero-courtside relative mt-4 flex flex-col items-start gap-5 overflow-hidden rounded-[20px] border border-line p-6 sm:p-8 text-ink sm:flex-row sm:items-center">
         <span
-          className="grid h-18 w-18 sm:h-22 sm:w-22 shrink-0 place-items-center rounded-full bg-hero font-display text-[28px] sm:text-[34px] font-extrabold text-hero-ink"
+          className="grid h-18 w-18 sm:h-22 sm:w-22 shrink-0 place-items-center rounded-full bg-surface-soft font-display text-[28px] sm:text-[34px] font-extrabold text-accent ring-1 ring-accent/20"
           aria-hidden="true"
         >
           O
         </span>
         <div className="min-w-0">
-          <h1 className="font-display text-[26px] sm:text-[34px] font-extrabold leading-tight text-white">
+          <h1 className="font-display text-[26px] sm:text-[34px] font-extrabold leading-tight text-ink">
             {t('seller')}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px]">
-            <span className="font-bold text-hero">
+            <span className="font-bold text-accent">
               <bdi>@omar_padel</bdi>
             </span>
-            <span className="rounded-[7px] bg-white/12 px-2.5 py-0.5 text-[12px] font-semibold text-white">
+            <span className="rounded-[7px] border border-line bg-surface px-2.5 py-0.5 text-[12px] font-semibold text-ink">
               {t('individual')}
             </span>
-            <span className="text-[12px] font-semibold text-[#b8c9ec]">
+            <span className="text-[12px] font-semibold text-muted">
               {t('demo')}
             </span>
           </div>
-          <p className="mt-3 max-w-[540px] text-[14.5px] sm:text-[15px] leading-relaxed text-[#d3dff6]">
+          <p className="mt-3 max-w-[540px] text-[14.5px] sm:text-[15px] leading-relaxed text-muted">
             {t('bio')}
           </p>
-          <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#b8c9ec]">
-            <MapPin size={14} className="text-hero" aria-hidden="true" />
+          <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink/85">
+            <MapPin size={14} className="text-accent" aria-hidden="true" />
             <span>{t('location')}</span>
           </p>
         </div>

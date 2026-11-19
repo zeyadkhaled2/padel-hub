@@ -76,11 +76,11 @@ export async function MarketplacePage({
 
       <section
         aria-label={tMarket('search')}
-        className="relative z-20 -mt-5 sm:-mt-6 md:-mt-6 mx-1.5 sm:mx-3 md:mx-5 rounded-[18px] bg-surface p-3 sm:p-3.5 md:p-4 shadow-[var(--shadow-dock)] dark:ring-1 dark:ring-white/[0.08]"
+        className="relative z-20 -mt-5 sm:-mt-5.5 md:-mt-6 mx-1.5 sm:mx-3 md:mx-5 rounded-[16px] border border-line bg-surface p-3 sm:p-3.5 md:p-4 shadow-[var(--shadow-dock)]"
       >
         <SearchPanel query={query} category={category} sort={sort} />
 
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/75 pt-2.5">
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/80 pt-2.5">
           <CategoryPills
             query={query}
             category={category}
@@ -91,7 +91,7 @@ export async function MarketplacePage({
           {hasActiveFilters && listings.length > 0 ? (
             <Link
               href="/"
-              className="inline-flex min-h-[38px] items-center rounded-[10px] px-3 text-[12.5px] font-bold text-muted transition-colors hover:bg-surface-soft/80 hover:text-accent"
+              className="inline-flex min-h-[38px] items-center rounded-[10px] px-3 text-[12.5px] font-semibold text-muted transition-colors hover:bg-surface-subtle hover:text-accent"
             >
               {tMarket('reset')}
             </Link>
@@ -100,10 +100,10 @@ export async function MarketplacePage({
       </section>
 
       <section
-        className="mt-5 mb-12 md:mt-6 md:mb-16"
+        className="mt-5 mb-12 md:mt-7 md:mb-16"
         aria-labelledby="equipment-heading"
       >
-        <div className="mb-3.5 flex flex-wrap items-end justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2
               id="equipment-heading"
@@ -111,17 +111,17 @@ export async function MarketplacePage({
             >
               {tMarket('heading')}
             </h2>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] sm:text-[14px] text-muted">
-              <span>{tMarket('subheading')}</span>
-              <span aria-hidden="true" className="text-line">
+            <p className="mt-0.5 text-[13.5px] sm:text-[14px] leading-snug text-muted">
+              {tMarket('subheading')}{' '}
+              <span aria-hidden="true" className="text-line-strong">
                 ·
-              </span>
+              </span>{' '}
               <span className="font-semibold text-accent">
                 {tMarket('demo')}
               </span>
             </p>
           </div>
-          <span className="whitespace-nowrap rounded-[10px] bg-surface-soft px-3 py-1.5 font-display text-[12.5px] font-bold tabular-nums text-accent">
+          <span className="whitespace-nowrap rounded-[9px] border border-line bg-surface px-3 py-1 font-display text-[12.5px] font-bold tabular-nums text-muted">
             {tMarket('count', { count: listings.length })}
           </span>
         </div>
@@ -133,7 +133,7 @@ export async function MarketplacePage({
             ))}
           </div>
         ) : (
-          <div className="rounded-[18px] bg-surface px-6 py-12 text-center shadow-[var(--shadow-card)] dark:ring-1 dark:ring-white/[0.08]">
+          <div className="rounded-[16px] border border-line bg-surface px-6 py-12 text-center">
             <h3 className="font-display text-[20px] font-bold text-ink">
               {tMarket('empty')}
             </h3>
@@ -142,7 +142,7 @@ export async function MarketplacePage({
             </p>
             <Link
               href="/"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] bg-accent px-5.5 py-2.5 text-[14px] font-bold text-accent-ink transition-[filter] duration-200 hover:brightness-105"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-[11px] bg-action px-5.5 py-2.5 text-[14px] font-bold text-action-ink transition-colors duration-200 hover:bg-action-hover"
             >
               {tMarket('reset')}
             </Link>

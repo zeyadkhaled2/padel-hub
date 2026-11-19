@@ -38,11 +38,11 @@ export async function FeaturesSection() {
         <div className="lg:sticky lg:top-24">
           <h2
             id="features-heading"
-            className="font-display text-[clamp(1.55rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-ink"
+            className="font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-ink"
           >
             {t('title')}
           </h2>
-          <p className="mt-3 max-w-[440px] text-[15px] sm:text-[16px] leading-[1.6] text-muted">
+          <p className="mt-3 max-w-[440px] text-[15px] sm:text-[15.5px] leading-[1.62] text-muted">
             {t('subtitle')}
           </p>
         </div>
@@ -63,14 +63,14 @@ export async function FeaturesSection() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-display text-[18px] sm:text-[19.5px] font-bold text-ink">
+                    <h3 className="font-display text-[18px] sm:text-[19px] font-bold text-ink">
                       {item.title}
                     </h3>
-                    <span className="rounded-[7px] bg-surface-soft px-2.5 py-1 text-[11.5px] font-bold text-accent">
+                    <span className="rounded-[7px] bg-surface-subtle px-2.5 py-1 text-[11.5px] font-semibold text-muted">
                       {item.badge}
                     </span>
                   </div>
-                  <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.6] text-muted">
+                  <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.62] text-muted">
                     {item.body}
                   </p>
                 </div>

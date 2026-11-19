@@ -1,31 +1,33 @@
 /* ==========================================================================
-   Courtside Hero Backdrop, 2.5D Parallax & Gentle Float
+   Theme-Matched Courtside Hero Backdrop, 2.5D Parallax & Gentle Float
    ========================================================================== */
 
 .hero-courtside {
   background:
-    radial-gradient(ellipse 68% 95% at 78% 18%, rgba(44, 92, 240, 0.44), transparent 64%),
-    radial-gradient(ellipse 46% 70% at 14% 92%, rgba(246, 217, 87, 0.14), transparent 60%),
-    linear-gradient(135deg, #0d1a38 0%, var(--hero-stage) 54%, var(--hero-stage-deep) 100%);
+    radial-gradient(ellipse 58% 90% at 84% 24%, rgba(37, 83, 184, 0.11), transparent 65%),
+    radial-gradient(ellipse 42% 70% at 10% 95%, rgba(242, 209, 91, 0.14), transparent 60%),
+    linear-gradient(135deg, #ffffff 0%, #f3f6fc 55%, #e8effb 100%);
 }
 
 [dir="rtl"] .hero-courtside {
   background:
-    radial-gradient(ellipse 68% 95% at 22% 18%, rgba(44, 92, 240, 0.44), transparent 64%),
-    radial-gradient(ellipse 46% 70% at 86% 92%, rgba(246, 217, 87, 0.14), transparent 60%),
-    linear-gradient(225deg, #0d1a38 0%, var(--hero-stage) 54%, var(--hero-stage-deep) 100%);
+    radial-gradient(ellipse 58% 90% at 16% 24%, rgba(37, 83, 184, 0.11), transparent 65%),
+    radial-gradient(ellipse 42% 70% at 90% 95%, rgba(242, 209, 91, 0.14), transparent 60%),
+    linear-gradient(225deg, #ffffff 0%, #f3f6fc 55%, #e8effb 100%);
 }
 
-.courtside-showcase {
+[data-theme="dark"] .hero-courtside {
   background:
-    radial-gradient(ellipse 60% 80% at 82% 15%, rgba(44, 92, 240, 0.32), transparent 62%),
-    linear-gradient(145deg, #0d1a38 0%, #13254d 58%, #0a142d 100%);
+    radial-gradient(ellipse 56% 90% at 82% 20%, rgba(52, 101, 216, 0.2), transparent 64%),
+    radial-gradient(ellipse 40% 65% at 14% 92%, rgba(217, 186, 78, 0.08), transparent 60%),
+    linear-gradient(135deg, #161a22 0%, #19202d 56%, #141922 100%);
 }
 
-[dir="rtl"] .courtside-showcase {
+[dir="rtl"][data-theme="dark"] .hero-courtside {
   background:
-    radial-gradient(ellipse 60% 80% at 18% 15%, rgba(44, 92, 240, 0.32), transparent 62%),
-    linear-gradient(215deg, #0d1a38 0%, #13254d 58%, #0a142d 100%);
+    radial-gradient(ellipse 56% 90% at 18% 20%, rgba(52, 101, 216, 0.2), transparent 64%),
+    radial-gradient(ellipse 40% 65% at 86% 92%, rgba(217, 186, 78, 0.08), transparent 60%),
+    linear-gradient(225deg, #161a22 0%, #19202d 56%, #141922 100%);
 }
 
 .hero-stage {

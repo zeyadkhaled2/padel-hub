@@ -2,9 +2,11 @@ import { getTranslations, getLocale } from 'next-intl/server';
 import {
   ArrowLeft,
   ChevronRight,
+  Layers,
   MapPin,
   MessageCircle,
   ShieldCheck,
+  Tag,
 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { formatAmount } from '@/lib/format';
@@ -28,7 +30,7 @@ export async function EquipmentDetailView({
     <main id="main" className="container py-5 pb-14 md:py-7 md:pb-16">
       <Link
         href="/"
-        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-[10px] bg-surface px-3.5 py-1.5 text-[13.5px] font-bold text-muted shadow-[var(--shadow-card)] transition-colors hover:text-accent"
+        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3.5 py-1.5 text-[13.5px] font-semibold text-muted transition-colors hover:border-line-strong hover:text-accent"
       >
         <ArrowLeft
           size={15}
@@ -40,8 +42,8 @@ export async function EquipmentDetailView({
 
       <div className="mt-4 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.85fr)] lg:gap-7">
         {/* Primary photo showcase */}
-        <figure className="m-0 overflow-hidden rounded-[20px] bg-surface shadow-[var(--shadow-card)] dark:ring-1 dark:ring-white/[0.08] lg:col-start-1 lg:row-start-1">
-          <div className="relative aspect-[3/2] w-full bg-surface-soft">
+        <figure className="m-0 overflow-hidden rounded-[18px] border border-line bg-surface lg:col-start-1 lg:row-start-1">
+          <div className="relative aspect-[3/2] w-full bg-surface-subtle">
             <EquipmentArt
               listing={listing}
               label={t('illustration')}
@@ -49,24 +51,24 @@ export async function EquipmentDetailView({
               sizes="(max-width: 1023px) 100vw, 58vw"
             />
           </div>
-          <figcaption className="border-t border-line/70 bg-surface px-4 py-3 text-[12px] font-medium leading-snug text-muted">
+          <figcaption className="border-t border-line/80 bg-surface-subtle/50 px-4 py-3 text-[12px] font-medium leading-snug text-muted">
             {t('illustration')}
           </figcaption>
         </figure>
 
-        {/* Structured price, metadata, seller & contact card */}
-        <section className="rounded-[20px] bg-surface p-5 md:p-6 shadow-[var(--shadow-dock)] dark:ring-1 dark:ring-white/[0.08] lg:sticky lg:top-22 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+        {/* Structured price, specifications, seller & contact card */}
+        <section className="rounded-[18px] border border-line bg-surface p-5 md:p-6 lg:sticky lg:top-22 lg:col-start-2 lg:row-start-1 lg:row-span-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span
-              className={`inline-flex items-center rounded-[8px] px-2.5 py-1 text-[12px] font-bold leading-none ${
+              className={`inline-flex items-center rounded-[7px] px-2.5 py-1 text-[12px] font-bold leading-none ${
                 isNew
                   ? 'bg-hero text-hero-ink'
-                  : 'bg-[#0e1b38] text-white dark:bg-surface-soft dark:text-ink'
+                  : 'bg-surface-subtle text-ink border border-line'
               }`}
             >
               {t(listing.condition)} · {t('sale')}
             </span>
-            <span className="text-[12px] font-bold text-accent">
+            <span className="text-[12px] font-semibold text-accent">
               {t('demo')}
             </span>
           </div>
@@ -79,27 +81,33 @@ export async function EquipmentDetailView({
             <bdi>{listing.name}</bdi>
           </h1>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-line/75 py-3.5">
-            <span className="inline-flex items-center gap-1.5 rounded-[9px] bg-base px-2.5 py-1.5 text-[12.5px] font-semibold text-ink">
-              <MapPin
-                size={14}
-                className="shrink-0 text-accent"
-                aria-hidden="true"
-              />
-              <span>{t('location')}</span>
-            </span>
-            <span className="inline-flex items-center rounded-[9px] bg-surface-soft px-2.5 py-1.5 text-[12.5px] font-bold text-accent">
-              <bdi>{listing.brand}</bdi>
-            </span>
-            <span className="inline-flex items-center rounded-[9px] bg-base px-2.5 py-1.5 text-[12.5px] font-semibold text-muted">
-              {t(listing.category)}
-            </span>
-          </div>
+          {/* Structured key specifications grid */}
+          <dl className="mt-5 grid grid-cols-2 gap-2.5 border-y border-line/80 py-4">
+            <div className="rounded-[11px] bg-surface-subtle/75 px-3 py-2.5">
+              <dt className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted">
+                <Tag size={12} className="shrink-0 text-accent" aria-hidden="true" />
+                <span>{t('category')}</span>
+              </dt>
+              <dd className="mt-1 text-[13.5px] font-bold text-ink">
+                <bdi>{listing.brand}</bdi> · {t(listing.category)}
+              </dd>
+            </div>
+
+            <div className="rounded-[11px] bg-surface-subtle/75 px-3 py-2.5">
+              <dt className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted">
+                <MapPin size={12} className="shrink-0 text-accent" aria-hidden="true" />
+                <span>{t('individual')}</span>
+              </dt>
+              <dd className="mt-1 truncate text-[13.5px] font-bold text-ink">
+                {t('location')}
+              </dd>
+            </div>
+          </dl>
 
           <div className="mt-4">
             <Link
               href="/sellers/omar_padel"
-              className="group flex min-h-[60px] items-center gap-3.5 rounded-[14px] bg-base/80 p-3.5 transition-colors hover:bg-surface-soft/70"
+              className="group flex min-h-[60px] items-center gap-3.5 rounded-[13px] border border-line bg-surface-subtle/55 p-3.5 transition-colors hover:border-line-strong hover:bg-surface-subtle"
             >
               <span
                 className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-soft font-display text-[16px] font-extrabold text-accent"
@@ -123,7 +131,7 @@ export async function EquipmentDetailView({
             </Link>
           </div>
 
-          <p className="mt-3.5 flex items-start gap-2.5 rounded-[12px] bg-surface-soft/65 px-3.5 py-3 text-[13px] font-medium leading-snug text-muted">
+          <p className="mt-3.5 flex items-start gap-2.5 rounded-[12px] border border-line/80 bg-surface-soft/55 px-3.5 py-3 text-[13px] font-medium leading-snug text-muted">
             <MessageCircle
               size={16}
               className="mt-0.5 shrink-0 text-accent"
@@ -134,13 +142,13 @@ export async function EquipmentDetailView({
         </section>
 
         {/* Condition & disclosures panel */}
-        <section className="rounded-[20px] bg-surface p-5 md:p-6 shadow-[var(--shadow-card)] dark:ring-1 dark:ring-white/[0.08] lg:col-start-1 lg:row-start-2">
+        <section className="rounded-[18px] border border-line bg-surface p-5 md:p-6 lg:col-start-1 lg:row-start-2">
           <div className="flex items-center gap-2.5">
             <span
               className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-surface-soft text-accent"
               aria-hidden="true"
             >
-              <ShieldCheck size={17} />
+              {isNew ? <Layers size={16} /> : <ShieldCheck size={17} />}
             </span>
             <h2 className="font-display text-[18px] font-bold text-ink">
               {t('disclosure')}
@@ -151,7 +159,7 @@ export async function EquipmentDetailView({
             {disclosureCopy}
           </p>
 
-          <p className="mt-4 border-t border-line/75 pt-3.5 text-[13px] leading-relaxed text-muted">
+          <p className="mt-4 border-t border-line/80 pt-3.5 text-[13px] leading-relaxed text-muted">
             {t('tip')}
           </p>
         </section>
