@@ -35,7 +35,7 @@ Username: 3–24 Latin letters/digits/underscores, case-insensitive uniqueness e
 Common fields: category, title, brand, description, location, new/used condition, disclosures, photos and seller contact.
 Rackets: model, damage/repair disclosure, sale/swap/both; price required for sale/both, negotiable flag, desired swap description. 3–6 photos covering faces/frame. Optional year/shape/weight/purchase date; unknown values left blank.
 Balls: brand/model, condition, quantity/packaging, price for the whole stated offer, 1–6 photos. Sale only. Describe availability manually; no checkout stock reservation.
-Shoes: sale only, required EU shoe size 20–55 including half sizes before submission, 1–6 photos. Bags: sale only, common equipment details and 1–6 photos. Existing manual approval and retention rules apply.
+Shoes: sale only, required EU shoe size 20–55 including half sizes before submission, 1–6 photos. Buyers can filter by exact EU size; the filter persists in shared URLs and pagination. Bags: sale only, common equipment details and 1–6 photos. Existing manual approval and retention rules apply.
 
 Curated brands plus Other; model free text.
 Initial configurable limits: 5 active+pending individual listings, 20 business listings.

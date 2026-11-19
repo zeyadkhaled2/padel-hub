@@ -1,8 +1,9 @@
 # PadelHub progress
 
-Updated: 2026-11-19. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
+Updated: 2026-11-20. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
 
 ## Completed locally
+- Exact EU shoe-size filter (20–55, half sizes), preserved in shared URLs/pagination/language changes. Non-shoe category shortcuts clear it. Migration 018 applied locally.
 - Basic analytics: owner totals and MFA-admin marketplace totals for the last 30 UTC calendar days; owners see approximate listing views only; WhatsApp clicks are MFA-admin-only. Private daily counters, no visitor identifiers. Migration 016 applied locally.
 - Reports/moderation: verified-account reports, duplicate protection and 5/day limit; MFA-admin queue, dismissal, listing removal and profile suspension with target/report version checks and audit records. Details and decision notes remain limited to 1,000 characters. Migration 015 applied locally.
 - QR show/hide and PNG download, generated on demand in-browser. Permanent public-ID links resolve only public active profiles, then use visitor language. No external QR service or stored image.
@@ -18,16 +19,17 @@ Updated: 2026-11-19. Verified locally; hosted backend is not configured. Main-br
 ## Verification
 - Latest `npm run check`: lint, TypeScript and production build passed.
 - Full browser suite: 16/16 passed, including downloaded QR PNG decoded independently, no-store ID redirect, visitor Arabic preference, shoe half-size persistence, bags, existing auth/admin/listing flows.
-- Database: 539 assertions plus existing concurrency/isolation checks passed. Migrations 013–014 applied locally; no hosted migrations.
+- Database: 554 assertions plus existing concurrency/isolation checks passed. Migrations 013–014 applied locally; no hosted migrations.
 - Earlier 24 QR/profile and shoe-form locale/theme/width checks passed; mobile screenshots inspected. `git diff --check` passed.
 - Earlier Vercel missing-module failure fixed by anchoring `/supabase/` in `.vercelignore`. Hosted backend remains unconfigured.
 
 ## Next
 1. User completes authenticator setup at `/en/admin`. Minimal review UI works; refinement prompt is in [ADMIN_REVIEW.md](ADMIN_REVIEW.md).
-2. Shoe-size filtering, then optional racket weight/shape/year.
+2. Optional racket weight/shape/year.
 3. Hosted auth/email, recovery including MFA recovery, backups/restore and deployment checks before launch.
 
 ## Latest scope decision
+- 2026-11-20: user cancelled the v2 merge. In-progress merge aborted; original branch untouched. Review patch saved only in ignored .cache for possible later use.
 - 2026-11-19: Ziad is still working on frontend `v2`. Review and merge are deferred until he explicitly says it is ready; continue functional work independently.
 - Approved research priorities: shoe-size filtering, optional racket specifications, and a permissioned pilot with 5–10 sellers. Simple swap cash-difference preferences are a later improvement; escrow, financing, checkout bundles and comparison tools are deferred. Scrape/competitor claims have not been independently verified.
 - Usernames fixed for MVP. Share `/@username` without language; permanent public profile IDs remain internal identities and QR targets. Username changes/alias policy deferred.
@@ -53,3 +55,8 @@ Updated: 2026-11-19. Verified locally; hosted backend is not configured. Main-br
 - Migration 017 applied locally: owner metrics responses omit the contacts key (including null/false flags). MFA-admin totals retain clicks. Seller dashboard renders only views; product/architecture/roadmap updated.
 - Checks: npm run check passed; 539 database assertions plus existing concurrency checks passed; desktop/mobile admin browser tests 2/2 passed, including owner API/UI exclusion and admin visibility. Existing EN/AR theme/width checks passed; Arabic dark mobile screenshot inspected. git diff --check passed.
 - Hosted backend still unconfigured; no hosted migration applied. Next: shoe-size filtering, then optional racket specifications. v2 remains untouched.
+
+## Shoe-size search — 2026-11-20
+- Migration 018 applied locally. Public search accepts exact EU size 20–55 in half steps; URL, pagination and language changes retain the filter. Non-shoe category shortcuts clear it; invalid sizes fail validation. No new dependencies or schema indexes.
+- Database: 554 assertions plus existing races passed. Existing marketplace browser suite: 10/10 passed. Final npm run check passed; size-specific desktop/mobile tests 2/2 passed after explicit accessible label fix. Arabic dark mobile screenshot inspected; git diff --check passed.
+- No v2 merge or hosted migration. Next: optional racket specifications.

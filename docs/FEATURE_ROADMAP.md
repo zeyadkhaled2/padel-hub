@@ -1,6 +1,6 @@
 # Feature milestones
 
-Updated 2026-11-19. Earlier day estimates were not measured and are withdrawn. Track completed features and test results instead.
+Updated 2026-11-20. Earlier day estimates were not measured and are withdrawn. Track completed features and test results instead.
 
 ## Done locally
 - EN/AR, light/dark marketplace demo.
@@ -25,8 +25,10 @@ Updated 2026-11-19. Earlier day estimates were not measured and are withdrawn. T
 
 - Basic analytics: approximate views over 30 UTC calendar days for owners; WhatsApp-click totals are available only to MFA admins. No visitor identities or verified-sales claims.
 
+- Exact EU shoe-size search (20–55, half sizes), URL persistence, pagination and category shortcut reset.
+
 ## Remaining, in order
-1. **Small marketplace improvements:** shoe-size filter and optional racket weight/shape/year. Configurable-limit screens are optional for launch.
+1. **Small marketplace improvements:** optional racket weight/shape/year. Configurable-limit screens are optional for launch.
 2. **Production readiness:** recovery, Google login, external email, deletion flows, abuse protections, backups/restore, monitoring and final accessibility/privacy/security checks.
 3. **Hosted pilot:** user-approved hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness; recruit 5–10 willing sellers with permissioned inventory.
 
@@ -34,7 +36,7 @@ Updated 2026-11-19. Earlier day estimates were not measured and are withdrawn. T
 
 No new specialist orchestration or handoff reports. Keep one dependent feature in progress. No checkout, payments, automatic expiry or automatic deletion of saved photos. Seller-reported deal counts still require a product decision.
 
-Current next functional milestone: shoe-size filtering, then optional racket specifications; frontend review/merge waits for Ziad. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
+Current next functional milestone: optional racket specifications; frontend review/merge waits for Ziad. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
 
 ## After MVP
 - Reservation and available-again controls (deferred by Ziad on 2026-11-18).

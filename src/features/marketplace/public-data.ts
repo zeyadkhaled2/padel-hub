@@ -22,16 +22,19 @@ export function publicClient(service = false) {
   return createClient(config.url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store', signal: AbortSignal.timeout(10000) }) } });
 }
 export function searchValues(query: Query) {
-  return Object.fromEntries(['q','category','governorate','brand','condition','offer','min','max','sort','page'].map(key => [key, typeof query[key] === 'string' ? query[key] : ''])) as Record<string,string>;
+  return Object.fromEntries(['q','category','governorate','brand','condition','offer','min','max','sort','page','size'].map(key => [key, typeof query[key] === 'string' ? query[key] : ''])) as Record<string,string>;
 }
 export async function searchPublic(values: Record<string,string>) {
   const client = publicClient();
   if (!client) return { items: [] as PublicListing[], total: 0, unavailable: true };
   const integer = (value: string, fallback: number | null) => value === '' ? fallback : /^\d{1,6}$/.test(value) ? Number(value) : -1;
+  const size = values.size || '';
+  const shoeSize = size === '' ? null : /^\d{2}(?:\.5|\.0)?$/.test(size) ? Number(size) : NaN;
+  if (shoeSize !== null && (!Number.isFinite(shoeSize) || shoeSize < 20 || shoeSize > 55)) return { items: [], total: 0, invalid: true };
   const page = integer(values.page, 1);
   const min = integer(values.min, null), max = integer(values.max, null);
   if (!page || page < 1 || page > 10000 || min === -1 || max === -1 || values.q.length > 120) return { items: [], total: 0, invalid: true };
-  const { data, error } = await client.rpc('search_public_listings', { p_query: values.q, p_category: values.category, p_governorate: values.governorate, p_brand: values.brand, p_condition: values.condition, p_offer: values.offer, p_min: min, p_max: max, p_sort: values.sort, p_page: page });
+  const { data, error } = await client.rpc('search_public_listings', { p_query: values.q, p_category: values.category, p_governorate: values.governorate, p_brand: values.brand, p_condition: values.condition, p_offer: values.offer, p_min: min, p_max: max, p_sort: values.sort, p_page: page, p_shoe_size: shoeSize });
   if (error) return { items: [], total: 0, invalid: error.code === '22023', unavailable: error.code !== '22023' };
   return data as { items: PublicListing[]; total: number; invalid?: boolean; unavailable?: boolean };
 }

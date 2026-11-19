@@ -31,7 +31,7 @@ export async function CategoryPills({
             href={{
               pathname: base,
               query: {
-                ...values, page: undefined, category: undefined,
+                ...values, page: undefined, category: undefined, size: item && item !== 'shoes' ? undefined : values.size,
                 ...(query ? { q: query } : {}),
                 ...(sort ? { sort } : {}),
                 ...(item ? { category: item } : {}),

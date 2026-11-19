@@ -20,7 +20,7 @@ export async function SearchPanel({
   const a = await getTranslations('account');
 
   return (
-    <form className="search-panel" role="search">
+    <form key={JSON.stringify({query,category,sort,values})} className="search-panel" role="search">
       <div className="search-row">
         <label className="search-field">
           <span>{t('search')}</span>
@@ -65,6 +65,7 @@ export async function SearchPanel({
             </select>
           </label>
           {values && <>
+            <label>{e('shoe_size_eu')}<select aria-label={e('shoe_size_eu')} name="size" defaultValue={values.size}><option value="">{b('anySize')}</option>{Array.from({length:71},(_,i)=>20+i/2).map(size=><option key={size} value={size}>{size}</option>)}</select></label>
             {Object.entries({ governorate: governorates, brand: brands, condition: ['new','used'], offer: ['sale','swap','both'] }).map(([key, options]) => <label key={key}>{b(key)}<select aria-label={b(key)} name={key} defaultValue={values[key]}><option value="">{t('all')}</option>{options.map(option => <option key={option} value={option}>{key === 'governorate' ? a(`governorates.${option}`) : key === 'brand' && option !== 'other' ? option.replaceAll('_',' ') : e(option)}</option>)}</select></label>)}
             {['min','max'].map(key => <label key={key}>{b(key)}<input type="number" name={key} min="0" max="500000" step="1" defaultValue={values[key]} /></label>)}
           </>}

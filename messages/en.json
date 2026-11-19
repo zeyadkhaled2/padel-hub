@@ -354,7 +354,8 @@
     "message": "Hi, I am interested in {title}: {url}",
     "subheading": "Compare approved equipment by condition, price and seller.",
     "emptyHint": "Try fewer filters or check back when more listings have been approved.",
-    "availabilityAnswer": "The marketplace shows approved active listings. Ask the seller to confirm availability. The separate design demo contains sample inventory only."
+    "availabilityAnswer": "The marketplace shows approved active listings. Ask the seller to confirm availability. The separate design demo contains sample inventory only.",
+    "anySize": "Any size"
   },
   "admin": {
     "account": "Back to your account",
