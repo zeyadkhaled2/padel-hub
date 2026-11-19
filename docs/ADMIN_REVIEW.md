@@ -25,3 +25,6 @@ Refine the existing functional admin UI in `src/features/admin`, not a new dashb
 
 ## Verification boundaries
 Admin browser tests use synthetic verified account fixtures and real TOTP enrollment/challenge/verification. Email confirmation is covered separately by account tests. Test reviewer roles are revoked and active/pending fixture listings withdrawn afterward; saved images are retained. Screenshots cover verified review pages only. No hosted MFA, account recovery or production deployment is claimed.
+
+## Content reports
+`/admin/reports` uses the same active-role and MFA checks. Verified users may report public content (five per rolling 24 hours, one open report per target). Admins dismiss, remove a listing, or suspend a profile with a required note. Both report and target versions must match; reload conflicts instead of resubmitting with new versions automatically. Notes allow 1,000 characters. Saved photos remain intact. Restoration and appeal UI are not implemented yet.

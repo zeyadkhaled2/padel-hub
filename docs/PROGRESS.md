@@ -1,8 +1,9 @@
 # PadelHub progress
 
-Updated: 2026-11-18. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
+Updated: 2026-11-19. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
 
 ## Completed locally
+- Reports/moderation: verified-account reports, duplicate protection and 5/day limit; MFA-admin queue, dismissal, listing removal and profile suspension with target/report version checks and audit records. Details and decision notes remain limited to 1,000 characters. Migration 015 applied locally.
 - QR show/hide and PNG download, generated on demand in-browser. Permanent public-ID links resolve only public active profiles, then use visitor language. No external QR service or stored image.
 - Categories: rackets, balls, padel shoes and bags. Shoes require EU size (20–55, half sizes) before submission; shoes/bags are sale-only with 1–6 photos. Category filters, owner/editor, admin review and public details updated.
 - Public `/@username` profiles show opt-in profile details and approved active listings, with pagination and locale-neutral Copy profile link. Visitor language selection uses the existing locale cookie/browser preference. Usernames fixed after creation; migration 012 revokes rename API access while preserving public IDs and dormant alias data.
@@ -16,18 +17,22 @@ Updated: 2026-11-18. Verified locally; hosted backend is not configured. Main-br
 ## Verification
 - Latest `npm run check`: lint, TypeScript and production build passed.
 - Full browser suite: 16/16 passed, including downloaded QR PNG decoded independently, no-store ID redirect, visitor Arabic preference, shoe half-size persistence, bags, existing auth/admin/listing flows.
-- Database: 504 assertions plus existing concurrency/isolation checks passed. Migrations 013–014 applied locally; no hosted migrations.
-- 24 QR/profile and shoe-form locale/theme/width checks passed; mobile screenshots inspected. `git diff --check` passed.
+- Database: 521 assertions plus existing concurrency/isolation checks passed. Migrations 013–014 applied locally; no hosted migrations.
+- Earlier 24 QR/profile and shoe-form locale/theme/width checks passed; mobile screenshots inspected. `git diff --check` passed.
 - Earlier Vercel missing-module failure fixed by anchoring `/supabase/` in `.vercelignore`. Hosted backend remains unconfigured.
 
 ## Next
 1. User completes authenticator setup at `/en/admin`. Minimal review UI works; refinement prompt is in [ADMIN_REVIEW.md](ADMIN_REVIEW.md).
-2. Optional racket specifications, reports and basic analytics.
+2. Optional racket specifications and basic analytics.
 3. Hosted auth/email, recovery including MFA recovery, backups/restore and deployment checks before launch.
 
 ## Latest scope decision
 - Usernames fixed for MVP. Share `/@username` without language; permanent public profile IDs remain internal identities and QR targets. Username changes/alias policy deferred.
 - 2026-11-18: reservation and available-again controls deferred until after MVP; sold/traded/archive/relist now implemented locally. Existing reservation schema support retained, with no reservation controls exposed.
+
+## Latest reports verification
+- Reports commit `87e5844` is on main. On 2026-11-19, clean isolated install and `npm run check` passed; both final admin browser tests passed (2/2), including 12 EN/AR theme/width report-queue checks. Arabic dark mobile screenshot inspected. Earlier full browser suite: 16/16; database: 521 assertions plus races. No new application changes were needed.
+- Frontend branch `v2` is based on the old demo-only baseline; review/integrate it against current main before merging. Original `E:/projects/padelHub` remains on v2.
 
 ## Constraints and preview
 - No checkout, automatic expiry or automatic deletion of saved photos. Keep implementation and notes small.

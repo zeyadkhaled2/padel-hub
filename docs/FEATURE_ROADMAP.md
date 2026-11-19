@@ -21,15 +21,17 @@ Updated 2026-11-18. Earlier day estimates were not measured and are withdrawn. T
 - Profile QR display/download with permanent public-ID redirects and visitor language selection.
 - Shoes (EU size including halves) and bags alongside rackets/balls; sale-only accessories, approval and category filters.
 
+- Verified-account reports, MFA-admin report handling, listing removal and profile suspension; 1,000-character notes retained. Restoration/appeal UI remains future work.
+
 ## Remaining, in order
 1. **Admin UI refinement:** minimal MFA/queue/photo/decision UI works. UI-agent prompt and contracts are in ADMIN_REVIEW.md; no specialist orchestration is running.
-2. **Marketplace controls:** reports, hide/suspend, configurable limits and basic views/contact counts. Clicks are not successful sales.
+2. **Marketplace controls:** configurable limits UI and basic views/contact counts. Clicks are not successful sales.
 3. **Production readiness:** recovery, Google login, external email, deletion flows, abuse protections, backups/restore, monitoring and final accessibility/privacy/security checks.
 4. **Hosted pilot:** user-approved hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness.
 
 No new specialist orchestration or handoff reports. Keep one dependent feature in progress. No checkout, payments, automatic expiry or automatic deletion of saved photos. Seller-reported deal counts still require a product decision.
 
-Current next functional milestone: public seller profiles/aliases/QR. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
+Current next functional milestone: basic analytics; review frontend v2 integration before merging. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
 
 ## After MVP
 - Reservation and available-again controls (deferred by Ziad on 2026-11-18).
