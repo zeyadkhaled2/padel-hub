@@ -161,9 +161,9 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
           <div className="translate-x-5 -translate-y-2 rtl:-translate-x-5 md:-translate-x-2 md:-translate-y-1.5 md:rtl:translate-x-2">
             <div className="hero-float-racket">
               <Image
-                src="/images/hero/padel-racket-carbon.webp"
+                src="/images/hero/padel-racket-pro.webp"
                 alt={alt}
-                width={287}
+                width={290}
                 height={500}
                 preload={true}
                 sizes="(max-width: 767px) 92px, (max-width: 1024px) 132px, 146px"

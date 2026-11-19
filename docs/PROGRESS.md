@@ -254,6 +254,8 @@ Start each session with this file and AGENTS.md. Update this record before every
   - Multi-viewport visual QA (`38/38` checks across `1440px`, `768px`, `390px`, `320px` × `en`/`ar` × `light`/`dark`): **0 failures**, `noOverflow: true`, zero console/page errors. Verified all 4 hero WebPs load (`complete: true`), pointer 3D rig activates (`data-active="true"`, `--px`/`--py` updates), and offscreen `IntersectionObserver` toggles `data-paused="true"` when scrolled past the hero and clears on return. Visually inspected updated Light EN, Dark AR RTL, and Mobile renders.
 - Limitations: All equipment/seller records on `v2` remain demo fixtures (`noindex`); local Lighthouse CLI and physical mobile device testing were not run in this session; no backend/database/auth/form behavior was modified.
 - Next steps: Pull `v2` (`git pull origin v2 && npm install && npm run dev`) to experience the live 3D carbon racket & balls locally, or proceed with integrating `v2` UI with `origin/main` when ready.
+- Follow-up upgrade (2026-11-18): Upgraded the hero focal racket to an unbranded flagship aluminized 18K silver-titanium carbon pro-tour racket ([`padel-racket-pro.webp`](public/images/hero/padel-racket-pro.webp), `290×500`, `29.7 KB`, **76.0 KB combined** across all 4 hero assets) featuring a sculpted multi-strut open carbon throat bridge, side aerodynamic air channels, subtle emerald/volt pinstripes, machined gunmetal end-cap ring, and padded neoprene wrist cuff. Re-verified `npm run check`, `impeccable detect`, `10/10` Playwright E2E, and multi-viewport Light/Dark EN/AR screenshots.
+
 
 
 

@@ -43,7 +43,7 @@ Self-hosted variable fonts loaded via `next/font/google` in `src/app/[locale]/la
 
 ## Brand and demo artwork provenance
 - `public/brand/padelhub-mark.svg` and `src/app/icon.svg`: Custom code-native SVG mark (perforated white racket and Padel Volt `#D8F35B` ball on a Court Emerald `#0E7C66` rounded square). Proposed identity, not a claim of trademark registration.
-- `public/images/hero/padel-racket-carbon.webp`, `padel-ball-far.webp`, `padel-ball-mid.webp`, and `padel-ball-near.webp`: Generated unbranded photorealistic studio product renders (matte 12K woven carbon racket with emerald/volt throat trim and 3 distinct fuzzy felt padel balls) chroma-keyed and color-decontaminated to transparent WebP (**75.2 KB combined**) for the 3D hero stage (`HeroStage`). Decorative marketing imagery, not real inventory.
+- `public/images/hero/padel-racket-pro.webp`, `padel-ball-far.webp`, `padel-ball-mid.webp`, and `padel-ball-near.webp`: Generated unbranded photorealistic studio product renders (flagship aluminized 18K woven carbon pro-tour racket with sculpted multi-strut throat bridge, side air channels, emerald/volt pinstripes, padded wrist cuff, and 3 distinct fuzzy felt padel balls) chroma-keyed and color-decontaminated to transparent WebP (**76.0 KB combined**) for the 3D hero stage (`HeroStage`). Decorative marketing imagery, not real inventory.
 - `public/images/demo/racket-court.webp`, `racket-coral.webp`, and `balls.webp`: Generated unbranded editorial illustrations (1200px WebP). Detail captions explicitly note they are AI demo imagery, never evidence of condition or depictions of the named models.
 
 ## Required state behavior
