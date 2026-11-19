@@ -11,7 +11,7 @@ export async function AnalyticsSummary({ admin = false }: { admin?: boolean }) {
     <h2>{t('title')}</h2><p>{t(admin ? 'adminHint' : 'hint')}</p>
     {error ? <p role="status">{t('unavailable')}</p> : <dl className="review-details">
       <div><dt>{t('views')}</dt><dd>{Number(data.views).toLocaleString(locale)}</dd></div>
-      <div><dt>{t('contacts')}</dt><dd>{Number(data.contacts).toLocaleString(locale)}</dd></div>
+      {admin && <div><dt>{t('contacts')}</dt><dd>{Number(data.contacts).toLocaleString(locale)}</dd></div>}
     </dl>}
     <p className="field-hint">{t('notice')}</p>
   </section>;

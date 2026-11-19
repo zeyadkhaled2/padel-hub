@@ -23,7 +23,7 @@ Updated 2026-11-19. Earlier day estimates were not measured and are withdrawn. T
 
 - Verified-account reports, MFA-admin report handling, listing removal and profile suspension; 1,000-character notes retained. Restoration/appeal UI remains future work.
 
-- Basic analytics: approximate views/WhatsApp-click totals over 30 UTC calendar days for owners and MFA admins. No visitor identities or verified-sales claims.
+- Basic analytics: approximate views over 30 UTC calendar days for owners; WhatsApp-click totals are available only to MFA admins. No visitor identities or verified-sales claims.
 
 ## Remaining, in order
 1. **Small marketplace improvements:** shoe-size filter and optional racket weight/shape/year. Configurable-limit screens are optional for launch.

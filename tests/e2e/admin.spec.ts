@@ -95,10 +95,13 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await sellerPage.reload();
     expect((await sellerPage.request.post(`/api/analytics/listings/${id}`,{headers:{origin:'https://example.invalid'}})).status()).toBe(400);
     expect((await sellerPage.request.get(`/api/contact/${id}`,{maxRedirects:0})).status()).toBe(302);
-    await expect.poll(async()=> (await rpc('get_listing_metrics')).contacts).toBe(1);
+    expect(await rpc('get_listing_metrics')).not.toHaveProperty('contacts');
+    await page.goto('/en/admin');
+    await expect(page.getByText('WhatsApp clicks',{exact:true})).toBeVisible();
     expect((await rpc('get_listing_metrics')).views).toBe(1);
     await sellerPage.goto('/en/account/listings');
     await expect(sellerPage.getByRole('heading',{name:'Listing activity'})).toBeVisible();
+    await expect(sellerPage.getByText('WhatsApp clicks',{exact:true})).toHaveCount(0);
     if(info.project.name==='desktop') {
       for(const width of [390,1440]) for(const locale of ['en','ar']) for(const theme of ['light','dark']) {
         await sellerPage.setViewportSize({width,height:900});

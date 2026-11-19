@@ -3,7 +3,7 @@
 Updated: 2026-11-19. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
 
 ## Completed locally
-- Basic analytics: owner totals and MFA-admin marketplace totals for the last 30 UTC calendar days; approximate listing views and WhatsApp clicks. Private daily counters, no visitor identifiers. Migration 016 applied locally.
+- Basic analytics: owner totals and MFA-admin marketplace totals for the last 30 UTC calendar days; owners see approximate listing views only; WhatsApp clicks are MFA-admin-only. Private daily counters, no visitor identifiers. Migration 016 applied locally.
 - Reports/moderation: verified-account reports, duplicate protection and 5/day limit; MFA-admin queue, dismissal, listing removal and profile suspension with target/report version checks and audit records. Details and decision notes remain limited to 1,000 characters. Migration 015 applied locally.
 - QR show/hide and PNG download, generated on demand in-browser. Permanent public-ID links resolve only public active profiles, then use visitor language. No external QR service or stored image.
 - Categories: rackets, balls, padel shoes and bags. Shoes require EU size (20–55, half sizes) before submission; shoes/bags are sale-only with 1–6 photos. Category filters, owner/editor, admin review and public details updated.
@@ -18,7 +18,7 @@ Updated: 2026-11-19. Verified locally; hosted backend is not configured. Main-br
 ## Verification
 - Latest `npm run check`: lint, TypeScript and production build passed.
 - Full browser suite: 16/16 passed, including downloaded QR PNG decoded independently, no-store ID redirect, visitor Arabic preference, shoe half-size persistence, bags, existing auth/admin/listing flows.
-- Database: 536 assertions plus existing concurrency/isolation checks passed. Migrations 013–014 applied locally; no hosted migrations.
+- Database: 539 assertions plus existing concurrency/isolation checks passed. Migrations 013–014 applied locally; no hosted migrations.
 - Earlier 24 QR/profile and shoe-form locale/theme/width checks passed; mobile screenshots inspected. `git diff --check` passed.
 - Earlier Vercel missing-module failure fixed by anchoring `/supabase/` in `.vercelignore`. Hosted backend remains unconfigured.
 
@@ -48,3 +48,8 @@ Updated: 2026-11-19. Verified locally; hosted backend is not configured. Main-br
 - Tested view recording/reload deduplication, cross-origin rejection, owner isolation, admin MFA, 30-day boundary, hidden-content exclusion and WhatsApp redirect during disabled analytics writes. Browser testing caught and fixed the metrics RPC volatility setting required by admin role locking.
 - Counts begin at activation; no backfill. Tab/day deduplication is best-effort; blocked storage/JS or network failures undercount, repeated clicks/bots/self-visits can inflate counts. Not unique people or verified sales. No hosted migration/deployment verification this session. Frontend v2 review/merge remains on hold.
 - Next: shoe-size filter, then optional racket specifications. No new agents or dependencies.
+
+## Admin-only WhatsApp counts — 2026-11-19
+- Migration 017 applied locally: owner metrics responses omit the contacts key (including null/false flags). MFA-admin totals retain clicks. Seller dashboard renders only views; product/architecture/roadmap updated.
+- Checks: npm run check passed; 539 database assertions plus existing concurrency checks passed; desktop/mobile admin browser tests 2/2 passed, including owner API/UI exclusion and admin visibility. Existing EN/AR theme/width checks passed; Arabic dark mobile screenshot inspected. git diff --check passed.
+- Hosted backend still unconfigured; no hosted migration applied. Next: shoe-size filtering, then optional racket specifications. v2 remains untouched.

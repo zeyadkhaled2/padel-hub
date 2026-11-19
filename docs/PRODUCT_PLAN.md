@@ -54,7 +54,7 @@ Product gallery, disclosures, seller summary, availability timestamp, report act
 Generate safe WhatsApp destination server-side with listing title/link; never accept arbitrary redirect URLs. Disabling seller public contact removes listings from active discovery. Track approximate contact attempts, never claim they are completed sales. Analytics failure must not block contact.
 
 ### Dashboards and moderation
-Seller dashboard: manage listings/status, edit profile, share QR/link, approximate views/contact clicks.
+Seller dashboard: manage listings/status, edit profile, share QR/link, approximate listing views. WhatsApp-click counts are admin-only (decision: 2026-11-19).
 Admin: review/approve/reject with reasons, handle reports, suspend users/hide profiles, configurable limits and audit log.
 Conduct manual pilot deal follow-up. Do not introduce verified-sale/reputation badges until a defensible verification process exists.
 
