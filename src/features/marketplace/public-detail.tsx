@@ -2,6 +2,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
+import { ViewTracker } from '@/features/analytics/view-tracker';
 import { ReportForm } from '@/features/reports/forms';
 import { formatAmount } from '@/lib/format';
 import { publicListing, type PublicListing } from './public-data';
@@ -18,7 +19,7 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
   if (!data) notFound();
   const listing = data as PublicListing;
   const fields = ['shoe_size_eu','model','description','condition_disclosure','racket_damage_repair_disclosure','swap_preference','balls_quantity_packaging','balls_availability_note'] as const;
-  return <main id="main" className="container detail-page"><Link href="/">{market('back')}</Link>
+  return <main id="main" className="container detail-page"><ViewTracker id={id} /><Link href="/">{market('back')}</Link>
     <div className="detail-grid"><section aria-label={t('gallery')} className="public-gallery">{listing.media_ids.map((media,index) => <img key={media} src={`/api/media/${media}?listing=${id}&variant=full`} alt={t('photo', { title: listing.title, number: index+1 })} width={800} height={600} loading={index === 0 ? 'eager' : 'lazy'} />)}</section>
     <section><p className="condition">{e(listing.status)} · {e(listing.condition)} · {e(listing.offer_type)}</p><h1><bdi>{listing.title}</bdi></h1>
       <p>{account(`governorates.${listing.governorate_slug}`)} {listing.district_text && <bdi> · {listing.district_text}</bdi>}</p>

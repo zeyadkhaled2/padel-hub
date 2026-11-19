@@ -89,6 +89,31 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await sellerPage.getByRole('button',{name:'Submit for approval',exact:true}).click();await expect(sellerPage.getByRole('status')).toContainText('Submitted');
     await page.goto(`/en/admin/listings/${id}`);await page.getByRole('button',{name:'Approve listing',exact:true}).click();await expect(page.getByRole('status')).toContainText('saved');
     expect((await sellerPage.request.get(`/en/equipment/${id}`)).status()).toBe(200);
+    // Real browser mount records one view per tab/day; prefetch/SSR alone does not.
+    await sellerPage.goto(`/en/equipment/${id}`);
+    await expect.poll(async()=> (await rpc('get_listing_metrics')).views).toBe(1);
+    await sellerPage.reload();
+    expect((await sellerPage.request.post(`/api/analytics/listings/${id}`,{headers:{origin:'https://example.invalid'}})).status()).toBe(400);
+    expect((await sellerPage.request.get(`/api/contact/${id}`,{maxRedirects:0})).status()).toBe(302);
+    await expect.poll(async()=> (await rpc('get_listing_metrics')).contacts).toBe(1);
+    expect((await rpc('get_listing_metrics')).views).toBe(1);
+    await sellerPage.goto('/en/account/listings');
+    await expect(sellerPage.getByRole('heading',{name:'Listing activity'})).toBeVisible();
+    if(info.project.name==='desktop') {
+      for(const width of [390,1440]) for(const locale of ['en','ar']) for(const theme of ['light','dark']) {
+        await sellerPage.setViewportSize({width,height:900});
+        await sellerPage.goto(`/${locale}/account/listings`);
+        await sellerPage.locator('header select').selectOption(theme);
+        await expect(sellerPage.locator('main section h2')).toBeVisible();
+        expect(await sellerPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+        if(width===390 && locale==='ar' && theme==='dark') await sellerPage.screenshot({path:'.cache/analytics-ar-dark.png',fullPage:true});
+      }
+    }
+    // Even a failed analytics write must leave the WhatsApp redirect usable.
+    operator('begin; grant padelhub_market_reader to postgres; revoke execute on function public.record_listing_metric(uuid,text) from service_role; revoke padelhub_market_reader from postgres; commit;');
+    try {
+      expect((await sellerPage.request.get(`/api/contact/${id}`,{maxRedirects:0})).status()).toBe(302);
+    } finally { operator('begin; grant padelhub_market_reader to postgres; grant execute on function public.record_listing_metric(uuid,text) to service_role; revoke padelhub_market_reader from postgres; commit;'); }
     await page.goto(`/en/equipment/${id}`);
     await page.getByText('Report content',{exact:true}).click();
     await page.getByLabel('Details (optional)').fill(`Synthetic report ${suffix}`);

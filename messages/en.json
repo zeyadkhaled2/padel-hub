@@ -449,5 +449,14 @@
     "pages": "Report pages",
     "previous": "Previous",
     "next": "Next"
+  },
+  "analytics": {
+    "title": "Listing activity",
+    "hint": "Your listings · last 30 UTC calendar days, including today.",
+    "adminHint": "All listings · last 30 UTC calendar days, including today.",
+    "views": "Approximate views",
+    "contacts": "WhatsApp clicks",
+    "notice": "Counts start when tracking is enabled. Views are counted once per listing per browser tab each day. Repeat clicks and automated traffic may be included. These are not unique buyers or confirmed sales.",
+    "unavailable": "Activity counts are temporarily unavailable."
   }
 }

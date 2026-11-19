@@ -1,4 +1,6 @@
 import 'server-only';
+import { after } from 'next/server';
+import { recordMetric } from '@/features/analytics/record';
 import { z } from 'zod';
 import { getTranslations } from 'next-intl/server';
 import { authConfig } from '@/server/supabase/config';
@@ -16,5 +18,6 @@ export async function contact(request: Request, id: string) {
   if (!data || !/^\+[1-9][0-9]{7,14}$/.test(data.phone)) return new Response(t('noContact'), { status: 404, headers });
   const destination = new URL(`https://wa.me/${data.phone.slice(1)}`);
   destination.searchParams.set('text', t('message', { title: data.title, url: `${config.origin}/${locale}/equipment/${id}` }));
+  if (request.method === 'GET') after(() => recordMetric(id, 'contact'));
   return new Response(null, { status: 302, headers: { ...headers, Location: destination.href } });
 }

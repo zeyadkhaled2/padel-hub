@@ -1,6 +1,6 @@
 # Feature milestones
 
-Updated 2026-11-18. Earlier day estimates were not measured and are withdrawn. Track completed features and test results instead.
+Updated 2026-11-19. Earlier day estimates were not measured and are withdrawn. Track completed features and test results instead.
 
 ## Done locally
 - EN/AR, light/dark marketplace demo.
@@ -23,15 +23,20 @@ Updated 2026-11-18. Earlier day estimates were not measured and are withdrawn. T
 
 - Verified-account reports, MFA-admin report handling, listing removal and profile suspension; 1,000-character notes retained. Restoration/appeal UI remains future work.
 
+- Basic analytics: approximate views/WhatsApp-click totals over 30 UTC calendar days for owners and MFA admins. No visitor identities or verified-sales claims.
+
 ## Remaining, in order
-1. **Admin UI refinement:** minimal MFA/queue/photo/decision UI works. UI-agent prompt and contracts are in ADMIN_REVIEW.md; no specialist orchestration is running.
-2. **Marketplace controls:** configurable limits UI and basic views/contact counts. Clicks are not successful sales.
-3. **Production readiness:** recovery, Google login, external email, deletion flows, abuse protections, backups/restore, monitoring and final accessibility/privacy/security checks.
-4. **Hosted pilot:** user-approved hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness.
+1. **Small marketplace improvements:** shoe-size filter and optional racket weight/shape/year. Configurable-limit screens are optional for launch.
+2. **Production readiness:** recovery, Google login, external email, deletion flows, abuse protections, backups/restore, monitoring and final accessibility/privacy/security checks.
+3. **Hosted pilot:** user-approved hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness; recruit 5–10 willing sellers with permissioned inventory.
+
+**Frontend on hold:** Ziad is working on `v2`. Review/integration and admin visual refinement wait until he explicitly says it is ready. This does not block independent functional work.
 
 No new specialist orchestration or handoff reports. Keep one dependent feature in progress. No checkout, payments, automatic expiry or automatic deletion of saved photos. Seller-reported deal counts still require a product decision.
 
-Current next functional milestone: basic analytics; review frontend v2 integration before merging. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
+Current next functional milestone: shoe-size filtering, then optional racket specifications; frontend review/merge waits for Ziad. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
 
 ## After MVP
 - Reservation and available-again controls (deferred by Ziad on 2026-11-18).
+- Simple swap cash-difference preferences: later improvement, no internal negotiation system yet.
+- Escrow/authenticity operations, financing, checkout bundles and racket comparison: deferred.

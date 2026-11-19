@@ -104,3 +104,8 @@ Thin `[locale]/[handle]` route accepts only `@username`; decoded parameters are 
 ## QR and expanded equipment
 Migration 013 resolves public profile IDs to usernames only while public/active. `/api/profiles/[id]` returns a temporary no-store redirect to locale-neutral `/@username`; malformed/private/suspended/missing targets return 404, backend failure 503. Client-side QR generation is lazy-loaded and downloads a PNG without storage or external services.
 Migration 014 adds shoes/bags and numeric `shoe_size_eu`; submission requires valid shoe sizing, accessories are sale-only, and existing ownership/version/approval/media checks remain. Owner, moderation and public projections include size. No old migration was rewritten.
+
+## Basic listing analytics
+`src/features/analytics` owns the view tracker, best-effort recorder and owner/admin summary. Migration 016 stores daily counts in a private RLS-protected table. No visitor identifiers, IPs or raw browsing events are saved; older engagement scaffolding is unused. The service-only recording RPC checks current public eligibility; contact counts require active listings. The authenticated summary RPC restricts owners to their listings and requires active admin role plus MFA for marketplace totals.
+
+Visible browser mounts send same-origin POSTs, deduplicated per listing/tab/UTC day using sessionStorage. WhatsApp GET redirects schedule writes with Next `after`; failures never change the destination response. Counts are approximate, may include bots/self-visits/repeated clicks and are not verified transactions. Totals cover today plus 29 previous UTC dates; no historical backfill or new analytics vendor. Frontend v2 remains separate pending Ziad's review request.

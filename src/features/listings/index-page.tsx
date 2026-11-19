@@ -1,3 +1,4 @@
+import { AnalyticsSummary } from '@/features/analytics/summary';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { verifiedClient } from '@/server/supabase/server';
@@ -13,6 +14,7 @@ export default async function ListingIndex({ params }: { params: Promise<{ local
   const photos = await getTranslations('photos');
   const { data, error } = await client.rpc('get_my_listings');
   return <main id="main" className="container account-page"><Link href="/account">{t('account')}</Link><h1>{t('myListings')}</h1>
+    <AnalyticsSummary />
     <form action={createListing.bind(null, locale)} className="account-form"><label htmlFor="category">{photos('category')}</label><select id="category" name="category"><option value="rackets">{photos('rackets')}</option><option value="balls">{photos('balls')}</option><option value="shoes">{photos('shoes')}</option><option value="bags">{photos('bags')}</option></select><button className="button primary">{t('create')}</button></form>
     {error ? <p role="alert">{t('unavailable')}</p> : <ul>{(data as Listing[] ?? []).map((item, index) => <li key={item.id}><Link href={`/account/listings/${item.id}`}>{item.title || `${photos(item.category)} · ${index + 1}`}</Link> — {t(item.status)}</li>)}</ul>}
     {!error && data?.length === 0 && <p>{t('empty')}</p>}
