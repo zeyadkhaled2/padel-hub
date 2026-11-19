@@ -56,25 +56,64 @@
 .hero-stage {
   --px: 0;
   --py: 0;
+  perspective: 1100px;
+  contain: layout style;
+}
+
+.hero-rig {
+  transform-style: preserve-3d;
+  transform:
+    rotateY(calc(var(--px, 0) * 6.5deg))
+    rotateX(calc(var(--py, 0) * -5deg));
+  transition: transform 0.36s var(--ease-calm);
+  will-change: transform;
+}
+
+.hero-stage[data-active="true"] .hero-rig {
+  transition: transform 0.1s linear;
 }
 
 .hero-aura {
   background:
-    radial-gradient(circle at 50% 44%, rgba(14, 124, 102, 0.16) 0%, rgba(216, 243, 91, 0.14) 38%, transparent 70%);
+    radial-gradient(closest-side at 50% 48%, rgba(14, 124, 102, 0.14) 0%, rgba(216, 243, 91, 0.11) 36%, rgba(14, 124, 102, 0.03) 64%, transparent 96%);
 }
 
 [data-theme="dark"] .hero-aura {
   background:
-    radial-gradient(circle at 50% 44%, rgba(70, 217, 178, 0.22) 0%, rgba(201, 230, 76, 0.1) 38%, transparent 70%);
+    radial-gradient(closest-side at 50% 48%, rgba(70, 217, 178, 0.2) 0%, rgba(201, 230, 76, 0.09) 36%, rgba(14, 124, 102, 0.04) 64%, transparent 96%);
+}
+
+/* Soft directional studio keylight moving opposite camera tilt for live realism */
+.hero-keylight {
+  background:
+    radial-gradient(closest-side at 46% 40%, rgba(255, 255, 255, 0.48) 0%, rgba(216, 243, 91, 0.1) 38%, transparent 88%);
+  opacity: 0.72;
+}
+
+[data-theme="dark"] .hero-keylight {
+  background:
+    radial-gradient(closest-side at 46% 40%, rgba(70, 217, 178, 0.14) 0%, rgba(201, 230, 76, 0.06) 38%, transparent 88%);
+  opacity: 0.85;
 }
 
 .hero-floor-shadow {
-  background: radial-gradient(ellipse at center, rgba(16, 19, 23, 0.22) 0%, rgba(16, 19, 23, 0.06) 48%, transparent 74%);
-  animation: hero-shadow-breathe 6.4s ease-in-out infinite;
+  background: radial-gradient(ellipse at center, rgba(16, 19, 23, 0.24) 0%, rgba(16, 19, 23, 0.08) 46%, transparent 74%);
+  animation: hero-shadow-breathe 6.8s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 [data-theme="dark"] .hero-floor-shadow {
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.65) 0%, rgba(70, 217, 178, 0.12) 46%, transparent 74%);
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.72) 0%, rgba(70, 217, 178, 0.1) 46%, transparent 74%);
+}
+
+.hero-ball-shadow {
+  background: radial-gradient(ellipse at center, rgba(16, 19, 23, 0.2) 0%, rgba(16, 19, 23, 0.05) 50%, transparent 74%);
+  animation: hero-ball-shadow-breathe 4.8s ease-in-out -2.4s infinite;
+  will-change: transform, opacity;
+}
+
+[data-theme="dark"] .hero-ball-shadow {
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.16) 52%, transparent 74%);
 }
 
 .hero-layer {
@@ -83,79 +122,124 @@
     calc(var(--py, 0) * var(--depth-y, 9px)),
     0
   );
-  transition: transform 0.28s var(--ease-calm);
+  transition: transform 0.34s var(--ease-calm);
   will-change: transform;
 }
 
 .hero-stage[data-active="true"] .hero-layer {
-  transition: transform 0.08s linear;
+  transition: transform 0.09s linear;
 }
 
+/* Pause all GPU animations automatically when scrolled offscreen */
+.hero-stage[data-paused="true"] .hero-float-racket,
+.hero-stage[data-paused="true"] .hero-float-far,
+.hero-stage[data-paused="true"] .hero-float-mid,
+.hero-stage[data-paused="true"] .hero-float-near,
+.hero-stage[data-paused="true"] .hero-floor-shadow,
+.hero-stage[data-paused="true"] .hero-ball-shadow {
+  animation-play-state: paused;
+}
+
+/* Organic 3D lifelike hover trajectories (compositor-only transform & opacity) */
 @keyframes hero-float-racket {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) rotate(-3deg);
+    transform: translate3d(0, 0, 0) rotateZ(-2.5deg) rotateY(-2deg);
   }
   50% {
-    transform: translate3d(0, -10px, 0) rotate(-1deg);
+    transform: translate3d(2px, -11px, 0) rotateZ(-0.5deg) rotateY(3.5deg);
   }
 }
 
 @keyframes hero-shadow-breathe {
   0%,
   100% {
-    transform: scaleX(1) scaleY(1);
-    opacity: 0.9;
+    transform: scale3d(1, 1, 1);
+    opacity: 0.92;
   }
   50% {
-    transform: scaleX(0.84) scaleY(0.82);
-    opacity: 0.55;
+    transform: scale3d(0.82, 0.8, 1);
+    opacity: 0.52;
+  }
+}
+
+@keyframes hero-ball-shadow-breathe {
+  0%,
+  100% {
+    transform: scale3d(1, 1, 1);
+    opacity: 0.82;
+  }
+  50% {
+    transform: scale3d(0.76, 0.76, 1);
+    opacity: 0.42;
   }
 }
 
 @keyframes hero-float-far {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate(-4deg);
   }
   50% {
-    transform: translate3d(0, -7px, 0) rotate(7deg);
+    transform: translate3d(3px, -8px, 0) rotate(7deg);
   }
 }
 
 @keyframes hero-float-mid {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) rotate(-4deg);
+    transform: translate3d(0, 0, 0) rotate(-5deg);
   }
   50% {
-    transform: translate3d(0, -11px, 0) rotate(6deg);
+    transform: translate3d(-4px, -12px, 0) rotate(9deg);
   }
 }
 
 @keyframes hero-float-near {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) rotate(4deg);
+    transform: translate3d(0, 0, 0) rotate(3deg) scale(1);
   }
   50% {
-    transform: translate3d(0, -13px, 0) rotate(-4deg);
+    transform: translate3d(3px, -13px, 0) rotate(-5deg) scale(1.03);
   }
 }
 
 .hero-float-racket {
-  transform: rotate(-3deg);
-  animation: hero-float-racket 6.4s ease-in-out infinite;
+  transform: rotateZ(-2.5deg);
+  animation: hero-float-racket 6.8s ease-in-out infinite;
+  will-change: transform;
 }
 
 .hero-float-far {
-  animation: hero-float-far 7.4s ease-in-out -1.8s infinite;
+  animation: hero-float-far 7.6s ease-in-out -1.8s infinite;
+  will-change: transform;
 }
 
 .hero-float-mid {
-  animation: hero-float-mid 5.2s ease-in-out -0.9s infinite;
+  animation: hero-float-mid 5.4s ease-in-out -0.9s infinite;
+  will-change: transform;
 }
 
 .hero-float-near {
-  animation: hero-float-near 4.6s ease-in-out -2.4s infinite;
+  animation: hero-float-near 4.8s ease-in-out -2.4s infinite;
+  will-change: transform;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rig,
+  .hero-layer {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .hero-float-racket,
+  .hero-float-far,
+  .hero-float-mid,
+  .hero-float-near,
+  .hero-floor-shadow,
+  .hero-ball-shadow {
+    animation: none !important;
+  }
+}
+

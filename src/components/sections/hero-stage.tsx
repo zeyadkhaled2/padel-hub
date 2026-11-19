@@ -28,7 +28,26 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const node = stageRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        if (entry.isIntersecting) {
+          delete node.dataset.paused;
+        } else {
+          node.dataset.paused = 'true';
+        }
+      },
+      { threshold: 0.05 },
+    );
+
+    observer.observe(node);
+
     return () => {
+      observer.disconnect();
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }
@@ -77,102 +96,129 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
       ref={stageRef}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className="hero-stage relative m-0 h-[142px] md:h-auto md:min-h-[208px] lg:min-h-[224px] min-w-0 overflow-visible select-none"
+      className="hero-stage relative m-0 h-[152px] md:h-auto md:min-h-[220px] lg:min-h-[238px] min-w-0 overflow-visible select-none"
     >
-      {/* Ambient volumetric halo shifting gently in reverse depth */}
+      {/* Ambient volumetric emerald/volt halo shifting gently in reverse depth */}
       <div
         aria-hidden="true"
-        style={depth(-10, -8)}
-        className="hero-layer hero-aura pointer-events-none absolute -inset-4 z-0 rounded-full blur-2xl"
+        style={depth(-12, -8)}
+        className="hero-layer hero-aura pointer-events-none absolute -inset-4 z-0 rounded-full"
       />
 
-      {/* Breathing 3D studio floor shadow beneath the levitating racket */}
+      {/* Directional studio keylight shifting opposite cursor tilt */}
       <div
         aria-hidden="true"
-        className="hero-floor-shadow pointer-events-none absolute bottom-1 start-1/2 z-10 h-5 w-[108px] md:bottom-0 md:h-7 md:w-[156px] -translate-x-1/2 rtl:translate-x-1/2 rounded-full blur-md"
+        style={depth(-20, -14)}
+        className="hero-layer hero-keylight pointer-events-none absolute -inset-2 z-0 rounded-full"
       />
 
-      {/* Layer 1: Distant upper ball (far depth) */}
+      {/* Synchronized breathing floor shadow tracking beneath the carbon racket */}
       <div
         aria-hidden="true"
-        style={depth(-8, -5)}
-        className="hero-layer pointer-events-none absolute top-[8%] start-[8%] z-10 md:top-[9%] md:start-[6%]"
+        className="pointer-events-none absolute bottom-1 start-1/2 z-10 -translate-x-1/2 rtl:translate-x-1/2 md:bottom-0"
       >
-        <div className="hero-float-far">
-          <Image
-            src="/images/hero/padel-ball-1.webp"
-            alt=""
-            width={280}
-            height={280}
-            sizes="(max-width: 767px) 28px, 44px"
-            draggable={false}
-            className="h-auto w-[28px] md:w-[38px] lg:w-[44px] opacity-85 blur-[0.45px] drop-shadow-[0_10px_14px_rgba(16,19,23,0.18)] dark:drop-shadow-[0_12px_18px_rgba(0,0,0,0.62)]"
-          />
+        <div style={depth(-7, -3)} className="hero-layer">
+          <div className="hero-floor-shadow h-5 w-[112px] md:h-7 md:w-[164px] rounded-full" />
         </div>
       </div>
 
-      {/* Layer 2: Floating 3D Padel Racket (focal hero LCP image) */}
+      {/* Subtle floor shadow beneath the close-to-camera foreground ball */}
       <div
-        style={depth(14, 10)}
-        className="hero-layer pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+        aria-hidden="true"
+        style={depth(14, 6)}
+        className="hero-layer pointer-events-none absolute -bottom-1 end-[6%] z-10 hidden md:block lg:end-[7%]"
       >
-        <div className="translate-x-5 -translate-y-3 rtl:-translate-x-5 md:-translate-x-2 md:-translate-y-2 md:rtl:translate-x-2">
-          <div className="hero-float-racket">
+        <div className="hero-ball-shadow h-3.5 w-[56px] rounded-full" />
+      </div>
+
+      {/* True 3D perspective camera rig holding all 4 studio-lit depth planes */}
+      <div className="hero-rig pointer-events-none absolute inset-0 z-20">
+        {/* Layer 1: Distant upper fuzzy padel ball (far depth) */}
+        <div
+          aria-hidden="true"
+          style={depth(-10, -6)}
+          className="hero-layer absolute top-[7%] start-[7%] z-10 md:top-[8%] md:start-[5%]"
+        >
+          <div className="hero-float-far">
             <Image
-              src="/images/hero/padel-racket.webp"
-              alt={alt}
-              width={413}
-              height={740}
-              preload={true}
-              sizes="(max-width: 767px) 110px, (max-width: 1024px) 164px, 184px"
+              src="/images/hero/padel-ball-far.webp"
+              alt=""
+              width={160}
+              height={160}
+              decoding="async"
+              sizes="(max-width: 767px) 32px, 46px"
               draggable={false}
-              className="h-[112px] md:h-[186px] lg:h-[204px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_22px_28px_rgba(16,19,23,0.22)] dark:drop-shadow-[0_26px_34px_rgba(0,0,0,0.78)]"
+              className="h-auto w-[30px] md:w-[40px] lg:w-[46px] opacity-90 drop-shadow-[0_10px_14px_rgba(16,19,23,0.18)] dark:drop-shadow-[0_12px_18px_rgba(0,0,0,0.62)]"
+            />
+          </div>
+        </div>
+
+        {/* Layer 2: Floating photorealistic 12K Carbon Padel Racket (focal LCP image) */}
+        <div
+          style={depth(15, 10)}
+          className="hero-layer absolute inset-0 z-20 flex items-center justify-center"
+        >
+          <div className="translate-x-5 -translate-y-2 rtl:-translate-x-5 md:-translate-x-2 md:-translate-y-1.5 md:rtl:translate-x-2">
+            <div className="hero-float-racket">
+              <Image
+                src="/images/hero/padel-racket-carbon.webp"
+                alt={alt}
+                width={287}
+                height={500}
+                preload={true}
+                sizes="(max-width: 767px) 92px, (max-width: 1024px) 132px, 146px"
+                draggable={false}
+                className="h-[136px] md:h-[212px] lg:h-[232px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_22px_26px_rgba(16,19,23,0.24)] dark:drop-shadow-[0_26px_34px_rgba(0,0,0,0.82)]"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Layer 3: Mid-air volley padel ball off the sweet spot */}
+        <div
+          aria-hidden="true"
+          style={depth(26, 18)}
+          className="hero-layer absolute top-[5%] end-[11%] z-30 md:top-[6%] md:end-[9%]"
+        >
+          <div className="hero-float-mid">
+            <Image
+              src="/images/hero/padel-ball-mid.webp"
+              alt=""
+              width={200}
+              height={200}
+              decoding="async"
+              sizes="(max-width: 767px) 38px, 56px"
+              draggable={false}
+              className="h-auto w-[36px] md:w-[48px] lg:w-[56px] drop-shadow-[0_14px_18px_rgba(16,19,23,0.22)] dark:drop-shadow-[0_18px_24px_rgba(0,0,0,0.68)]"
+            />
+          </div>
+        </div>
+
+        {/* Layer 4: Foreground close-to-camera macro felt ball (strongest 3D parallax) */}
+        <div
+          aria-hidden="true"
+          style={depth(42, 28)}
+          className="hero-layer absolute -bottom-1 end-[2%] z-40 md:-bottom-2 md:end-[1%] lg:-bottom-2.5 lg:end-[2%]"
+        >
+          <div className="hero-float-near">
+            <Image
+              src="/images/hero/padel-ball-near.webp"
+              alt=""
+              width={280}
+              height={280}
+              decoding="async"
+              sizes="(max-width: 767px) 58px, 90px"
+              draggable={false}
+              className="h-auto w-[54px] md:w-[78px] lg:w-[90px] drop-shadow-[0_18px_24px_rgba(16,19,23,0.28)] dark:drop-shadow-[0_24px_32px_rgba(0,0,0,0.82)]"
             />
           </div>
         </div>
       </div>
 
-      {/* Layer 3: Mid-air ball off the sweet spot */}
-      <div
-        aria-hidden="true"
-        style={depth(24, 17)}
-        className="hero-layer pointer-events-none absolute top-[6%] end-[12%] z-30 md:top-[7%] md:end-[10%]"
-      >
-        <div className="hero-float-mid">
-          <Image
-            src="/images/hero/padel-ball-1.webp"
-            alt=""
-            width={280}
-            height={280}
-            sizes="(max-width: 767px) 36px, 54px"
-            draggable={false}
-            className="h-auto w-[34px] md:w-[46px] lg:w-[54px] drop-shadow-[0_14px_18px_rgba(16,19,23,0.2)] dark:drop-shadow-[0_18px_24px_rgba(0,0,0,0.65)]"
-          />
-        </div>
-      </div>
-
-      {/* Layer 4: Foreground close-to-camera ball (strongest depth & parallax) */}
-      <div
-        aria-hidden="true"
-        style={depth(38, 26)}
-        className="hero-layer pointer-events-none absolute -bottom-1 end-[3%] z-40 md:-bottom-2 md:end-[2%] lg:-bottom-2.5 lg:end-[3%]"
-      >
-        <div className="hero-float-near">
-          <Image
-            src="/images/hero/padel-ball-2.webp"
-            alt=""
-            width={320}
-            height={320}
-            sizes="(max-width: 767px) 56px, 88px"
-            draggable={false}
-            className="h-auto w-[52px] md:w-[76px] lg:w-[86px] md:blur-[0.4px] drop-shadow-[0_18px_24px_rgba(16,19,23,0.26)] dark:drop-shadow-[0_24px_32px_rgba(0,0,0,0.78)]"
-          />
-        </div>
-      </div>
-
-      <figcaption className="absolute bottom-1.5 start-0 md:bottom-2 md:start-1 z-50 m-0 w-fit max-w-[calc(100%-82px)] md:max-w-[calc(100%-96px)] rounded-full border border-border/75 bg-card/85 px-3 py-1 text-[10.5px] md:text-[11.5px] font-medium leading-snug text-muted-foreground backdrop-blur-md">
+      <figcaption className="absolute bottom-1.5 start-0 md:bottom-2 md:start-1 z-50 m-0 w-fit max-w-[calc(100%-82px)] md:max-w-[calc(100%-104px)] rounded-full border border-border/75 bg-card/85 px-3 py-1 text-[10.5px] md:text-[11.5px] font-medium leading-snug text-muted-foreground backdrop-blur-md">
         {caption}
       </figcaption>
     </figure>
   );
 }
+

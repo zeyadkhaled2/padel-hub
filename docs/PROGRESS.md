@@ -236,4 +236,24 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Limitations: All equipment/seller records on `v2` remain demo fixtures (`noindex`); local Lighthouse CLI and physical mobile device testing were not run in this session; no backend/database/auth/form behavior was modified.
 - Next steps: Review the inline chat preview or run locally (`git pull origin v2 && npm install && npm run dev`); when ready, integrate `v2` UI with `origin/main` backend features on a dedicated merge branch.
 
+## Photorealistic 12K carbon racket & 3 fuzzy felt balls with zero-regression 3D performance — 2026-11-18 (branch `v2`, UI-only)
+- Following Ziad's request to make the hero racket and 3 balls look far more real and alive without hurting performance:
+  - **Studio photorealistic WebP assets (`public/images/hero/padel-racket-carbon.webp`, `padel-ball-far.webp`, `padel-ball-mid.webp`, `padel-ball-near.webp`)**:
+    - Replaced the smooth blue 3D cartoon racket and duplicated ball asset with 4 unbranded macro studio photographs: an exposed matte 12K woven carbon-fiber padel racket with emerald (`#0E7C66`) & volt (`#D8F35B`) throat trim, perforated overgrip, and woven wrist lanyard, plus 3 distinct pressurized optic-yellow fuzzy felt padel balls at different natural 3D seam angles.
+    - Extracted cleanly from `#FF00FF` magenta chroma-key with alpha unmixing and color decontamination (zero fringe on both Porcelain Light `#f9fafb` and Obsidian Dark `#0b0d10`).
+    - Total combined asset payload **dropped from 89.2 KB down to 75.2 KB** (`28.9 KB` racket + `8.7 KB` / `12.0 KB` / `25.5 KB` balls — ~16% lighter than before) with cache-busted filename `padel-racket-carbon.webp`.
+  - **GPU compositor-only 3D camera rig & zero-idle-JS performance (`src/components/sections/hero-stage.tsx`, `src/styles/sections/hero.css`)**:
+    - Added true 3D perspective camera tilt (`.hero-rig` inside `perspective: 1100px`, `rotateY` / `rotateX`) paired with multi-depth parallax layers, directional `.hero-keylight` glow, and feathered `closest-side` radial gradients (eliminating expensive `blur-2xl`/`blur-md`/`blur-[0.4px]` CSS filters on animated layers).
+    - Added organic 3D hover & spin-drift trajectories (pure `transform`/`opacity` on the compositor thread — zero JS timers when idle) and synchronized tracking floor shadows beneath both the carbon racket and foreground ball.
+    - Added `IntersectionObserver` offscreen auto-pause (`data-paused="true"` -> `animation-play-state: paused`) so scrolling past the hero consumes 0% GPU/battery, plus `contain: layout style`, `preload={true}` exclusively on the LCP racket, `decoding="async"` on the 3 balls, and strict `prefers-reduced-motion: reduce` support.
+  - Updated `docs/DESIGN_SPEC.md`.
+- Checks:
+  - `npm run check`: **PASS** (0 ESLint errors/warnings, `next typegen`, `tsc --noEmit`, production `next build --webpack`).
+  - `./.agents/skills/impeccable/scripts/impeccable detect --json src`: **PASS** (`[]`, exit 0).
+  - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e` against `next start --port 3100`: **PASS** (`10/10` desktop & mobile in `25.2s`).
+  - Multi-viewport visual QA (`38/38` checks across `1440px`, `768px`, `390px`, `320px` × `en`/`ar` × `light`/`dark`): **0 failures**, `noOverflow: true`, zero console/page errors. Verified all 4 hero WebPs load (`complete: true`), pointer 3D rig activates (`data-active="true"`, `--px`/`--py` updates), and offscreen `IntersectionObserver` toggles `data-paused="true"` when scrolled past the hero and clears on return. Visually inspected updated Light EN, Dark AR RTL, and Mobile renders.
+- Limitations: All equipment/seller records on `v2` remain demo fixtures (`noindex`); local Lighthouse CLI and physical mobile device testing were not run in this session; no backend/database/auth/form behavior was modified.
+- Next steps: Pull `v2` (`git pull origin v2 && npm install && npm run dev`) to experience the live 3D carbon racket & balls locally, or proceed with integrating `v2` UI with `origin/main` when ready.
+
+
 
