@@ -28,7 +28,7 @@ export async function SellerProfileView() {
         </Link>
       </Button>
 
-      <section className="hero-courtside relative mt-4 flex flex-col items-start gap-5 overflow-hidden rounded-[20px] border border-border p-6 sm:p-8 text-foreground sm:flex-row sm:items-center">
+      <section className="storefront-banner relative mt-4 flex flex-col items-start gap-5 overflow-hidden rounded-[20px] border border-border/80 p-6 sm:p-8 text-foreground sm:flex-row sm:items-center">
         <Avatar
           className="h-18 w-18 sm:h-22 sm:w-22 ring-1 ring-brand/20"
           aria-hidden="true"

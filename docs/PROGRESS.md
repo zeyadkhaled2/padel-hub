@@ -216,3 +216,24 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Limitations: All equipment/seller records on `v2` remain demo fixtures (`noindex`); `origin/main` currently holds separate backend/account/admin/shoes-and-bags work ready for future integration on a dedicated merge branch; local Lighthouse CLI and physical mobile device testing were not run in this session.
 - Next steps: Pull `v2` (`git pull origin v2 && npm install && npm run dev`) to verify the shadcn/ui foundation locally; add additional shadcn primitives as needed (`npx shadcn@latest add ...`) or proceed with safe integration against `origin/main` when the other agent's feature work is ready.
 
+## Minimalistic modern palette & seamless 3D blended hero — 2026-11-18 (branch `v2`, UI-only)
+- Following Ziad's request for a minimalistic modern aesthetic, a refreshed color palette, and a hero background that blends seamlessly from its outline into the canvas below for a livelier 3D feel (preserving the `shadcn/ui` pillar, native GET forms, RTL, and accessibility):
+  - **Porcelain & Obsidian Minimal + Court Emerald & Padel Volt palette (`src/styles/tokens.css`, `public/brand/padelhub-mark.svg`, `src/app/icon.svg`, `src/components/layout/brand.tsx`)**:
+    - **Light**: Clean porcelain canvas (`#f9fafb`), pure `#ffffff` cards, subtle cool-neutral wells (`#f2f4f7`), minimalist obsidian primary actions (`#101317` / `#ffffff`), Court Emerald brand/focus accents (`#0e7c66`, soft tint `#e8f5f1`), and crisp Padel Volt highlights (`#d8f35b`, soft `#edf7cc`).
+    - **Dark**: Deep obsidian canvas (`#0b0d10`), layered graphite cards (`#13161b`), minimalist high-contrast porcelain primary actions (`#f3f5f8` / `#0b0d10`), luminous Court Emerald accents (`#46d9b2`, tint `#122622`), and Padel Volt highlights (`#c9e64c`).
+    - Updated brand mark SVG and favicon to Court Emerald (`#0E7C66`) + Padel Volt (`#D8F35B`), keeping all legacy CSS variable aliases intact for cross-branch compatibility with `origin/main`.
+  - **Full-bleed seamless 3D blended hero (`src/styles/sections/hero.css`, `src/components/sections/hero-section.tsx`, `src/components/sections/hero-stage.tsx`, `src/features/marketplace/marketplace-page.tsx`)**:
+    - Removed the bordered rounded hero card and moved `HeroSection` outside `.container` as a full-bleed `.hero-blend` band whose multi-layered emerald/volt studio dome and masked architectural court lines dissolve continuously into `var(--background)` below with zero outline seam.
+    - Enhanced 3D live depth in `HeroStage` with non-clipping `overflow-visible` framing, reverse-depth parallax `.hero-aura` volumetric glow, breathing `.hero-floor-shadow` synchronized to the 6.4s racket float keyframes, and layered drop shadows; paired with a frosted translucent Search Dock (`bg-card/90 backdrop-blur-xl`).
+  - **Minimalistic surface polish (`src/components/layout/site-header.tsx`, `src/features/marketplace/category-pills.tsx`, `src/features/marketplace/listing-card.tsx`, `src/features/marketplace/seller-profile-view.tsx`)**:
+    - Softened sticky header chrome (`border-border/50 backdrop-blur-xl`), streamlined category shortcuts into `rounded-full` minimalist pills with monochrome primary active states and emerald icons, refined listing cards (`rounded-[16px]`, `rounded-full` condition pills), and gave `SellerProfileView` a dedicated `.storefront-banner` emerald-tinted card.
+  - Updated `docs/DESIGN_SPEC.md`.
+- Checks:
+  - `npm run check`: **PASS** (0 ESLint errors/warnings, `next typegen`, `tsc --noEmit`, production `next build --webpack`).
+  - `./.agents/skills/impeccable/scripts/impeccable detect --json src`: **PASS** (`[]`, exit 0).
+  - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e`: **PASS** (`10/10` desktop & mobile tests against `next start --port 3100`).
+  - Multi-viewport visual & layout QA (`38/38` checks across `1440px`, `768px`, `390px`, `320px` × `en`/`ar` × `light`/`dark` covering `/`, `/equipment/head-delta-motion`, `/sellers/omar_padel`, and `/about`): **0 failures**, `noOverflow: true` everywhere, zero console/page errors; visually inspected Light EN, Dark AR RTL, Detail, Seller, and Mobile screenshots confirming seamless hero-to-canvas blending and 3D depth.
+- Limitations: All equipment/seller records on `v2` remain demo fixtures (`noindex`); local Lighthouse CLI and physical mobile device testing were not run in this session; no backend/database/auth/form behavior was modified.
+- Next steps: Review the inline chat preview or run locally (`git pull origin v2 && npm install && npm run dev`); when ready, integrate `v2` UI with `origin/main` backend features on a dedicated merge branch.
+
+

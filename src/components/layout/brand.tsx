@@ -27,7 +27,7 @@ export function Brand({ compact = false }: BrandProps) {
       />
       <span>
         padel<span className="text-brand">hub</span>
-        <span className="text-coral">.</span>
+        <span className="text-brand">.</span>
       </span>
     </span>
   );

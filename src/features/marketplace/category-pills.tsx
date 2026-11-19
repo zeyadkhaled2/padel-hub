@@ -81,28 +81,26 @@ export async function CategoryPills({
               hash: 'equipment-heading',
             }}
             className={cn(
-              'inline-flex min-h-[42px] items-center gap-2 rounded-[11px] border px-2.5 sm:px-3 py-1.5 text-[12.5px] sm:text-[13px] font-semibold transition-colors duration-200',
+              'inline-flex min-h-[40px] items-center gap-2 rounded-full border px-3 py-1.5 text-[12.5px] sm:text-[13px] font-semibold transition-colors duration-200',
               isSelected
-                ? 'border-foreground bg-foreground text-background dark:border-primary dark:bg-primary dark:text-primary-foreground'
-                : 'border-border bg-card text-foreground hover:border-border-strong hover:bg-muted',
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border/80 bg-transparent text-foreground hover:border-border-strong hover:bg-muted',
             )}
             aria-current={category === item ? 'true' : undefined}
           >
             <span
               className={cn(
-                'grid h-6 w-6 shrink-0 place-items-center rounded-[7px]',
-                isSelected
-                  ? 'bg-background/15 text-background dark:bg-white/15 dark:text-white'
-                  : 'bg-accent text-accent-foreground',
+                'inline-flex items-center justify-center',
+                isSelected ? 'text-primary-foreground/85' : 'text-brand',
               )}
               aria-hidden="true"
             >
               {item === '' ? (
-                <LayoutGrid size={13} aria-hidden="true" />
+                <LayoutGrid size={14} aria-hidden="true" />
               ) : item === 'rackets' ? (
                 <PadelRacketIcon />
               ) : (
-                <CircleDot size={13} aria-hidden="true" />
+                <CircleDot size={14} aria-hidden="true" />
               )}
             </span>
 
@@ -111,9 +109,9 @@ export async function CategoryPills({
             <span
               aria-hidden="true"
               className={cn(
-                'rounded-[6px] px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none',
+                'rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none',
                 isSelected
-                  ? 'bg-background/15 text-background dark:bg-white/18 dark:text-white'
+                  ? 'bg-primary-foreground/15 text-primary-foreground'
                   : 'bg-muted text-muted-foreground',
               )}
             >

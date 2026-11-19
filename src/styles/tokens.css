@@ -24,7 +24,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* PadelHub brand & courtside accents */
+  /* PadelHub brand & live courtside accents */
   --color-brand: var(--brand);
   --color-coral: var(--ring);
   --color-court-gold: var(--court-gold);
@@ -71,38 +71,38 @@
   --font-heading: var(--font-display-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
   --radius: 0.75rem;
 
-  /* Club Blue & Warm Stone — Light (shadcn/ui semantic tokens) */
-  --background: #f7f7f5;
-  --foreground: #161e2e;
+  /* Porcelain & Obsidian Minimal + Court Emerald & Volt — Light */
+  --background: #f9fafb;
+  --foreground: #101317;
   --card: #ffffff;
-  --card-foreground: #161e2e;
+  --card-foreground: #101317;
   --popover: #ffffff;
-  --popover-foreground: #161e2e;
-  --primary: #2553b8;
-  --primary-hover: #1e4499;
+  --popover-foreground: #101317;
+  --primary: #101317;
+  --primary-hover: #252b34;
   --primary-foreground: #ffffff;
-  --secondary: #f1f2ee;
-  --secondary-foreground: #161e2e;
-  --muted: #f1f2ee;
-  --muted-foreground: #5a6577;
-  --accent: #eaf0fb;
-  --accent-foreground: #2553b8;
+  --secondary: #f2f4f7;
+  --secondary-foreground: #101317;
+  --muted: #f2f4f7;
+  --muted-foreground: #5f6673;
+  --accent: #e8f5f1;
+  --accent-foreground: #0b6654;
   --destructive: #c93b2b;
   --destructive-foreground: #ffffff;
-  --border: #e3e5e9;
-  --border-strong: #cdd2dc;
-  --input: #e3e5e9;
-  --ring: #d95b38;
+  --border: #e6e8ec;
+  --border-strong: #cfd4dc;
+  --input: #e6e8ec;
+  --ring: #0e7c66;
 
   /* PadelHub brand, chrome & elevation */
-  --brand: #2553b8;
-  --court-gold: #f2d15b;
-  --court-gold-foreground: #2a2209;
-  --gold-soft: #fbf4d8;
-  --header: rgba(247, 247, 245, 0.88);
-  --shadow-card: 0 1px 2px rgba(22, 30, 46, 0.04);
-  --shadow-card-hover: 0 8px 24px -10px rgba(22, 30, 46, 0.14);
-  --shadow-dock: 0 2px 6px rgba(22, 30, 46, 0.04), 0 16px 36px -18px rgba(22, 30, 46, 0.14);
+  --brand: #0e7c66;
+  --court-gold: #d8f35b;
+  --court-gold-foreground: #172207;
+  --gold-soft: #edf7cc;
+  --header: rgba(249, 250, 251, 0.8);
+  --shadow-card: 0 1px 2px rgba(16, 19, 23, 0.03);
+  --shadow-card-hover: 0 12px 28px -14px rgba(16, 19, 23, 0.14);
+  --shadow-dock: 0 1px 2px rgba(16, 19, 23, 0.03), 0 20px 48px -20px rgba(16, 19, 23, 0.12);
 
   /* Legacy CSS custom property aliases for cross-branch compatibility */
   --canvas: var(--background);
@@ -123,36 +123,36 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Club Blue & Neutral Graphite — Dark (shadcn/ui semantic tokens) */
-  --background: #111317;
-  --foreground: #edf0f5;
-  --card: #181c23;
-  --card-foreground: #edf0f5;
-  --popover: #181c23;
-  --popover-foreground: #edf0f5;
-  --primary: #3465d8;
-  --primary-hover: #4173e6;
-  --primary-foreground: #ffffff;
-  --secondary: #1f242e;
-  --secondary-foreground: #edf0f5;
-  --muted: #1f242e;
-  --muted-foreground: #98a3b6;
-  --accent: #1d283c;
-  --accent-foreground: #7da8ff;
+  /* Deep Obsidian Minimal + Court Emerald & Volt — Dark */
+  --background: #0b0d10;
+  --foreground: #f3f5f8;
+  --card: #13161b;
+  --card-foreground: #f3f5f8;
+  --popover: #13161b;
+  --popover-foreground: #f3f5f8;
+  --primary: #f3f5f8;
+  --primary-hover: #dde3ec;
+  --primary-foreground: #0b0d10;
+  --secondary: #1a1e25;
+  --secondary-foreground: #f3f5f8;
+  --muted: #1a1e25;
+  --muted-foreground: #8f98a6;
+  --accent: #122622;
+  --accent-foreground: #46d9b2;
   --destructive: #e05245;
   --destructive-foreground: #ffffff;
-  --border: #282f3c;
-  --border-strong: #394356;
-  --input: #282f3c;
-  --ring: #f08c6c;
+  --border: #20252e;
+  --border-strong: #313845;
+  --input: #20252e;
+  --ring: #46d9b2;
 
   /* PadelHub brand, chrome & elevation */
-  --brand: #7da8ff;
-  --court-gold: #d9ba4e;
-  --court-gold-foreground: #1a1608;
-  --gold-soft: rgba(217, 186, 78, 0.14);
-  --header: rgba(17, 19, 23, 0.86);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-card-hover: 0 12px 28px -12px rgba(0, 0, 0, 0.5);
-  --shadow-dock: 0 6px 18px -6px rgba(0, 0, 0, 0.38), 0 20px 44px -18px rgba(0, 0, 0, 0.55);
+  --brand: #46d9b2;
+  --court-gold: #c9e64c;
+  --court-gold-foreground: #141c06;
+  --gold-soft: rgba(201, 230, 76, 0.14);
+  --header: rgba(11, 13, 16, 0.78);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22);
+  --shadow-card-hover: 0 16px 34px -14px rgba(0, 0, 0, 0.62);
+  --shadow-dock: 0 4px 16px -4px rgba(0, 0, 0, 0.42), 0 24px 56px -18px rgba(0, 0, 0, 0.68);
 }

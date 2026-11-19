@@ -75,102 +75,104 @@ export async function MarketplacePage({
   ];
 
   return (
-    <main id="main" className="container">
+    <main id="main" className="w-full">
       <HeroSection />
 
-      <section aria-label={tMarket('search')}>
-        <Card className="relative z-20 -mt-5 sm:-mt-5.5 md:-mt-6 mx-1.5 sm:mx-3 md:mx-5 p-3 sm:p-3.5 md:p-4 shadow-[var(--shadow-dock)]">
-          <SearchPanel query={query} category={category} sort={sort} />
+      <div className="container">
+        <section aria-label={tMarket('search')}>
+          <Card className="relative z-20 -mt-5 md:-mt-6 border-border/80 bg-card/90 p-3.5 sm:p-4 backdrop-blur-xl shadow-[var(--shadow-dock)]">
+            <SearchPanel query={query} category={category} sort={sort} />
 
-          <Separator className="my-2.5 bg-border/80" />
+            <Separator className="my-2.5 bg-border/70" />
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CategoryPills
-              query={query}
-              category={category}
-              sort={sort}
-              counts={categoryCounts}
-            />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CategoryPills
+                query={query}
+                category={category}
+                sort={sort}
+                counts={categoryCounts}
+              />
 
-            {hasActiveFilters && listings.length > 0 ? (
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="px-3 text-[12.5px] hover:text-brand"
+              {hasActiveFilters && listings.length > 0 ? (
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="px-3 text-[12.5px] hover:text-brand"
+                >
+                  <Link href="/">{tMarket('reset')}</Link>
+                </Button>
+              ) : null}
+            </div>
+          </Card>
+        </section>
+
+        <section
+          className="mt-7 mb-14 md:mt-9 md:mb-18"
+          aria-labelledby="equipment-heading"
+        >
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2
+                id="equipment-heading"
+                className="scroll-mt-32 md:scroll-mt-24 font-display text-[21px] md:text-[26px] font-extrabold tracking-[-0.03em] text-foreground"
               >
+                {tMarket('heading')}
+              </h2>
+              <p className="mt-1 text-[13.5px] sm:text-[14px] leading-snug text-muted-foreground">
+                {tMarket('subheading')}{' '}
+                <span aria-hidden="true" className="text-border-strong">
+                  ·
+                </span>{' '}
+                <span className="font-semibold text-brand">
+                  {tMarket('demo')}
+                </span>
+              </p>
+            </div>
+            <Badge
+              variant="outline"
+              className="rounded-full px-3.5 py-1.5 font-display text-[12px] font-semibold tabular-nums text-muted-foreground"
+            >
+              {tMarket('count', { count: listings.length })}
+            </Badge>
+          </div>
+
+          {listings.length > 0 ? (
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-5 md:gap-6">
+              {listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          ) : (
+            <Card className="items-center px-6 py-12 text-center">
+              <h3 className="font-display text-[20px] font-bold text-foreground">
+                {tMarket('empty')}
+              </h3>
+              <p className="mt-2 mb-6 text-[14.5px] text-muted-foreground">
+                {tMarket('emptyHint')}
+              </p>
+              <Button asChild className="px-5.5">
                 <Link href="/">{tMarket('reset')}</Link>
               </Button>
-            ) : null}
-          </div>
-        </Card>
-      </section>
+            </Card>
+          )}
+        </section>
 
-      <section
-        className="mt-5 mb-12 md:mt-7 md:mb-16"
-        aria-labelledby="equipment-heading"
-      >
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2
-              id="equipment-heading"
-              className="scroll-mt-32 md:scroll-mt-24 font-display text-[21px] md:text-[25px] font-extrabold tracking-[-0.025em] text-foreground"
-            >
-              {tMarket('heading')}
-            </h2>
-            <p className="mt-0.5 text-[13.5px] sm:text-[14px] leading-snug text-muted-foreground">
-              {tMarket('subheading')}{' '}
-              <span aria-hidden="true" className="text-border-strong">
-                ·
-              </span>{' '}
-              <span className="font-semibold text-brand">
-                {tMarket('demo')}
-              </span>
-            </p>
-          </div>
-          <Badge
-            variant="outline"
-            className="rounded-[9px] px-3 py-1.5 font-display text-[12.5px] font-bold tabular-nums text-muted-foreground"
-          >
-            {tMarket('count', { count: listings.length })}
-          </Badge>
-        </div>
+        <InspectionShowcase
+          title={tInspection('title')}
+          subtitle={tInspection('subtitle')}
+          illustrationAlt={tMarket('illustration')}
+          items={inspectionItems}
+        />
 
-        {listings.length > 0 ? (
-          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
-        ) : (
-          <Card className="items-center px-6 py-12 text-center">
-            <h3 className="font-display text-[20px] font-bold text-foreground">
-              {tMarket('empty')}
-            </h3>
-            <p className="mt-2 mb-6 text-[14.5px] text-muted-foreground">
-              {tMarket('emptyHint')}
-            </p>
-            <Button asChild className="px-5.5">
-              <Link href="/">{tMarket('reset')}</Link>
-            </Button>
-          </Card>
-        )}
-      </section>
+        <FeaturesSection />
 
-      <InspectionShowcase
-        title={tInspection('title')}
-        subtitle={tInspection('subtitle')}
-        illustrationAlt={tMarket('illustration')}
-        items={inspectionItems}
-      />
+        <HowItWorksSection />
 
-      <FeaturesSection />
+        <FaqSection />
 
-      <HowItWorksSection />
-
-      <FaqSection />
-
-      <CommunityCtaSection />
+        <CommunityCtaSection />
+      </div>
     </main>
   );
 }
