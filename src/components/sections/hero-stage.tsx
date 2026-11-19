@@ -161,14 +161,14 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
           <div className="translate-x-5 -translate-y-2 rtl:-translate-x-5 md:-translate-x-2 md:-translate-y-1.5 md:rtl:translate-x-2">
             <div className="hero-float-racket">
               <Image
-                src="/images/hero/padel-racket-pro.webp"
+                src="/images/hero/padel-racket-tour.webp"
                 alt={alt}
                 width={290}
                 height={500}
                 preload={true}
                 sizes="(max-width: 767px) 92px, (max-width: 1024px) 132px, 146px"
                 draggable={false}
-                className="h-[136px] md:h-[212px] lg:h-[232px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_22px_26px_rgba(16,19,23,0.24)] dark:drop-shadow-[0_26px_34px_rgba(0,0,0,0.82)]"
+                className="h-[136px] md:h-[212px] lg:h-[232px] w-auto object-contain rtl:-scale-x-100 drop-shadow-[0_22px_26px_rgba(20,20,22,0.24)] dark:drop-shadow-[0_26px_34px_rgba(0,0,0,0.84)]"
               />
             </div>
           </div>

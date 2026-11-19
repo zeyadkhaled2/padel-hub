@@ -256,6 +256,26 @@ Start each session with this file and AGENTS.md. Update this record before every
 - Next steps: Pull `v2` (`git pull origin v2 && npm install && npm run dev`) to experience the live 3D carbon racket & balls locally, or proceed with integrating `v2` UI with `origin/main` when ready.
 - Follow-up upgrade (2026-11-18): Upgraded the hero focal racket to an unbranded flagship aluminized 18K silver-titanium carbon pro-tour racket ([`padel-racket-pro.webp`](public/images/hero/padel-racket-pro.webp), `290×500`, `29.7 KB`, **76.0 KB combined** across all 4 hero assets) featuring a sculpted multi-strut open carbon throat bridge, side aerodynamic air channels, subtle emerald/volt pinstripes, machined gunmetal end-cap ring, and padded neoprene wrist cuff. Re-verified `npm run check`, `impeccable detect`, `10/10` Playwright E2E, and multi-viewport Light/Dark EN/AR screenshots.
 
+## Warm Carbon & Court Amber palette refinement — 2026-11-19 (branch `v2`, UI-only)
+- Following Ziad's direction to borrow a recognizable **Carbon Black + Crisp White + Amber-Orange** chromatic catch while staying distinctly an original athletic marketplace (no parody box logo):
+  - **Semantic tokens (`src/styles/tokens.css`)**:
+    - **Light (Warm Porcelain, Carbon & Court Amber)**: Warm porcelain canvas (`#faf9f7`), pure `#ffffff` cards, carbon-black primary actions (`#141416` / `#ffffff`, 18.4:1 AAA), WCAG AA burnt court amber brand links/icons (`#b84e00`, 5.09:1 on white), soft warm amber accent tint (`#fff2e3` / `#a34400`), and vibrant Signal Amber (`#ff9412` / `#140d03`, 8.72:1 AAA) badges and highlights.
+    - **Dark (Warm Carbon Obsidian & Signal Amber)**: Deep warm carbon obsidian (`#0d0d0f`) with layered graphite cards (`#151518`), WCAG AAA Signal Amber primary actions (`#ff9412` / hover `#ffa633` on `#140d03`, 8.72:1+), luminous amber brand accents (`#ff9e22`, 9.4:1 on canvas), and toasted amber-obsidian soft pills (`#271c0e` / `#ffa834`).
+    - All standard shadcn/ui CSS variables and legacy cross-branch aliases preserved intact.
+  - **Brand mark, seamless hero & amber-trimmed flagship racket (`public/brand/padelhub-mark.svg`, `src/app/icon.svg`, `src/styles/sections/hero.css`, `src/components/sections/hero-stage.tsx`, `public/images/hero/padel-racket-tour.webp`)**:
+    - Updated the rounded-square brand mark and favicon to bordered Carbon Obsidian (`#16161A`) + crisp white perforated racket + Signal Amber (`#FF9412`) padel ball alongside the clean lowercase `padel` + amber `hub.` wordmark.
+    - Retuned the seamless full-bleed `.hero-blend`, `.storefront-banner`, `.hero-aura`, `.hero-keylight`, and floor shadow gradients to warm court amber dissolving cleanly into `--background`.
+    - Color-matched the flagship aluminized 18K racket's subtle side pinstripes to anodized Court Amber (`padel-racket-tour.webp`, `29.1 KB`, **75.4 KB combined** across all 4 hero WebPs).
+  - Updated `docs/DESIGN_SPEC.md`.
+- Checks:
+  - `npm run check`: **PASS** (0 ESLint errors/warnings, `next typegen`, `tsc --noEmit`, production `next build --webpack`).
+  - `./.agents/skills/impeccable/scripts/impeccable detect --json src`: **PASS** (`[]`, exit 0).
+  - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e` against `next start --port 3100`: **PASS** (`10/10` desktop & mobile in `25.0s`).
+  - Multi-viewport visual QA (`38/38` checks across `1440px`, `768px`, `390px`, `320px` × `en`/`ar` × `light`/`dark`): **0 failures**, `noOverflow: true`, zero console/page errors; visually inspected Light EN, Dark AR RTL, Seller Storefront, and Mobile Dark AR renders.
+- Limitations: All equipment/seller records on `v2` remain demo fixtures (`noindex`); local Lighthouse CLI and physical mobile device testing were not run in this session; no backend/database/auth/form behavior was modified.
+- Next steps: Review the live inline preview or run locally (`git pull origin v2 && npm install && npm run dev`); when ready, integrate `v2` UI with `origin/main` backend features on a dedicated merge branch.
+
+
 
 
 
