@@ -1,6 +1,7 @@
 'use client';
 
 import { Link, usePathname } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
 
 interface HeaderNavProps {
   ariaLabel: string;
@@ -23,30 +24,28 @@ export function HeaderNav({
   return (
     <nav
       aria-label={ariaLabel}
-      className="order-3 flex w-full items-center gap-1 border-t border-line/70 pt-2 md:order-none md:w-auto md:border-t-0 md:pt-0"
+      className="order-3 flex w-full items-center gap-1 border-t border-border/70 pt-2 md:order-none md:w-auto md:border-t-0 md:pt-0"
     >
-      <Link
-        href="/"
-        aria-current={isExplore ? 'page' : undefined}
-        className={`inline-flex min-h-[38px] items-center rounded-[10px] px-3.5 text-[13.5px] font-semibold transition-colors ${
-          isExplore
-            ? 'bg-surface-soft text-accent'
-            : 'text-muted hover:bg-surface-subtle hover:text-ink'
-        }`}
+      <Button
+        asChild
+        variant={isExplore ? 'soft' : 'ghost'}
+        size="sm"
+        className="text-[13.5px]"
       >
-        {exploreLabel}
-      </Link>
-      <Link
-        href="/about"
-        aria-current={isAbout ? 'page' : undefined}
-        className={`inline-flex min-h-[38px] items-center rounded-[10px] px-3.5 text-[13.5px] font-semibold transition-colors ${
-          isAbout
-            ? 'bg-surface-soft text-accent'
-            : 'text-muted hover:bg-surface-subtle hover:text-ink'
-        }`}
+        <Link href="/" aria-current={isExplore ? 'page' : undefined}>
+          {exploreLabel}
+        </Link>
+      </Button>
+      <Button
+        asChild
+        variant={isAbout ? 'soft' : 'ghost'}
+        size="sm"
+        className="text-[13.5px]"
       >
-        {howLabel}
-      </Link>
+        <Link href="/about" aria-current={isAbout ? 'page' : undefined}>
+          {howLabel}
+        </Link>
+      </Button>
     </nav>
   );
 }

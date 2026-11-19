@@ -1,10 +1,12 @@
 import { getTranslations } from 'next-intl/server';
+import { ArrowUpDown, Search, SlidersHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  ArrowUpDown,
-  ChevronDown,
-  Search,
-  SlidersHorizontal,
-} from 'lucide-react';
+  NativeSelect,
+  NativeSelectOption,
+} from '@/components/ui/native-select';
 
 interface SearchPanelProps {
   query: string;
@@ -25,85 +27,55 @@ export async function SearchPanel({
       className="grid grid-cols-2 gap-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_184px_210px_auto] items-end"
       role="search"
     >
-      <label className="col-span-2 sm:col-span-3 lg:col-span-1 flex min-w-0 flex-col gap-1.5">
-        <span className="text-[11.5px] font-semibold tracking-[-0.01em] text-muted">
-          {t('search')}
-        </span>
-        <span className="flex min-h-[44px] w-full min-w-0 items-center gap-2.5 rounded-[11px] border border-line bg-surface-subtle px-3.5 transition-colors hover:border-line-strong focus-within:border-accent focus-within:bg-surface">
+      <div className="col-span-2 sm:col-span-3 lg:col-span-1 flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="market-search-q">{t('search')}</Label>
+        <div className="relative flex w-full min-w-0 items-center">
           <Search
             size={17}
-            className="shrink-0 text-accent"
+            className="pointer-events-none absolute start-3.5 z-10 shrink-0 text-brand"
             aria-hidden="true"
           />
-          <input
+          <Input
+            id="market-search-q"
             name="q"
             defaultValue={query}
             placeholder={t('placeholder')}
-            className="w-full min-w-0 border-0 bg-transparent py-2 text-[14px] sm:text-[14.5px] font-medium text-ink placeholder:text-muted/85 focus:outline-none"
+            className="ps-10"
           />
-        </span>
-      </label>
+        </div>
+      </div>
 
-      <label className="col-span-1 flex min-w-0 flex-col gap-1.5">
-        <span className="text-[11.5px] font-semibold tracking-[-0.01em] text-muted">
-          {t('category')}
-        </span>
-        <span className="relative flex min-h-[44px] w-full min-w-0 items-center">
-          <SlidersHorizontal
-            size={14}
-            className="pointer-events-none absolute start-3 z-10 text-muted"
-            aria-hidden="true"
-          />
-          <select
-            name="category"
-            defaultValue={category}
-            className="min-h-[44px] w-full min-w-0 cursor-pointer appearance-none truncate rounded-[11px] border border-line bg-surface-subtle ps-8.5 pe-8 py-2 text-[13px] sm:text-[13.5px] font-semibold text-ink transition-colors hover:border-line-strong focus:border-accent focus:bg-surface"
-          >
-            <option value="">{t('all')}</option>
-            <option value="rackets">{t('rackets')}</option>
-            <option value="balls">{t('balls')}</option>
-          </select>
-          <ChevronDown
-            size={15}
-            className="pointer-events-none absolute end-2.5 text-muted"
-            aria-hidden="true"
-          />
-        </span>
-      </label>
+      <div className="col-span-1 flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="market-search-category">{t('category')}</Label>
+        <NativeSelect
+          id="market-search-category"
+          name="category"
+          defaultValue={category}
+          leadingIcon={<SlidersHorizontal size={14} />}
+        >
+          <NativeSelectOption value="">{t('all')}</NativeSelectOption>
+          <NativeSelectOption value="rackets">{t('rackets')}</NativeSelectOption>
+          <NativeSelectOption value="balls">{t('balls')}</NativeSelectOption>
+        </NativeSelect>
+      </div>
 
-      <label className="col-span-1 flex min-w-0 flex-col gap-1.5">
-        <span className="text-[11.5px] font-semibold tracking-[-0.01em] text-muted">
-          {t('sort')}
-        </span>
-        <span className="relative flex min-h-[44px] w-full min-w-0 items-center">
-          <ArrowUpDown
-            size={14}
-            className="pointer-events-none absolute start-3 z-10 text-muted"
-            aria-hidden="true"
-          />
-          <select
-            name="sort"
-            defaultValue={sort}
-            className="min-h-[44px] w-full min-w-0 cursor-pointer appearance-none truncate rounded-[11px] border border-line bg-surface-subtle ps-8.5 pe-8 py-2 text-[13px] sm:text-[13.5px] font-semibold text-ink transition-colors hover:border-line-strong focus:border-accent focus:bg-surface"
-          >
-            <option value="">{t('newest')}</option>
-            <option value="low">{t('low')}</option>
-            <option value="high">{t('high')}</option>
-          </select>
-          <ChevronDown
-            size={15}
-            className="pointer-events-none absolute end-2.5 text-muted"
-            aria-hidden="true"
-          />
-        </span>
-      </label>
+      <div className="col-span-1 flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="market-search-sort">{t('sort')}</Label>
+        <NativeSelect
+          id="market-search-sort"
+          name="sort"
+          defaultValue={sort}
+          leadingIcon={<ArrowUpDown size={14} />}
+        >
+          <NativeSelectOption value="">{t('newest')}</NativeSelectOption>
+          <NativeSelectOption value="low">{t('low')}</NativeSelectOption>
+          <NativeSelectOption value="high">{t('high')}</NativeSelectOption>
+        </NativeSelect>
+      </div>
 
-      <button
-        type="submit"
-        className="col-span-2 sm:col-span-1 inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-[11px] bg-action px-5.5 py-2.5 text-[14px] font-bold text-action-ink transition-[background-color,transform] duration-200 hover:bg-action-hover active:translate-y-px"
-      >
+      <Button type="submit" className="col-span-2 sm:col-span-1 px-5.5">
         {t('submit')}
-      </button>
+      </Button>
     </form>
   );
 }

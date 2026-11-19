@@ -1,5 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { HeroSection } from '@/components/sections/hero-section';
 import {
   InspectionShowcase,
@@ -74,29 +78,32 @@ export async function MarketplacePage({
     <main id="main" className="container">
       <HeroSection />
 
-      <section
-        aria-label={tMarket('search')}
-        className="relative z-20 -mt-5 sm:-mt-5.5 md:-mt-6 mx-1.5 sm:mx-3 md:mx-5 rounded-[16px] border border-line bg-surface p-3 sm:p-3.5 md:p-4 shadow-[var(--shadow-dock)]"
-      >
-        <SearchPanel query={query} category={category} sort={sort} />
+      <section aria-label={tMarket('search')}>
+        <Card className="relative z-20 -mt-5 sm:-mt-5.5 md:-mt-6 mx-1.5 sm:mx-3 md:mx-5 p-3 sm:p-3.5 md:p-4 shadow-[var(--shadow-dock)]">
+          <SearchPanel query={query} category={category} sort={sort} />
 
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/80 pt-2.5">
-          <CategoryPills
-            query={query}
-            category={category}
-            sort={sort}
-            counts={categoryCounts}
-          />
+          <Separator className="my-2.5 bg-border/80" />
 
-          {hasActiveFilters && listings.length > 0 ? (
-            <Link
-              href="/"
-              className="inline-flex min-h-[38px] items-center rounded-[10px] px-3 text-[12.5px] font-semibold text-muted transition-colors hover:bg-surface-subtle hover:text-accent"
-            >
-              {tMarket('reset')}
-            </Link>
-          ) : null}
-        </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CategoryPills
+              query={query}
+              category={category}
+              sort={sort}
+              counts={categoryCounts}
+            />
+
+            {hasActiveFilters && listings.length > 0 ? (
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="px-3 text-[12.5px] hover:text-brand"
+              >
+                <Link href="/">{tMarket('reset')}</Link>
+              </Button>
+            ) : null}
+          </div>
+        </Card>
       </section>
 
       <section
@@ -107,23 +114,26 @@ export async function MarketplacePage({
           <div>
             <h2
               id="equipment-heading"
-              className="scroll-mt-32 md:scroll-mt-24 font-display text-[21px] md:text-[25px] font-extrabold tracking-[-0.025em] text-ink"
+              className="scroll-mt-32 md:scroll-mt-24 font-display text-[21px] md:text-[25px] font-extrabold tracking-[-0.025em] text-foreground"
             >
               {tMarket('heading')}
             </h2>
-            <p className="mt-0.5 text-[13.5px] sm:text-[14px] leading-snug text-muted">
+            <p className="mt-0.5 text-[13.5px] sm:text-[14px] leading-snug text-muted-foreground">
               {tMarket('subheading')}{' '}
-              <span aria-hidden="true" className="text-line-strong">
+              <span aria-hidden="true" className="text-border-strong">
                 ·
               </span>{' '}
-              <span className="font-semibold text-accent">
+              <span className="font-semibold text-brand">
                 {tMarket('demo')}
               </span>
             </p>
           </div>
-          <span className="whitespace-nowrap rounded-[9px] border border-line bg-surface px-3 py-1 font-display text-[12.5px] font-bold tabular-nums text-muted">
+          <Badge
+            variant="outline"
+            className="rounded-[9px] px-3 py-1.5 font-display text-[12.5px] font-bold tabular-nums text-muted-foreground"
+          >
             {tMarket('count', { count: listings.length })}
-          </span>
+          </Badge>
         </div>
 
         {listings.length > 0 ? (
@@ -133,20 +143,17 @@ export async function MarketplacePage({
             ))}
           </div>
         ) : (
-          <div className="rounded-[16px] border border-line bg-surface px-6 py-12 text-center">
-            <h3 className="font-display text-[20px] font-bold text-ink">
+          <Card className="items-center px-6 py-12 text-center">
+            <h3 className="font-display text-[20px] font-bold text-foreground">
               {tMarket('empty')}
             </h3>
-            <p className="mt-2 mb-6 text-[14.5px] text-muted">
+            <p className="mt-2 mb-6 text-[14.5px] text-muted-foreground">
               {tMarket('emptyHint')}
             </p>
-            <Link
-              href="/"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-[11px] bg-action px-5.5 py-2.5 text-[14px] font-bold text-action-ink transition-colors duration-200 hover:bg-action-hover"
-            >
-              {tMarket('reset')}
-            </Link>
-          </div>
+            <Button asChild className="px-5.5">
+              <Link href="/">{tMarket('reset')}</Link>
+            </Button>
+          </Card>
         )}
       </section>
 

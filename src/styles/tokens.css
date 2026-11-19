@@ -1,64 +1,118 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @theme inline {
-  --color-base: var(--canvas);
-  --color-surface: var(--surface);
-  --color-surface-subtle: var(--surface-subtle);
-  --color-surface-soft: var(--surface-soft);
-  --color-ink: var(--text);
+  /* Standard shadcn/ui semantic color tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
-  --color-line: var(--border);
-  --color-line-strong: var(--border-strong);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-accent-ink: var(--accent-text);
-  --color-action: var(--action);
-  --color-action-hover: var(--action-hover);
-  --color-action-ink: var(--action-text);
-  --color-coral: var(--focus);
-  --color-hero: var(--hero);
-  --color-hero-ink: var(--hero-ink);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* PadelHub brand & courtside accents */
+  --color-brand: var(--brand);
+  --color-coral: var(--ring);
+  --color-court-gold: var(--court-gold);
+  --color-court-gold-foreground: var(--court-gold-foreground);
   --color-gold-soft: var(--gold-soft);
-  --color-hero-stage: var(--hero-stage);
+
+  /* Typography */
   --font-sans: var(--font-body);
   --font-display: var(--font-heading);
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-control: 11px;
-  --radius-panel: 20px;
+
+  /* Radius scale */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Motion & Radix Accordion animations */
   --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
 }
 
 :root {
   color-scheme: light;
   --font-body: var(--font-body-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
   --font-heading: var(--font-display-latin), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+  --radius: 0.75rem;
 
-  /* Club Blue & Warm Stone — Light */
-  --canvas: #f7f7f5;
-  --surface: #ffffff;
-  --surface-subtle: #f1f2ee;
-  --surface-soft: #eaf0fb;
-  --text: #161e2e;
-  --muted: #5a6577;
+  /* Club Blue & Warm Stone — Light (shadcn/ui semantic tokens) */
+  --background: #f7f7f5;
+  --foreground: #161e2e;
+  --card: #ffffff;
+  --card-foreground: #161e2e;
+  --popover: #ffffff;
+  --popover-foreground: #161e2e;
+  --primary: #2553b8;
+  --primary-hover: #1e4499;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f2ee;
+  --secondary-foreground: #161e2e;
+  --muted: #f1f2ee;
+  --muted-foreground: #5a6577;
+  --accent: #eaf0fb;
+  --accent-foreground: #2553b8;
+  --destructive: #c93b2b;
+  --destructive-foreground: #ffffff;
   --border: #e3e5e9;
   --border-strong: #cdd2dc;
-  --accent: #2553b8;
-  --accent-text: #ffffff;
-  --action: #2553b8;
-  --action-hover: #1e4499;
-  --action-text: #ffffff;
-  --header: rgba(247, 247, 245, 0.88);
-  --header-text: #161e2e;
-  --focus: #d95b38;
-  --hero: #f2d15b;
-  --hero-ink: #2a2209;
+  --input: #e3e5e9;
+  --ring: #d95b38;
+
+  /* PadelHub brand, chrome & elevation */
+  --brand: #2553b8;
+  --court-gold: #f2d15b;
+  --court-gold-foreground: #2a2209;
   --gold-soft: #fbf4d8;
-  --hero-stage: #e4ecf9;
-  --hero-stage-deep: #d6e3f7;
+  --header: rgba(247, 247, 245, 0.88);
   --shadow-card: 0 1px 2px rgba(22, 30, 46, 0.04);
   --shadow-card-hover: 0 8px 24px -10px rgba(22, 30, 46, 0.14);
   --shadow-dock: 0 2px 6px rgba(22, 30, 46, 0.04), 0 16px 36px -18px rgba(22, 30, 46, 0.14);
+
+  /* Legacy CSS custom property aliases for cross-branch compatibility */
+  --canvas: var(--background);
+  --surface: var(--card);
+  --surface-subtle: var(--muted);
+  --surface-soft: var(--accent);
+  --text: var(--foreground);
+  --focus: var(--ring);
+  --hero: var(--court-gold);
+  --hero-ink: var(--court-gold-foreground);
 }
 
 [dir="rtl"] {
@@ -69,28 +123,35 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Club Blue & Neutral Graphite — Dark */
-  --canvas: #111317;
-  --surface: #181c23;
-  --surface-subtle: #1f242e;
-  --surface-soft: #1d283c;
-  --text: #edf0f5;
-  --muted: #98a3b6;
+  /* Club Blue & Neutral Graphite — Dark (shadcn/ui semantic tokens) */
+  --background: #111317;
+  --foreground: #edf0f5;
+  --card: #181c23;
+  --card-foreground: #edf0f5;
+  --popover: #181c23;
+  --popover-foreground: #edf0f5;
+  --primary: #3465d8;
+  --primary-hover: #4173e6;
+  --primary-foreground: #ffffff;
+  --secondary: #1f242e;
+  --secondary-foreground: #edf0f5;
+  --muted: #1f242e;
+  --muted-foreground: #98a3b6;
+  --accent: #1d283c;
+  --accent-foreground: #7da8ff;
+  --destructive: #e05245;
+  --destructive-foreground: #ffffff;
   --border: #282f3c;
   --border-strong: #394356;
-  --accent: #7da8ff;
-  --accent-text: #0e1524;
-  --action: #3465d8;
-  --action-hover: #4173e6;
-  --action-text: #ffffff;
-  --header: rgba(17, 19, 23, 0.86);
-  --header-text: #edf0f5;
-  --focus: #f08c6c;
-  --hero: #d9ba4e;
-  --hero-ink: #1a1608;
+  --input: #282f3c;
+  --ring: #f08c6c;
+
+  /* PadelHub brand, chrome & elevation */
+  --brand: #7da8ff;
+  --court-gold: #d9ba4e;
+  --court-gold-foreground: #1a1608;
   --gold-soft: rgba(217, 186, 78, 0.14);
-  --hero-stage: #1a212e;
-  --hero-stage-deep: #141923;
+  --header: rgba(17, 19, 23, 0.86);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-card-hover: 0 12px 28px -12px rgba(0, 0, 0, 0.5);
   --shadow-dock: 0 6px 18px -6px rgba(0, 0, 0, 0.38), 0 20px 44px -18px rgba(0, 0, 0, 0.55);

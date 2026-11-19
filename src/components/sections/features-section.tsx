@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { MessageCircle, QrCode, ShieldCheck } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export async function FeaturesSection() {
   const t = await getTranslations('marketing.features');
@@ -38,16 +39,16 @@ export async function FeaturesSection() {
         <div className="lg:sticky lg:top-24">
           <h2
             id="features-heading"
-            className="font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-ink"
+            className="font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-extrabold leading-[1.14] tracking-[-0.025em] text-foreground"
           >
             {t('title')}
           </h2>
-          <p className="mt-3 max-w-[440px] text-[15px] sm:text-[15.5px] leading-[1.62] text-muted">
+          <p className="mt-3 max-w-[440px] text-[15px] sm:text-[15.5px] leading-[1.62] text-muted-foreground">
             {t('subtitle')}
           </p>
         </div>
 
-        <div className="divide-y divide-line border-y border-line">
+        <div className="divide-y divide-border border-y border-border">
           {items.map((item) => {
             const Icon = item.icon;
             return (
@@ -56,21 +57,19 @@ export async function FeaturesSection() {
                 className="flex items-start gap-4 py-6 sm:gap-5 sm:py-7"
               >
                 <span
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-surface-soft text-accent"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-accent text-accent-foreground"
                   aria-hidden="true"
                 >
                   <Icon size={20} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-display text-[18px] sm:text-[19px] font-bold text-ink">
+                    <h3 className="font-display text-[18px] sm:text-[19px] font-bold text-foreground">
                       {item.title}
                     </h3>
-                    <span className="rounded-[7px] bg-surface-subtle px-2.5 py-1 text-[11.5px] font-semibold text-muted">
-                      {item.badge}
-                    </span>
+                    <Badge variant="secondary">{item.badge}</Badge>
                   </div>
-                  <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.62] text-muted">
+                  <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.62] text-muted-foreground">
                     {item.body}
                   </p>
                 </div>

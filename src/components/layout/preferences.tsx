@@ -4,8 +4,13 @@ import { useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { ChevronDown, Globe, Monitor, Moon, Sun } from 'lucide-react';
+import { Globe, Monitor, Moon, Sun } from 'lucide-react';
 import { usePathname } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '@/components/ui/native-select';
 
 const subscribe = () => () => {};
 
@@ -27,50 +32,47 @@ export function Preferences() {
   );
 
   const activeTheme = mounted ? (theme ?? 'system') : 'system';
+  const themeIcon =
+    activeTheme === 'dark' ? (
+      <Moon size={14} />
+    ) : activeTheme === 'light' ? (
+      <Sun size={14} />
+    ) : (
+      <Monitor size={14} />
+    );
 
   return (
     <div className="ms-auto flex items-center gap-2 md:ms-0">
-      <label className="relative inline-flex min-h-[44px] items-center">
+      <label className="inline-flex min-h-[44px] items-center">
         <span className="sr-only">{t('theme')}</span>
-        <span
-          className="pointer-events-none absolute start-2.5 z-10 text-muted"
-          aria-hidden="true"
-        >
-          {activeTheme === 'dark' ? (
-            <Moon size={14} />
-          ) : activeTheme === 'light' ? (
-            <Sun size={14} />
-          ) : (
-            <Monitor size={14} />
-          )}
-        </span>
-        <select
+        <NativeSelect
+          size="sm"
           aria-label={t('theme')}
           disabled={!mounted}
           value={activeTheme}
           onChange={(event) => setTheme(event.target.value)}
-          className="min-h-[38px] max-w-[120px] sm:max-w-[136px] cursor-pointer appearance-none rounded-[10px] border border-line bg-surface ps-8 pe-7 text-[12.5px] sm:text-[13px] font-semibold text-ink transition-colors hover:border-line-strong focus:border-accent disabled:opacity-70"
+          leadingIcon={themeIcon}
+          wrapperClassName="w-auto"
+          className="max-w-[120px] sm:max-w-[136px]"
         >
-          <option value="system">{t('system')}</option>
-          <option value="light">{t('light')}</option>
-          <option value="dark">{t('dark')}</option>
-        </select>
-        <ChevronDown
-          size={14}
-          className="pointer-events-none absolute end-2.5 text-muted"
-          aria-hidden="true"
-        />
+          <NativeSelectOption value="system">{t('system')}</NativeSelectOption>
+          <NativeSelectOption value="light">{t('light')}</NativeSelectOption>
+          <NativeSelectOption value="dark">{t('dark')}</NativeSelectOption>
+        </NativeSelect>
       </label>
 
       {/* Locale changes replace the document language/direction and theme bootstrap together. */}
-      <a
-        href={languageHref}
-        lang={otherLocale}
-        className="inline-flex min-h-[38px] items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3 text-[12.5px] sm:text-[13px] font-semibold text-ink transition-colors hover:border-line-strong hover:text-accent"
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="gap-1.5 px-3 text-[12.5px] sm:text-[13px]"
       >
-        <Globe size={14} className="shrink-0 text-accent" aria-hidden="true" />
-        <span>{locale === 'en' ? 'العربية' : 'English'}</span>
-      </a>
+        <a href={languageHref} lang={otherLocale}>
+          <Globe size={14} className="shrink-0 text-brand" aria-hidden="true" />
+          <span>{locale === 'en' ? 'العربية' : 'English'}</span>
+        </a>
+      </Button>
     </div>
   );
 }

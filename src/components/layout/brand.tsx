@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 interface BrandProps {
   compact?: boolean;
@@ -8,9 +9,10 @@ export function Brand({ compact = false }: BrandProps) {
   return (
     <span
       dir="ltr"
-      className={`inline-flex items-center font-display font-extrabold tracking-[-0.04em] leading-none text-ink ${
-        compact ? 'gap-2 text-[20px]' : 'gap-2.5 text-[22px] sm:text-[25px]'
-      }`}
+      className={cn(
+        'inline-flex items-center font-display font-extrabold tracking-[-0.04em] leading-none text-foreground',
+        compact ? 'gap-2 text-[20px]' : 'gap-2.5 text-[22px] sm:text-[25px]',
+      )}
     >
       <Image
         src="/brand/padelhub-mark.svg"
@@ -24,7 +26,7 @@ export function Brand({ compact = false }: BrandProps) {
         }
       />
       <span>
-        padel<span className="text-accent">hub</span>
+        padel<span className="text-brand">hub</span>
         <span className="text-coral">.</span>
       </span>
     </span>

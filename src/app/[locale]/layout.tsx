@@ -55,16 +55,18 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   const t = await getTranslations('shell');
 
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
+
   return (
     <html
       lang={locale}
-      dir={locale === 'ar' ? 'rtl' : 'ltr'}
+      dir={dir}
       className={`${displayFont.variable} ${bodyFont.variable} ${arabicFont.variable}`}
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col">
         <NextIntlClientProvider>
-          <ThemeProvider>
+          <ThemeProvider dir={dir}>
             <a className="skip-link" href="#main">
               {t('skip')}
             </a>

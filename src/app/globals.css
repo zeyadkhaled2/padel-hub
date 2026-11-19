@@ -1,5 +1,6 @@
 /* Global stylesheet entry. Rules live in src/styles, imported in cascade order. */
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* Design tokens and base elements */
 @import "../styles/tokens.css";

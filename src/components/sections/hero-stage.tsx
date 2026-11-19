@@ -157,7 +157,7 @@ export function HeroStage({ alt, caption }: HeroStageProps) {
         </div>
       </div>
 
-      <figcaption className="absolute bottom-2 start-3 md:bottom-3 md:start-2 z-50 m-0 w-fit max-w-[calc(100%-82px)] md:max-w-[calc(100%-96px)] rounded-[8px] border border-line/80 bg-surface/90 px-2.5 py-1 text-[10.5px] md:text-[11.5px] font-semibold leading-snug text-ink backdrop-blur-sm">
+      <figcaption className="absolute bottom-2 start-3 md:bottom-3 md:start-2 z-50 m-0 w-fit max-w-[calc(100%-82px)] md:max-w-[calc(100%-96px)] rounded-[8px] border border-border/80 bg-card/90 px-2.5 py-1 text-[10.5px] md:text-[11.5px] font-semibold leading-snug text-foreground backdrop-blur-sm">
         {caption}
       </figcaption>
     </figure>

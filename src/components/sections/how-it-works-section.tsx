@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { Card } from '@/components/ui/card';
 import { SectionHeader } from '@/components/ui/section-header';
 
 interface HowItWorksSectionProps {
@@ -28,20 +29,17 @@ export async function HowItWorksSection({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
         {steps.map((stepKey, index) => (
-          <article
-            key={stepKey}
-            className="relative flex flex-col rounded-[16px] border border-line bg-surface p-6 sm:p-7"
-          >
-            <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-surface-soft font-display text-[16px] font-extrabold tabular-nums text-accent">
+          <Card key={stepKey} className="relative p-6 sm:p-7">
+            <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-accent font-display text-[16px] font-extrabold tabular-nums text-accent-foreground">
               {index + 1}
             </span>
-            <h3 className="mt-5 font-display text-[18.5px] sm:text-[19.5px] font-bold text-ink">
+            <h3 className="mt-5 font-display text-[18.5px] sm:text-[19.5px] font-bold text-foreground">
               {tMarket(stepKey)}
             </h3>
-            <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.62] text-muted">
+            <p className="mt-2 text-[14.5px] sm:text-[15px] leading-[1.62] text-muted-foreground">
               {tMarket(`${stepKey}Body`)}
             </p>
-          </article>
+          </Card>
         ))}
       </div>
     </section>

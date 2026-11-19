@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { CircleDot, LayoutGrid } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { cn } from '@/lib/utils';
 import { demoListings } from './demo-data';
 
 interface CategoryCounts {
@@ -79,19 +80,21 @@ export async function CategoryPills({
               },
               hash: 'equipment-heading',
             }}
-            className={`inline-flex min-h-[42px] items-center gap-2 rounded-[11px] border px-2.5 sm:px-3 py-1.5 text-[12.5px] sm:text-[13px] font-semibold transition-colors duration-200 ${
+            className={cn(
+              'inline-flex min-h-[42px] items-center gap-2 rounded-[11px] border px-2.5 sm:px-3 py-1.5 text-[12.5px] sm:text-[13px] font-semibold transition-colors duration-200',
               isSelected
-                ? 'border-ink bg-ink text-base dark:border-action dark:bg-action dark:text-action-ink'
-                : 'border-line bg-surface text-ink hover:border-line-strong hover:bg-surface-subtle'
-            }`}
+                ? 'border-foreground bg-foreground text-background dark:border-primary dark:bg-primary dark:text-primary-foreground'
+                : 'border-border bg-card text-foreground hover:border-border-strong hover:bg-muted',
+            )}
             aria-current={category === item ? 'true' : undefined}
           >
             <span
-              className={`grid h-6 w-6 shrink-0 place-items-center rounded-[7px] ${
+              className={cn(
+                'grid h-6 w-6 shrink-0 place-items-center rounded-[7px]',
                 isSelected
-                  ? 'bg-base/15 text-base dark:bg-white/15 dark:text-white'
-                  : 'bg-surface-soft text-accent'
-              }`}
+                  ? 'bg-background/15 text-background dark:bg-white/15 dark:text-white'
+                  : 'bg-accent text-accent-foreground',
+              )}
               aria-hidden="true"
             >
               {item === '' ? (
@@ -107,11 +110,12 @@ export async function CategoryPills({
 
             <span
               aria-hidden="true"
-              className={`rounded-[6px] px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none ${
+              className={cn(
+                'rounded-[6px] px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none',
                 isSelected
-                  ? 'bg-base/15 text-base dark:bg-white/18 dark:text-white'
-                  : 'bg-surface-subtle text-muted'
-              }`}
+                  ? 'bg-background/15 text-background dark:bg-white/18 dark:text-white'
+                  : 'bg-muted text-muted-foreground',
+              )}
             >
               {itemCount}
             </span>
