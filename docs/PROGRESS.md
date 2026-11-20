@@ -1,8 +1,9 @@
 # PadelHub progress
 
-Updated: 2026-11-20. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
+Updated: 2026-11-21. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
 
 ## Completed locally
+- Optional racket specifications: model year (2010–2035), weight in grams (300–420 g), and racket shape (`round`, `teardrop`, `diamond`, `hybrid`) in racket listing drafts, public detail pages, and MFA-admin review, with EN/AR localization, blank-to-null clearing, stale-edit preservation, and non-racket exclusion. Reuses existing database schema/RPCs without new migrations.
 - Exact EU shoe-size filter (20–55, half sizes), preserved in shared URLs/pagination/language changes. Non-shoe category shortcuts clear it. Migration 018 applied locally.
 - Basic analytics: owner totals and MFA-admin marketplace totals for the last 30 UTC calendar days; owners see approximate listing views only; WhatsApp clicks are MFA-admin-only. Private daily counters, no visitor identifiers. Migration 016 applied locally.
 - Reports/moderation: verified-account reports, duplicate protection and 5/day limit; MFA-admin queue, dismissal, listing removal and profile suspension with target/report version checks and audit records. Details and decision notes remain limited to 1,000 characters. Migration 015 applied locally.
@@ -25,8 +26,7 @@ Updated: 2026-11-20. Verified locally; hosted backend is not configured. Main-br
 
 ## Next
 1. User completes authenticator setup at `/en/admin`. Minimal review UI works; refinement prompt is in [ADMIN_REVIEW.md](ADMIN_REVIEW.md).
-2. Optional racket weight/shape/year.
-3. Hosted auth/email, recovery including MFA recovery, backups/restore and deployment checks before launch.
+2. Hosted auth/email, recovery including MFA recovery, backups/restore and deployment checks before launch.
 
 ## Latest scope decision
 - 2026-11-20: user cancelled the v2 merge. In-progress merge aborted; original branch untouched. Review patch saved only in ignored .cache for possible later use.
@@ -93,3 +93,21 @@ Updated: 2026-11-20. Verified locally; hosted backend is not configured. Main-br
   - `node scripts/local-app.mjs test --workers=1` against live local Supabase Auth/Mailpit/Storage/DB and `node scripts/local-app.mjs serve`: **18/18 passed (0 skipped)**, including desktop and mobile `account.spec.ts` (email verification, profile/contact RPCs, conflicts, session refresh, photo upload/replacement/EXIF stripping/hash verification/races, rackets/balls/shoes/bags drafts, `/@username`, QR PNG decode & redirect, WhatsApp redirect, sold/archive/relist/withdraw) and desktop and mobile `admin.spec.ts` (real TOTP enrollment/challenge, review photos, encrypted snapshot closure, rejection/approval, stale decision conflict, owner-vs-admin analytics isolation, reports removal/suspension, MFA re-challenge and role revocation).
   - `npm run test:unit` (25/25), `npm run lint`, and `npm run typecheck`: all passed.
 - PR #1 (`https://github.com/zeyadkhaled2/padel-hub/pull/1`) remains open and unmerged for final user approval; `v2` remains untouched.
+
+## Optional racket specifications (Phase 1.5) — 2026-11-21
+- Branch: `feature/racket-specifications` (created cleanly from `origin/main` at `7627ddb`, after PR #1 was squash-merged). Ported and reconciled uncommitted work from the reference worktree (`C:\Users\COMPUMARTS\.codex\worktrees\backend-reports\padelHub`) onto the Phase 1 domain/validation architecture while leaving the reference worktree and `v2` untouched. No SQL migrations or new dependencies added.
+- Completed:
+  - Domain & shared validation: added `RACKET_YEAR_BOUNDS` (`2010..2035`), `RACKET_WEIGHT_BOUNDS` (`300..420`), and `hasRacketSpecs` on `CategoryConfig` (`src/lib/domain/equipment.ts`), plus `racketYearSchema`, `racketWeightGramsSchema`, and `parseOptionalBoundedInt` (`src/lib/validation/shared.ts`).
+  - Listing lifecycle: added optional `racket_year`, `racket_weight_grams`, and `racket_shape` to `ListingDraftPatch`, `ListingFormFieldKey`, `ownerListingSchema`, `buildListingDraftPatch`, and `ListingForm` (`<fieldset>` shown only when `categoryConfig.hasRacketSpecs` is true). Blank inputs save as `null`; non-racket categories force `null`; `racket_purchase_date` is intentionally omitted from `ListingDraftPatch` so Postgres `jsonb_populate_record` preserves existing purchase dates.
+  - Public detail & admin review: tightened `publicListingSchema` and `reviewListingSchema` bounds, added `getPublicRacketSpecRows` for localized public detail rendering, and localized `racket_shape` values in MFA-admin review (`AdminReviewPage`) and EN/AR message catalogs (`messages/en.json`, `messages/ar.json`).
+  - Tests: expanded unit tests (`tests/unit/listings-validation.test.ts`, `tests/unit/marketplace-and-analytics.test.ts`, `tests/unit/photos-admin-reports.test.ts`) and authenticated E2E tests (`tests/e2e/account.spec.ts`, `tests/e2e/admin.spec.ts`) covering valid boundaries, blank-to-null, partial clearing, server-side invalid rejection with form retention, stale-edit conflict retention, non-racket exclusion, EN/AR public detail display, EN/AR light/dark narrow mobile layout, and EN/AR MFA-admin review & approval.
+- Verification:
+  - `npm run lint`: passed.
+  - `npm run typecheck`: passed (`next typegen && tsc --noEmit`).
+  - `npm run build`: passed (23/23 routes).
+  - `npm run test:unit`: 27/27 passed.
+  - `npm run test:db`: passed (18 migrations applied cleanly to scratch DB, 554/554 SQL assertions plus all concurrency/race and snapshot isolation checks passed; scratch DB removed).
+  - `node scripts/local-app.mjs test --workers=1` (against `node scripts/local-app.mjs serve` and local Supabase Auth/Mailpit/Storage/DB): 18/18 passed (0 skipped) across desktop and mobile (`account.spec.ts`, `admin.spec.ts`, `foundation.spec.ts`, `media-boundary.spec.ts`, `shoe-search.spec.ts`).
+  - Visually inspected `.cache/racket-specs-ar-dark.png` (390px Arabic dark RTL mobile racket specs section): clean alignment, labels, contrast, and zero overflow.
+  - `git diff --check`: passed.
+- Limitations & next: hosted backend remains unconfigured; no hosted migrations or deployments performed; PR opened into `main` without merging; next functional milestone is production readiness (recovery, external email, security/abuse checks).

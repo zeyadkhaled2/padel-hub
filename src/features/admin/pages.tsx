@@ -156,7 +156,13 @@ export async function AdminReviewPage({
           <div key={key}>
             <dt>{e.has(key) ? e(key) : t(key)}</dt>
             <dd>
-              <bdi>{typeof value === 'boolean' ? t(value ? 'yes' : 'no') : String(value)}</bdi>
+              <bdi>
+                {key === 'racket_shape'
+                  ? e(`shapes.${String(value)}`)
+                  : typeof value === 'boolean'
+                    ? t(value ? 'yes' : 'no')
+                    : String(value)}
+              </bdi>
             </dd>
           </div>
         ))}

@@ -44,6 +44,19 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
   const photo=await service.rpc('save_listing_photo',{p_owner:ownerId,p_listing:id,p_version:2,p_asset:asset,p_attempt:attempt,p_mime:'image/webp',p_bytes:bytes.length*3,p_width:320,p_height:240,p_hash:hash,p_manifest:manifest});
   if(photo.error)throw new Error('Fixture attachment failed');
   await rpc('submit_listing',{p_listing_id:id,p_expected_version:3});
+
+  // Pending racket fixture with optional specifications for admin review translation verification.
+  const racketDraft=await rpc('create_listing_draft',{p_category:'rackets'}); const racketId=racketDraft.id;
+  await rpc('update_listing_draft',{p_listing_id:racketId,p_expected_version:1,p_patch:{title:`Admin test racket ${suffix}`,brand_slug:'bullpadel',model:'Vertex 04',description:'Synthetic admin racket review fixture only.',governorate_slug:'cairo',condition:'used',condition_disclosure:'Clean frame',racket_damage_repair_disclosure:'No repairs',offer_type:'sale',price_egp:4800,racket_year:2025,racket_weight_grams:370,racket_shape:'diamond'}});
+  let racketVersion=2;
+  for(let i=0;i<3;i++){
+    const rAsset=randomUUID(), rAttempt=randomUUID(); const rManifest:Record<string,unknown>={};
+    for(const variant of ['thumb','card','full']){const key=`processed/${rAsset}/${rAttempt}/${variant}.webp`;const upload=await service.storage.from('media-private').upload(key,bytes,{contentType:'image/webp'});if(upload.error)throw new Error('Racket fixture upload failed');rManifest[variant]={key,sha256:hash,bytes:bytes.length};}
+    const rPhoto=await service.rpc('save_listing_photo',{p_owner:ownerId,p_listing:racketId,p_version:racketVersion,p_asset:rAsset,p_attempt:rAttempt,p_mime:'image/webp',p_bytes:bytes.length*3,p_width:320,p_height:240,p_hash:hash,p_manifest:rManifest});
+    if(rPhoto.error)throw new Error('Racket fixture attachment failed');
+    racketVersion++;
+  }
+  await rpc('submit_listing',{p_listing_id:racketId,p_expected_version:racketVersion});
   operator(`insert into private.admin_roles(user_id,role) select id,'admin' from auth.users where id='${actor}' and email='${email}';`);
   const photoUrl=`/api/admin/listings/${id}/photos/${asset}`;
   const sellerContext=await browser.newContext({baseURL:'http://127.0.0.1:3100'}); const sellerPage=await sellerContext.newPage();
@@ -88,6 +101,22 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await sellerPage.goto(`/en/account/listings/${id}`);await expect(sellerPage.getByText('Please provide a clearer condition description.',{exact:true})).toBeVisible();
     await sellerPage.getByRole('button',{name:'Submit for approval',exact:true}).click();await expect(sellerPage.getByRole('status')).toContainText('Submitted');
     await page.goto(`/en/admin/listings/${id}`);await page.getByRole('button',{name:'Approve listing',exact:true}).click();await expect(page.getByRole('status')).toContainText('saved');
+    // Verify optional racket specifications and translated shape appear cleanly in EN & AR admin review.
+    await page.goto(`/en/admin/listings/${racketId}`);
+    await expect(page.locator('.review-details')).toContainText('Model year');
+    await expect(page.locator('.review-details')).toContainText('2025');
+    await expect(page.locator('.review-details')).toContainText('Weight (grams)');
+    await expect(page.locator('.review-details')).toContainText('370');
+    await expect(page.locator('.review-details')).toContainText('Racket shape');
+    await expect(page.locator('.review-details')).toContainText('Diamond');
+    await page.goto(`/ar/admin/listings/${racketId}`);
+    await expect(page.locator('.review-details')).toContainText('سنة الموديل');
+    await expect(page.locator('.review-details')).toContainText('الوزن (جرام)');
+    await expect(page.locator('.review-details')).toContainText('شكل المضرب');
+    await expect(page.locator('.review-details')).toContainText('ماسي');
+    await page.goto(`/en/admin/listings/${racketId}`);
+    await page.getByRole('button',{name:'Approve listing',exact:true}).click();
+    await expect(page.getByRole('status')).toContainText('saved');
     expect((await sellerPage.request.get(`/en/equipment/${id}`)).status()).toBe(200);
     // Real browser mount records one view per tab/day; prefetch/SSR alone does not.
     await sellerPage.goto(`/en/equipment/${id}`);
@@ -161,8 +190,10 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     expect((await page.request.get(photoUrl)).status()).not.toBe(200);
   } finally {
     operator(`update private.admin_roles set revoked_at=now() where user_id='${actor}';`);
-    const current=await rpc('get_my_listing',{p_listing_id:id});
-    if(['active','pending','reserved'].includes(current.status))await rpc('withdraw_listing',{p_listing_id:id,p_expected_version:current.version});
+    for(const fixtureId of [id,racketId]) {
+      const current=await rpc('get_my_listing',{p_listing_id:fixtureId});
+      if(['active','pending','reserved'].includes(current.status))await rpc('withdraw_listing',{p_listing_id:fixtureId,p_expected_version:current.version});
+    }
     await sellerContext.close();
   }
 });

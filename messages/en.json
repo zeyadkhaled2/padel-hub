@@ -324,7 +324,19 @@
     "shoes": "Padel shoes",
     "bags": "Bags",
     "shoe_size_eu": "Shoe size (EU)",
-    "shoeSizeHint": "Use the EU size on the label. Half sizes are supported; size is required before approval."
+    "shoeSizeHint": "Use the EU size on the label. Half sizes are supported; size is required before approval.",
+    "racketSpecs": "Racket specifications (optional)",
+    "racketSpecsHint": "Leave anything you do not know blank. Use the model year and the weight marked on the racket; do not guess.",
+    "racket_year": "Model year",
+    "racket_weight_grams": "Weight (grams)",
+    "racket_shape": "Racket shape",
+    "unknown": "Not specified",
+    "shapes": {
+      "round": "Round",
+      "teardrop": "Teardrop",
+      "diamond": "Diamond",
+      "hybrid": "Hybrid"
+    }
   },
   "buyer": {
     "approvedOnly": "Approved listings only",

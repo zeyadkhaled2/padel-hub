@@ -6,7 +6,7 @@ import { ViewTracker } from '@/features/analytics/view-tracker';
 import { ReportForm } from '@/features/reports/forms';
 import { formatAmount } from '@/lib/format';
 import { publicListing } from './public-data';
-import { getPublicListingDetailSections } from './search';
+import { getPublicListingDetailSections, getPublicRacketSpecRows } from './search';
 
 export async function PublicDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,6 +29,7 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
 
   const { listing } = lookup;
   const detailSections = getPublicListingDetailSections(listing);
+  const racketSpecRows = getPublicRacketSpecRows(listing);
 
   return (
     <main id="main" className="container detail-page">
@@ -73,6 +74,18 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
               <h2>{e(key)}</h2>
               <p className="user-copy">
                 <bdi>{value}</bdi>
+              </p>
+            </div>
+          ))}
+          {racketSpecRows.map((spec) => (
+            <div className="disclosure" key={spec.key}>
+              <h2>{e(spec.key)}</h2>
+              <p>
+                <bdi>
+                  {spec.kind === 'shape'
+                    ? e(`shapes.${spec.value}`)
+                    : spec.value.toLocaleString(locale, { useGrouping: false })}
+                </bdi>
               </p>
             </div>
           ))}

@@ -7,6 +7,7 @@ import {
   parseListingActionHeader,
   parseOwnerListing,
 } from '@/features/listings/validation';
+import { RACKET_SHAPES } from '@/lib/domain/equipment';
 
 const VALID_ID = '11111111-1111-4111-8111-111111111111';
 
@@ -209,4 +210,138 @@ test('mapListingRpcError preserves exact editor message keys for conflicts and r
   assert.equal(mapListingRpcError({ code: 'PT409' }, 'transition'), 'conflictOrLimit');
   assert.equal(mapListingRpcError({ code: '23514' }, 'transition'), 'requirements');
   assert.equal(mapListingRpcError({ code: '42501' }, 'transition'), 'unavailable');
+});
+
+test('buildListingDraftPatch validates, clears, and bounds optional racket specifications without touching purchase date', () => {
+  // Valid boundary values and all four shapes.
+  for (const [year, weight, shape] of [
+    ['2010', '300', 'round'],
+    ['2026', '365', 'teardrop'],
+    ['2035', '420', 'diamond'],
+    [' 2024 ', ' 375 ', 'hybrid'],
+  ] as const) {
+    const result = buildListingDraftPatch('rackets', {
+      racket_year: year,
+      racket_weight_grams: weight,
+      racket_shape: shape,
+    });
+    assert.equal(result.ok, true, `${year}/${weight}/${shape}`);
+    if (!result.ok) continue;
+    assert.equal(result.patch.racket_year, Number(year.trim()));
+    assert.equal(result.patch.racket_weight_grams, Number(weight.trim()));
+    assert.equal(result.patch.racket_shape, shape);
+    // Purchase date must stay omitted from the patch so existing DB values are never cleared.
+    assert.equal('racket_purchase_date' in result.patch, false);
+  }
+
+  // Blank or whitespace-only optional fields become null, never 0.
+  const cleared = buildListingDraftPatch('rackets', {
+    racket_year: '   ',
+    racket_weight_grams: '',
+    racket_shape: '',
+  });
+  assert.equal(cleared.ok, true);
+  if (cleared.ok) {
+    assert.equal(cleared.patch.racket_year, null);
+    assert.equal(cleared.patch.racket_weight_grams, null);
+    assert.equal(cleared.patch.racket_shape, null);
+  }
+
+  // Partial update: keep weight while clearing year and shape.
+  const partial = buildListingDraftPatch('rackets', {
+    racket_year: '',
+    racket_weight_grams: '365',
+    racket_shape: '',
+  });
+  assert.equal(partial.ok, true);
+  if (partial.ok) {
+    assert.equal(partial.patch.racket_year, null);
+    assert.equal(partial.patch.racket_weight_grams, 365);
+    assert.equal(partial.patch.racket_shape, null);
+  }
+
+  // Invalid years, weights, decimals, hex, and unknown shapes are rejected.
+  const invalidCases: Record<string, string>[] = [
+    { racket_year: '2009' },
+    { racket_year: '2036' },
+    { racket_year: '2026.5' },
+    { racket_year: '2026.0' },
+    { racket_year: '0' },
+    { racket_year: 'abc' },
+    { racket_weight_grams: '299' },
+    { racket_weight_grams: '421' },
+    { racket_weight_grams: '365.5' },
+    { racket_weight_grams: '0' },
+    { racket_weight_grams: '0x16d' },
+    { racket_weight_grams: '365g' },
+    { racket_shape: 'oval' },
+  ];
+  for (const invalidValues of invalidCases) {
+    assert.deepEqual(
+      buildListingDraftPatch('rackets', invalidValues),
+      { ok: false, error: 'invalid' },
+      JSON.stringify(invalidValues),
+    );
+  }
+
+  // Non-racket categories always clear racket specification fields to null.
+  for (const category of ['balls', 'shoes', 'bags'] as const) {
+    const nonRacket = buildListingDraftPatch(category, {
+      racket_year: '2026',
+      racket_weight_grams: '365',
+      racket_shape: RACKET_SHAPES[0],
+    });
+    assert.equal(nonRacket.ok, true, category);
+    if (!nonRacket.ok) continue;
+    assert.equal(nonRacket.patch.racket_year, null);
+    assert.equal(nonRacket.patch.racket_weight_grams, null);
+    assert.equal(nonRacket.patch.racket_shape, null);
+  }
+});
+
+test('parseOwnerListing validates racket specification bounds and preserves purchase date', () => {
+  const baseRacket = {
+    id: VALID_ID,
+    category: 'rackets',
+    status: 'draft',
+    title: 'Vertex 04',
+    brand_slug: 'bullpadel',
+    brand_custom: null,
+    model: 'Vertex',
+    description: null,
+    governorate_slug: 'cairo',
+    district_text: null,
+    condition: 'used',
+    condition_disclosure: null,
+    offer_type: 'sale',
+    price_egp: 5000,
+    is_negotiable: false,
+    swap_preference: null,
+    racket_damage_repair_disclosure: 'No cracks',
+    racket_year: 2026,
+    racket_shape: 'diamond',
+    racket_weight_grams: 365,
+    racket_purchase_date: '2025-05-01',
+    shoe_size_eu: null,
+    balls_quantity_packaging: null,
+    balls_availability_note: null,
+    version: 3,
+    content_version: 3,
+    last_approved_content_version: null,
+    media_ids: [],
+  };
+
+  const parsed = parseOwnerListing(baseRacket);
+  assert.ok(parsed);
+  assert.equal(parsed.category, 'rackets');
+  if (parsed.category === 'rackets') {
+    assert.equal(parsed.racket_year, 2026);
+    assert.equal(parsed.racket_weight_grams, 365);
+    assert.equal(parsed.racket_shape, 'diamond');
+    assert.equal(parsed.racket_purchase_date, '2025-05-01');
+  }
+
+  assert.equal(parseOwnerListing({ ...baseRacket, racket_year: 2009 }), null);
+  assert.equal(parseOwnerListing({ ...baseRacket, racket_weight_grams: 421 }), null);
+  assert.equal(parseOwnerListing({ ...baseRacket, racket_shape: 'square' }), null);
 });

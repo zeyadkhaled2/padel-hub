@@ -4,6 +4,7 @@ import {
   buildCategoryPillQuery,
   buildWhatsAppDestination,
   extractSearchValues,
+  getPublicRacketSpecRows,
   parseMarketplaceSearch,
   parsePublicListing,
 } from '@/features/marketplace/search';
@@ -139,6 +140,62 @@ test('parsePublicListing validates discriminated category payloads', () => {
 
   // Public shoe listing without shoe_size_eu fails boundary validation.
   assert.equal(parsePublicListing({ ...parsed, shoe_size_eu: null }), null);
+  assert.deepEqual(getPublicRacketSpecRows(parsed), []);
+
+  const racket = parsePublicListing({
+    id: LISTING_ID,
+    title: 'Head Extreme Pro',
+    category: 'rackets',
+    status: 'active',
+    brand_slug: 'head',
+    brand_custom: null,
+    model: 'Extreme Pro',
+    description: 'Clean racket with minimal scuffs.',
+    governorate_slug: 'cairo',
+    district_text: null,
+    condition: 'used',
+    condition_disclosure: 'Minor bumper marks',
+    offer_type: 'sale',
+    price_egp: 6500,
+    is_negotiable: true,
+    swap_preference: null,
+    racket_damage_repair_disclosure: 'No structural damage',
+    racket_year: 2026,
+    racket_shape: 'teardrop',
+    racket_weight_grams: 365,
+    racket_purchase_date: null,
+    shoe_size_eu: null,
+    balls_quantity_packaging: null,
+    balls_availability_note: null,
+    last_confirmed_available_at: null,
+    media_ids: [MEDIA_ID],
+    seller: {
+      display_name: 'Omar',
+      username: 'omar_padel',
+      account_type: 'individual',
+    },
+  });
+  assert.ok(racket);
+  assert.deepEqual(getPublicRacketSpecRows(racket), [
+    { key: 'racket_year', kind: 'number', value: 2026 },
+    { key: 'racket_weight_grams', kind: 'number', value: 365 },
+    { key: 'racket_shape', kind: 'shape', value: 'teardrop' },
+  ]);
+
+  // Blank optional racket specs are omitted from public detail rows.
+  const sparseRacket = parsePublicListing({
+    ...racket,
+    racket_year: null,
+    racket_shape: null,
+  });
+  assert.ok(sparseRacket);
+  assert.deepEqual(getPublicRacketSpecRows(sparseRacket), [
+    { key: 'racket_weight_grams', kind: 'number', value: 365 },
+  ]);
+
+  // Out-of-bounds racket specs fail boundary parsing.
+  assert.equal(parsePublicListing({ ...racket, racket_weight_grams: 299 }), null);
+  assert.equal(parsePublicListing({ ...racket, racket_year: 2036 }), null);
 });
 
 test('parseListingMetrics keeps WhatsApp contacts strictly admin-only', () => {

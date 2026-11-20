@@ -9,6 +9,9 @@ import {
   LISTING_CONDITIONS,
   LISTING_PRICE_BOUNDS,
   LISTING_TEXT_LIMITS,
+  RACKET_SHAPES,
+  RACKET_WEIGHT_BOUNDS,
+  RACKET_YEAR_BOUNDS,
   SHOE_SIZE_BOUNDS,
   canMarkListingSold,
   canMarkListingTraded,
@@ -58,6 +61,12 @@ function readListingFieldValue(listing: Listing, key: ListingFormFieldKey): stri
       return listing.price_egp === null ? '' : String(listing.price_egp);
     case 'shoe_size_eu':
       return listing.shoe_size_eu === null ? '' : String(listing.shoe_size_eu);
+    case 'racket_year':
+      return listing.racket_year === null ? '' : String(listing.racket_year);
+    case 'racket_weight_grams':
+      return listing.racket_weight_grams === null ? '' : String(listing.racket_weight_grams);
+    case 'racket_shape':
+      return listing.racket_shape ?? '';
   }
 }
 
@@ -155,6 +164,54 @@ export function ListingForm({ initial }: { initial: Listing }) {
                   {renderSelectField('offer_type', categoryConfig.supportedOfferTypes)}
                   {renderTextField('swap_preference', true)}
                 </>
+              )}
+
+              {categoryConfig.hasRacketSpecs && (
+                <fieldset className="listing-fields">
+                  <legend>{t('racketSpecs')}</legend>
+                  <p className="field-hint">{t('racketSpecsHint')}</p>
+                  <div className="form-columns">
+                    <label>
+                      {t('racket_year')}
+                      <input
+                        aria-label={t('racket_year')}
+                        name="racket_year"
+                        type="number"
+                        min={RACKET_YEAR_BOUNDS.min}
+                        max={RACKET_YEAR_BOUNDS.max}
+                        step="1"
+                        defaultValue={value('racket_year')}
+                      />
+                    </label>
+                    <label>
+                      {t('racket_weight_grams')}
+                      <input
+                        aria-label={t('racket_weight_grams')}
+                        name="racket_weight_grams"
+                        type="number"
+                        min={RACKET_WEIGHT_BOUNDS.min}
+                        max={RACKET_WEIGHT_BOUNDS.max}
+                        step="1"
+                        defaultValue={value('racket_weight_grams')}
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    {t('racket_shape')}
+                    <select
+                      aria-label={t('racket_shape')}
+                      name="racket_shape"
+                      defaultValue={value('racket_shape')}
+                    >
+                      <option value="">{t('unknown')}</option>
+                      {RACKET_SHAPES.map((shape) => (
+                        <option key={shape} value={shape}>
+                          {t(`shapes.${shape}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </fieldset>
               )}
 
               {categoryConfig.hasShoeSize && (

@@ -1,6 +1,7 @@
 import {
   CURATED_BRANDS,
   LISTING_TEXT_LIMITS,
+  RACKET_SHAPES,
   type BrandSlug,
   type EquipmentCategory,
   type GovernorateSlug,
@@ -132,7 +133,10 @@ export type ListingFormFieldKey =
   | 'condition'
   | 'offer_type'
   | 'price_egp'
-  | 'shoe_size_eu';
+  | 'shoe_size_eu'
+  | 'racket_year'
+  | 'racket_weight_grams'
+  | 'racket_shape';
 
 export type ListingDraftPatch = {
   title: string | null;
@@ -149,6 +153,9 @@ export type ListingDraftPatch = {
   is_negotiable: boolean;
   swap_preference: string | null;
   racket_damage_repair_disclosure: string | null;
+  racket_year: number | null;
+  racket_weight_grams: number | null;
+  racket_shape: RacketShape | null;
   shoe_size_eu: number | null;
   balls_quantity_packaging: string | null;
   balls_availability_note: string | null;
@@ -162,3 +169,4 @@ export type ListingState = {
 
 export const textFields = LISTING_TEXT_LIMITS;
 export const brands = CURATED_BRANDS;
+export const racketShapes = RACKET_SHAPES;

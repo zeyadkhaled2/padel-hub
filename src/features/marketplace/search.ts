@@ -5,6 +5,7 @@ import {
   SEARCH_SORT_OPTIONS,
   getCategoryConfig,
   type EquipmentCategory,
+  type RacketShape,
 } from '@/lib/domain/equipment';
 import {
   accountTypeSchema,
@@ -19,6 +20,8 @@ import {
   parseShoeSizeEuInput,
   publicListingStatusSchema,
   racketShapeSchema,
+  racketWeightGramsSchema,
+  racketYearSchema,
   shoeSizeEuSchema,
   uuidSchema,
   whatsappE164Schema,
@@ -69,9 +72,9 @@ export const publicListingSchema = z.discriminatedUnion('category', [
     offer_type: offerTypeSchema,
     swap_preference: z.string().nullable(),
     racket_damage_repair_disclosure: z.string(),
-    racket_year: z.number().int().nullable(),
+    racket_year: racketYearSchema.nullable(),
     racket_shape: racketShapeSchema.nullable(),
-    racket_weight_grams: z.number().int().nullable(),
+    racket_weight_grams: racketWeightGramsSchema.nullable(),
     racket_purchase_date: z.string().nullable(),
     shoe_size_eu: z.null(),
     balls_quantity_packaging: z.null(),
@@ -275,4 +278,28 @@ export function getPublicListingDetailSections(
     (entry): entry is { key: PublicDetailFieldKey; value: string | number } =>
       entry.value !== null && entry.value !== '',
   );
+}
+
+export type PublicRacketSpecRow =
+  | { key: 'racket_year'; kind: 'number'; value: number }
+  | { key: 'racket_weight_grams'; kind: 'number'; value: number }
+  | { key: 'racket_shape'; kind: 'shape'; value: RacketShape };
+
+export function getPublicRacketSpecRows(listing: PublicListing): PublicRacketSpecRow[] {
+  if (listing.category !== 'rackets') return [];
+  const rows: PublicRacketSpecRow[] = [];
+  if (listing.racket_year !== null) {
+    rows.push({ key: 'racket_year', kind: 'number', value: listing.racket_year });
+  }
+  if (listing.racket_weight_grams !== null) {
+    rows.push({
+      key: 'racket_weight_grams',
+      kind: 'number',
+      value: listing.racket_weight_grams,
+    });
+  }
+  if (listing.racket_shape !== null) {
+    rows.push({ key: 'racket_shape', kind: 'shape', value: listing.racket_shape });
+  }
+  return rows;
 }

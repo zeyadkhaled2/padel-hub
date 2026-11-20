@@ -20,9 +20,12 @@ import {
   listingPriceSchema,
   listingStatusSchema,
   offerTypeSchema,
+  parseOptionalBoundedInt,
   parseShoeSizeEuInput,
   positiveVersionSchema,
   racketShapeSchema,
+  racketWeightGramsSchema,
+  racketYearSchema,
   shoeSizeEuSchema,
   strictPositiveIntSchema,
   uuidSchema,
@@ -64,9 +67,9 @@ const ownerListingSchema = z.discriminatedUnion('category', [
     offer_type: offerTypeSchema.nullable(),
     swap_preference: z.string().nullable(),
     racket_damage_repair_disclosure: z.string().nullable(),
-    racket_year: z.number().int().nullable(),
+    racket_year: racketYearSchema.nullable(),
     racket_shape: racketShapeSchema.nullable(),
-    racket_weight_grams: z.number().int().nullable(),
+    racket_weight_grams: racketWeightGramsSchema.nullable(),
     racket_purchase_date: z.string().nullable(),
     shoe_size_eu: z.null(),
     balls_quantity_packaging: z.null(),
@@ -213,7 +216,17 @@ export function buildListingDraftPatch(
   const shoeSize = config.hasShoeSize
     ? parseShoeSizeEuInput(values.shoe_size_eu ?? '')
     : { ok: true as const, value: null };
-  if (!shoeSize.ok) {
+  const racketYear = config.hasRacketSpecs
+    ? parseOptionalBoundedInt(values.racket_year, racketYearSchema)
+    : { ok: true as const, value: null };
+  const racketWeight = config.hasRacketSpecs
+    ? parseOptionalBoundedInt(values.racket_weight_grams, racketWeightGramsSchema)
+    : { ok: true as const, value: null };
+  const racketShape = config.hasRacketSpecs
+    ? parseOptionalChoice(racketShapeSchema, values.racket_shape)
+    : { ok: true as const, value: null };
+
+  if (!shoeSize.ok || !racketYear.ok || !racketWeight.ok || !racketShape.ok) {
     return { ok: false, error: 'invalid' };
   }
 
@@ -257,6 +270,9 @@ export function buildListingDraftPatch(
       is_negotiable: normalizedNegotiable,
       swap_preference: normalizedSwapPreference,
       racket_damage_repair_disclosure: textValues.racket_damage_repair_disclosure,
+      racket_year: racketYear.value,
+      racket_weight_grams: racketWeight.value,
+      racket_shape: racketShape.value,
       shoe_size_eu: shoeSize.value,
       balls_quantity_packaging: textValues.balls_quantity_packaging,
       balls_availability_note: textValues.balls_availability_note,
