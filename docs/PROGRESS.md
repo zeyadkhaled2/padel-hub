@@ -81,3 +81,15 @@ Updated: 2026-11-20. Verified locally; hosted backend is not configured. Main-br
   - `npm run test:db`: blocked locally because Docker Desktop daemon is not running (`dockerDesktopLinuxEngine` pipe unavailable). No database migrations or SQL were modified.
   - `git diff --check`: passed.
 - Next: Start Docker/local Supabase to run `npm run test:db` and `node scripts/local-app.mjs test --workers=1` against the PR branch before merging `refactor/mvp-architecture` into `main`.
+
+## PR 1 review — 2026-11-21
+- Reviewed architecture refactor at 5974e0e against e5509b2; local checkout matched PR head. No confirmed functional/security regression found in inspected changes, including RPC response schemas versus migrations, owner/server authority, review snapshot handling and protected photo delivery.
+- Independent checks: 25/25 unit tests; lint and typecheck passed; production build passed after retry outside sandbox (initial EPERM mkdir); Chrome E2E with one worker 14 passed, 4 authenticated tests skipped. GitHub PR workflow 44824227575 succeeded. Docker daemon unavailable, so database/Auth/Storage integration tests were not rerun.
+- Recommendation: worthwhile refactor, hold merge until full local Auth/Storage account/admin tests and database suite pass on PR head, and wire npm run test:unit into CI (currently absent from workflow and npm run check). No source fixes, PR comments, merge or deployment performed.
+
+## PR 1 integration verification — 2026-11-21
+- Closed both pre-merge testing gaps on `refactor/mvp-architecture` (HEAD `aec8fe4`, which wired `- run: npm run test:unit` into `.github/workflows/ci.yml`):
+  - `npm run test:db`: passed — all 18 migrations applied cleanly to a disposable scratch database, 554/554 SQL assertions passed across 14 test files, plus all concurrent lock/race and fixed-snapshot isolation checks passed; scratch database removed.
+  - `node scripts/local-app.mjs test --workers=1` against live local Supabase Auth/Mailpit/Storage/DB and `node scripts/local-app.mjs serve`: **18/18 passed (0 skipped)**, including desktop and mobile `account.spec.ts` (email verification, profile/contact RPCs, conflicts, session refresh, photo upload/replacement/EXIF stripping/hash verification/races, rackets/balls/shoes/bags drafts, `/@username`, QR PNG decode & redirect, WhatsApp redirect, sold/archive/relist/withdraw) and desktop and mobile `admin.spec.ts` (real TOTP enrollment/challenge, review photos, encrypted snapshot closure, rejection/approval, stale decision conflict, owner-vs-admin analytics isolation, reports removal/suspension, MFA re-challenge and role revocation).
+  - `npm run test:unit` (25/25), `npm run lint`, and `npm run typecheck`: all passed.
+- PR #1 (`https://github.com/zeyadkhaled2/padel-hub/pull/1`) remains open and unmerged for final user approval; `v2` remains untouched.
