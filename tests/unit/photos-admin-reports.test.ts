@@ -342,4 +342,34 @@ test('getReviewListingDisplayRows omits null fields while keeping false booleans
   assert.ok(rows.some((row) => row.key === 'shoe_size_eu' && row.value === 42.5));
   assert.ok(rows.some((row) => row.key === 'is_negotiable' && row.value === false));
   assert.ok(!rows.some((row) => row.key === 'brand_custom'));
+
+  const racketSnapshot = parseReviewSnapshot({
+    listing: {
+      ...snapshot.listing,
+      category: 'rackets',
+      shoe_size_eu: null,
+      racket_damage_repair_disclosure: 'No repairs',
+      racket_year: 2025,
+      racket_weight_grams: 370,
+      racket_shape: 'hybrid',
+      racket_purchase_date: '2025-01-15',
+    },
+    profile: snapshot.profile,
+    media_manifest: [],
+  });
+  assert.ok(racketSnapshot);
+  const racketRows = getReviewListingDisplayRows(racketSnapshot.listing);
+  assert.ok(racketRows.some((row) => row.key === 'racket_year' && row.value === 2025));
+  assert.ok(racketRows.some((row) => row.key === 'racket_weight_grams' && row.value === 370));
+  assert.ok(racketRows.some((row) => row.key === 'racket_shape' && row.value === 'hybrid'));
+  assert.ok(racketRows.some((row) => row.key === 'racket_purchase_date' && row.value === '2025-01-15'));
+
+  assert.equal(
+    parseReviewSnapshot({
+      listing: { ...racketSnapshot.listing, racket_weight_grams: 421 },
+      profile: snapshot.profile,
+      media_manifest: [],
+    }),
+    null,
+  );
 });

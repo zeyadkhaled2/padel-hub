@@ -133,6 +133,16 @@ export const SHOE_SIZE_BOUNDS = {
   step: 0.5,
 } as const;
 
+export const RACKET_YEAR_BOUNDS = {
+  min: 2010,
+  max: 2035,
+} as const;
+
+export const RACKET_WEIGHT_BOUNDS = {
+  min: 300,
+  max: 420,
+} as const;
+
 export const SHOE_SIZES_EU: readonly number[] = Array.from(
   { length: (SHOE_SIZE_BOUNDS.max - SHOE_SIZE_BOUNDS.min) / SHOE_SIZE_BOUNDS.step + 1 },
   (_, index) => SHOE_SIZE_BOUNDS.min + index * SHOE_SIZE_BOUNDS.step,
@@ -156,6 +166,7 @@ export type CategoryConfig = {
   readonly supportedOfferTypes: readonly OfferType[];
   readonly defaultOfferType: OfferType;
   readonly supportsSwap: boolean;
+  readonly hasRacketSpecs: boolean;
   readonly hasShoeSize: boolean;
   readonly supportsShoeSizeFilter: boolean;
   readonly extraTextFields: readonly CategoryTextFieldSpec[];
@@ -169,6 +180,7 @@ export const CATEGORY_CONFIG: Readonly<Record<EquipmentCategory, CategoryConfig>
     supportedOfferTypes: ['sale', 'swap', 'both'],
     defaultOfferType: 'sale',
     supportsSwap: true,
+    hasRacketSpecs: true,
     hasShoeSize: false,
     supportsShoeSizeFilter: false,
     extraTextFields: [{ key: 'racket_damage_repair_disclosure', multiline: true }],
@@ -180,6 +192,7 @@ export const CATEGORY_CONFIG: Readonly<Record<EquipmentCategory, CategoryConfig>
     supportedOfferTypes: ['sale'],
     defaultOfferType: 'sale',
     supportsSwap: false,
+    hasRacketSpecs: false,
     hasShoeSize: false,
     supportsShoeSizeFilter: false,
     extraTextFields: [
@@ -194,6 +207,7 @@ export const CATEGORY_CONFIG: Readonly<Record<EquipmentCategory, CategoryConfig>
     supportedOfferTypes: ['sale'],
     defaultOfferType: 'sale',
     supportsSwap: false,
+    hasRacketSpecs: false,
     hasShoeSize: true,
     supportsShoeSizeFilter: true,
     extraTextFields: [],
@@ -205,6 +219,7 @@ export const CATEGORY_CONFIG: Readonly<Record<EquipmentCategory, CategoryConfig>
     supportedOfferTypes: ['sale'],
     defaultOfferType: 'sale',
     supportsSwap: false,
+    hasRacketSpecs: false,
     hasShoeSize: false,
     supportsShoeSizeFilter: false,
     extraTextFields: [],

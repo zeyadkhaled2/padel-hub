@@ -230,20 +230,76 @@ test.describe('local verified accounts', () => {
     await page.getByLabel('Racket damage or repairs').fill('No repairs');
     await page.getByLabel('Offer type').selectOption('sale');
     await page.getByLabel('Price in EGP').fill('2500');
+    await page.getByLabel('Model year', { exact: true }).fill('2026');
+    await page.getByLabel('Weight (grams)', { exact: true }).fill('365');
+    await page.getByLabel('Racket shape', { exact: true }).selectOption('teardrop');
+
     await expect(page.getByRole('button', { name: 'Submit for approval', exact: true })).toBeDisabled();
     await page.getByRole('button', { name: 'Save draft', exact: true }).click();
     await expect(page.getByRole('status')).toHaveText('Draft saved.');
     await page.reload();
     await expect(page.getByLabel('Listing title', { exact: true })).toHaveValue('Synthetic racket listing');
+    await expect(page.getByLabel('Model year', { exact: true })).toHaveValue('2026');
+    await expect(page.getByLabel('Weight (grams)', { exact: true })).toHaveValue('365');
+    await expect(page.getByLabel('Racket shape', { exact: true })).toHaveValue('teardrop');
+
+    // Optional values can be cleared and persisted, not coerced to zero.
+    await page.getByLabel('Model year', { exact: true }).fill('');
+    await page.getByLabel('Racket shape', { exact: true }).selectOption('');
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await expect(page.getByRole('status')).toHaveText('Draft saved.');
+    await page.reload();
+    await expect(page.getByLabel('Model year', { exact: true })).toHaveValue('');
+    await expect(page.getByLabel('Weight (grams)', { exact: true })).toHaveValue('365');
+    await expect(page.getByLabel('Racket shape', { exact: true })).toHaveValue('');
+
+    // Re-enter valid year & shape, then bypass native HTML limits to verify server-side validation and retained input.
+    await page.getByLabel('Model year', { exact: true }).fill('2026');
+    await page.getByLabel('Racket shape', { exact: true }).selectOption('teardrop');
+    await page.locator('form.account-form').evaluate((form: HTMLFormElement) => { form.noValidate = true; });
+    await page.getByLabel('Weight (grams)', { exact: true }).fill('299');
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await expect(page.getByRole('status')).not.toHaveText('Draft saved.');
+    await expect(page.getByLabel('Weight (grams)', { exact: true })).toHaveValue('299');
+    await expect(page.getByLabel('Model year', { exact: true })).toHaveValue('2026');
+
+    await page.locator('form.account-form').evaluate((form: HTMLFormElement) => { form.noValidate = true; });
+    await page.getByLabel('Weight (grams)', { exact: true }).fill('365');
+    await page.getByLabel('Model year', { exact: true }).fill('2009');
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await expect(page.getByRole('status')).not.toHaveText('Draft saved.');
+    await expect(page.getByLabel('Model year', { exact: true })).toHaveValue('2009');
+
+    await page.getByLabel('Model year', { exact: true }).fill('2026');
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await expect(page.getByRole('status')).toHaveText('Draft saved.');
+
+    if (info.project.name === 'desktop') {
+      for (const locale of ['en', 'ar']) for (const theme of ['light', 'dark']) {
+        await page.setViewportSize({ width: 390, height: 900 });
+        await page.goto(editorUrl.replace('/en/', `/${locale}/`));
+        await page.locator('header select').selectOption(theme);
+        await expect(page.locator('input[name="racket_weight_grams"]')).toHaveValue('365');
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        if (locale === 'ar' && theme === 'dark') {
+          await page.locator('fieldset').last().screenshot({ path: '.cache/racket-specs-ar-dark.png' });
+        }
+      }
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto(editorUrl);
+    }
+
     const staleListing = await context.newPage();
     await staleListing.goto(editorUrl);
     await page.getByLabel('Listing title', { exact: true }).fill(`Latest racket title ${suffix}`);
     await page.getByRole('button', { name: 'Save draft', exact: true }).click();
     await expect(page.getByRole('status')).toHaveText('Draft saved.');
     await staleListing.getByLabel('Listing title', { exact: true }).fill('Stale title stays here');
+    await staleListing.getByLabel('Weight (grams)', { exact: true }).fill('380');
     await staleListing.getByRole('button', { name: 'Save draft', exact: true }).click();
     await expect(staleListing.getByRole('status')).toContainText('changed elsewhere');
     await expect(staleListing.getByLabel('Listing title', { exact: true })).toHaveValue('Stale title stays here');
+    await expect(staleListing.getByLabel('Weight (grams)', { exact: true })).toHaveValue('380');
     await staleListing.close();
     await page.getByRole('button', { name: 'Submit for approval', exact: true }).click();
     await expect(page.getByRole('status')).toContainText('Submission needs');
@@ -296,6 +352,12 @@ test.describe('local verified accounts', () => {
     await expect.poll(() => publicImage.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
     await buyerPage.getByRole('heading', { name: `Latest racket title ${suffix}` }).getByRole('link').click();
     await expect(buyerPage.getByRole('heading', { level: 1 })).toHaveText(`Latest racket title ${suffix}`);
+    await expect(buyerPage.getByRole('heading', { name: 'Model year', exact: true })).toBeVisible();
+    await expect(buyerPage.getByText('2026', { exact: true })).toBeVisible();
+    await expect(buyerPage.getByRole('heading', { name: 'Weight (grams)', exact: true })).toBeVisible();
+    await expect(buyerPage.getByText('365', { exact: true })).toBeVisible();
+    await expect(buyerPage.getByRole('heading', { name: 'Racket shape', exact: true })).toBeVisible();
+    await expect(buyerPage.getByText('Teardrop', { exact: true })).toBeVisible();
     await expect(buyerPage.getByText('Light wear', { exact: true })).toBeVisible();
     expect(await buyerPage.content()).not.toContain('+201000000000');
     const contact = await buyer.request.get(`/api/contact/${listingId}?locale=en&next=https://example.com`, { maxRedirects: 0 });
@@ -306,6 +368,10 @@ test.describe('local verified accounts', () => {
     expect(destination.pathname).toBe('/201000000000');
     expect(destination.searchParams.get('text')).toContain(`/en/equipment/${listingId}`);
     await buyerPage.goto(`/ar/equipment/${listingId}`);
+    await expect(buyerPage.getByRole('heading', { name: 'سنة الموديل', exact: true })).toBeVisible();
+    await expect(buyerPage.getByRole('heading', { name: 'الوزن (جرام)', exact: true })).toBeVisible();
+    await expect(buyerPage.getByRole('heading', { name: 'شكل المضرب', exact: true })).toBeVisible();
+    await expect(buyerPage.getByText('دمعة', { exact: true })).toBeVisible();
     await expect(buyerPage.getByRole('link', { name: 'تواصل عبر واتساب' })).toBeVisible();
     await page.reload();
     const staleStatus = await page.context().newPage();
@@ -343,6 +409,7 @@ test.describe('local verified accounts', () => {
     await page.getByRole('button', { name: 'Create listing', exact: true }).click();
     await expect(page.getByLabel('Ball quantity and packaging')).toBeVisible();
     await expect(page.getByLabel('Racket damage or repairs')).toHaveCount(0);
+    await expect(page.locator('[name="racket_year"], [name="racket_weight_grams"], [name="racket_shape"]')).toHaveCount(0);
     await page.getByLabel('Listing title', { exact: true }).fill('Synthetic balls');
     await page.getByLabel('Ball quantity and packaging').fill('Three sealed balls');
     await page.getByRole('button', { name: 'Save draft', exact: true }).click();
@@ -360,6 +427,7 @@ test.describe('local verified accounts', () => {
       await expect(page.getByLabel('Ball quantity and packaging')).toHaveCount(0);
       if (category === 'shoes') await page.getByLabel('Shoe size (EU)', { exact: false }).fill('42.5');
       else await expect(page.locator('input[name="shoe_size_eu"]')).toHaveCount(0);
+      await expect(page.locator('[name="racket_year"], [name="racket_weight_grams"], [name="racket_shape"]')).toHaveCount(0);
       await page.getByRole('button', { name: 'Save draft', exact: true }).click();
       await expect(page.getByRole('status')).toContainText('Draft saved');
       await page.reload();

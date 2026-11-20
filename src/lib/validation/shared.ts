@@ -12,6 +12,8 @@ import {
   OFFER_TYPES,
   PUBLIC_LISTING_STATUSES,
   RACKET_SHAPES,
+  RACKET_WEIGHT_BOUNDS,
+  RACKET_YEAR_BOUNDS,
   SHOE_SIZE_BOUNDS,
 } from '@/lib/domain/equipment';
 
@@ -46,6 +48,36 @@ export const shoeSizeEuSchema = z
   .min(SHOE_SIZE_BOUNDS.min)
   .max(SHOE_SIZE_BOUNDS.max)
   .refine((value) => (value * 2) % 1 === 0, 'Must be a whole or half EU shoe size');
+
+export const racketYearSchema = z
+  .number()
+  .int()
+  .min(RACKET_YEAR_BOUNDS.min)
+  .max(RACKET_YEAR_BOUNDS.max);
+
+export const racketWeightGramsSchema = z
+  .number()
+  .int()
+  .min(RACKET_WEIGHT_BOUNDS.min)
+  .max(RACKET_WEIGHT_BOUNDS.max);
+
+export function parseOptionalBoundedInt(
+  raw: string | undefined,
+  schema: z.ZodNumber,
+): { ok: true; value: number | null } | { ok: false } {
+  const trimmed = (raw ?? '').trim();
+  if (trimmed === '') {
+    return { ok: true, value: null };
+  }
+  if (!/^\d+$/.test(trimmed)) {
+    return { ok: false };
+  }
+  const parsed = schema.safeParse(Number(trimmed));
+  if (!parsed.success) {
+    return { ok: false };
+  }
+  return { ok: true, value: parsed.data };
+}
 
 export function optionalTrimmedText(maxLength: number) {
   return z
