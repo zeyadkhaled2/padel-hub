@@ -60,3 +60,24 @@ Updated: 2026-11-20. Verified locally; hosted backend is not configured. Main-br
 - Migration 018 applied locally. Public search accepts exact EU size 20–55 in half steps; URL, pagination and language changes retain the filter. Non-shoe category shortcuts clear it; invalid sizes fail validation. No new dependencies or schema indexes.
 - Database: 554 assertions plus existing races passed. Existing marketplace browser suite: 10/10 passed. Final npm run check passed; size-specific desktop/mobile tests 2/2 passed after explicit accessible label fix. Arabic dark mobile screenshot inspected; git diff --check passed.
 - No v2 merge or hosted migration. Next: optional racket specifications.
+
+## Phase 2 status review — 2026-11-20
+- Read-only code/documentation review: hosted Supabase remains unconfigured; local auth/MFA, authorization tests and some upload/report limits exist. External email/recovery/Google login, full production security/abuse review, account deletion, backups/restore/monitoring and real-user pilot remain pending. v2 integration remains cancelled/on hold per latest decision.
+- Current checkout is refactor/mvp-architecture with substantial in-progress edits; preserved all work. No tests rerun and no production settings inspected or changed in this status review; earlier recorded passes do not validate the current uncommitted refactor.
+
+## Phase 1 architecture & code quality refactor — 2026-11-20
+- Branch: `refactor/mvp-architecture` (branched from `main` at `e5509b2`). No database schema, migration, route, URL, API contract, or security-boundary changes; `v2` untouched; no new dependencies added.
+- Completed:
+  - Added shared domain configuration (`src/lib/domain/equipment.ts` with typed `CATEGORY_CONFIG`), centralized Zod validators (`src/lib/validation/shared.ts`), consistent Postgres SQLSTATE classification (`src/lib/errors/domain.ts`), and stateless Supabase client factories (`src/server/supabase/clients.ts`).
+  - Replaced broad index signatures and `Record<string, unknown>` casts with explicit types and category-discriminated unions across listings, marketplace, profile, auth, photos, admin, reports, and analytics, with Zod boundary parsing on RPC responses (preserving raw `media_manifest` references for Postgres JSONB review equality).
+  - Separated pure validation/normalization (`validation.ts` / `search.ts`), narrow server helpers (`server.ts` / `processing.ts`), and thin Server Actions (`actions.ts`) across all features; shared MFA admin gate (`src/features/admin/server.ts`) between admin review and reports queues.
+  - Added zero-dependency Node unit test runner and 25 focused unit tests in `tests/unit/` (`npm run test:unit`).
+- Verification:
+  - `npm run lint`: passed.
+  - `npm run typecheck`: passed.
+  - `npm run build`: passed (23/23 routes).
+  - `npm run test:unit`: 25/25 passed.
+  - `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- --workers=1`: 14/14 runnable tests passed (desktop + mobile foundation, media-boundary, shoe-search); 4 skipped (`account.spec.ts` and `admin.spec.ts` require running local Docker/Supabase Auth & Storage). Note: parallel `--workers=2` against cold `next dev --webpack` on Windows hit a Next.js dev manifest race on `/en/demo`; `--workers=1` passed cleanly.
+  - `npm run test:db`: blocked locally because Docker Desktop daemon is not running (`dockerDesktopLinuxEngine` pipe unavailable). No database migrations or SQL were modified.
+  - `git diff --check`: passed.
+- Next: Start Docker/local Supabase to run `npm run test:db` and `node scripts/local-app.mjs test --workers=1` against the PR branch before merging `refactor/mvp-architecture` into `main`.
