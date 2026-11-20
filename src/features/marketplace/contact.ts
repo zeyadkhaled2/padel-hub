@@ -1,23 +1,57 @@
 import 'server-only';
 import { after } from 'next/server';
-import { recordMetric } from '@/features/analytics/record';
-import { z } from 'zod';
 import { getTranslations } from 'next-intl/server';
+import { recordMetric } from '@/features/analytics/record';
+import { uuidSchema } from '@/lib/validation/shared';
 import { authConfig } from '@/server/supabase/config';
-import { publicClient } from './public-data';
+import { serviceClient } from '@/server/supabase/clients';
+import { buildWhatsAppDestination, parseListingContact } from './search';
 
-const headers = { 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff' };
+const CONTACT_HEADERS = {
+  'Cache-Control': 'private, no-store',
+  'Referrer-Policy': 'no-referrer',
+  'X-Content-Type-Options': 'nosniff',
+};
+
 export async function contact(request: Request, id: string) {
   const locale = new URL(request.url).searchParams.get('locale') === 'ar' ? 'ar' : 'en';
   const t = await getTranslations({ locale, namespace: 'buyer' });
-  if (!z.uuid().safeParse(id).success) return new Response(t('noContact'), { status: 404, headers });
-  const client = publicClient(true), config = authConfig();
-  if (!client || !config) return new Response(t('unavailable'), { status: 503, headers });
+
+  if (!uuidSchema.safeParse(id).success) {
+    return new Response(t('noContact'), { status: 404, headers: CONTACT_HEADERS });
+  }
+
+  const client = serviceClient();
+  const config = authConfig();
+  if (!client || !config) {
+    return new Response(t('unavailable'), { status: 503, headers: CONTACT_HEADERS });
+  }
+
   const { data, error } = await client.rpc('get_listing_contact', { p_listing: id });
-  if (error) return new Response(t('unavailable'), { status: 503, headers });
-  if (!data || !/^\+[1-9][0-9]{7,14}$/.test(data.phone)) return new Response(t('noContact'), { status: 404, headers });
-  const destination = new URL(`https://wa.me/${data.phone.slice(1)}`);
-  destination.searchParams.set('text', t('message', { title: data.title, url: `${config.origin}/${locale}/equipment/${id}` }));
-  if (request.method === 'GET') after(() => recordMetric(id, 'contact'));
-  return new Response(null, { status: 302, headers: { ...headers, Location: destination.href } });
+  if (error) {
+    return new Response(t('unavailable'), { status: 503, headers: CONTACT_HEADERS });
+  }
+
+  const parsedContact = parseListingContact(data);
+  if (!parsedContact) {
+    return new Response(t('noContact'), { status: 404, headers: CONTACT_HEADERS });
+  }
+
+  const messageText = t('message', {
+    title: parsedContact.title,
+    url: `${config.origin}/${locale}/equipment/${id}`,
+  });
+  const destination = buildWhatsAppDestination(parsedContact.phone, messageText);
+  if (!destination) {
+    return new Response(t('noContact'), { status: 404, headers: CONTACT_HEADERS });
+  }
+
+  if (request.method === 'GET') {
+    after(() => recordMetric(id, 'contact'));
+  }
+
+  return new Response(null, {
+    status: 302,
+    headers: { ...CONTACT_HEADERS, Location: destination },
+  });
 }

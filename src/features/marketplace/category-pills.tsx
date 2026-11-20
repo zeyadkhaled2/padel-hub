@@ -1,28 +1,37 @@
 import { getTranslations } from 'next-intl/server';
 import { CircleDot, Grid2X2 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import {
+  EQUIPMENT_CATEGORIES,
+  isEquipmentCategory,
+  type EquipmentCategory,
+} from '@/lib/domain/equipment';
+import { buildCategoryPillQuery } from './search';
+import type { MarketplaceSearchValues } from './types';
 
 interface CategoryPillsProps {
   query: string;
   category: string;
-  sort: string; base?: string; values?: Record<string,string>;
+  sort: string;
+  base?: string;
+  values?: Partial<MarketplaceSearchValues>;
 }
 
-const CATEGORIES = ['', 'rackets', 'balls', 'shoes', 'bags'] as const;
+const PILL_CATEGORIES: readonly ('' | EquipmentCategory)[] = ['', ...EQUIPMENT_CATEGORIES];
 
 export async function CategoryPills({
   query,
   category,
-  sort, base = "/", values = {},
+  sort,
+  base = '/',
+  values = {},
 }: CategoryPillsProps) {
   const t = await getTranslations('market');
 
   return (
     <div className="category-links" role="group" aria-label={t('category')}>
-      {CATEGORIES.map((item, index) => {
-        const isSelected =
-          category === item ||
-          (!['rackets', 'balls', 'shoes', 'bags'].includes(category) && !item);
+      {PILL_CATEGORIES.map((item, index) => {
+        const isSelected = category === item || (!isEquipmentCategory(category) && !item);
 
         return (
           <Link
@@ -30,12 +39,7 @@ export async function CategoryPills({
             prefetch={false}
             href={{
               pathname: base,
-              query: {
-                ...values, page: undefined, category: undefined, size: item && item !== 'shoes' ? undefined : values.size,
-                ...(query ? { q: query } : {}),
-                ...(sort ? { sort } : {}),
-                ...(item ? { category: item } : {}),
-              },
+              query: buildCategoryPillQuery(item, query, sort, values),
               hash: 'equipment-heading',
             }}
             className={`category-link ${isSelected ? 'selected' : ''}`}
