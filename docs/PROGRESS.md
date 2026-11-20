@@ -60,3 +60,36 @@ Updated: 2026-11-20. Verified locally; hosted backend is not configured. Main-br
 - Migration 018 applied locally. Public search accepts exact EU size 20–55 in half steps; URL, pagination and language changes retain the filter. Non-shoe category shortcuts clear it; invalid sizes fail validation. No new dependencies or schema indexes.
 - Database: 554 assertions plus existing races passed. Existing marketplace browser suite: 10/10 passed. Final npm run check passed; size-specific desktop/mobile tests 2/2 passed after explicit accessible label fix. Arabic dark mobile screenshot inspected; git diff --check passed.
 - No v2 merge or hosted migration. Next: optional racket specifications.
+
+## Phase 2 status review — 2026-11-20
+- Read-only code/documentation review: hosted Supabase remains unconfigured; local auth/MFA, authorization tests and some upload/report limits exist. External email/recovery/Google login, full production security/abuse review, account deletion, backups/restore/monitoring and real-user pilot remain pending. v2 integration remains cancelled/on hold per latest decision.
+- Current checkout is refactor/mvp-architecture with substantial in-progress edits; preserved all work. No tests rerun and no production settings inspected or changed in this status review; earlier recorded passes do not validate the current uncommitted refactor.
+
+## Phase 1 architecture & code quality refactor — 2026-11-20
+- Branch: `refactor/mvp-architecture` (branched from `main` at `e5509b2`). No database schema, migration, route, URL, API contract, or security-boundary changes; `v2` untouched; no new dependencies added.
+- Completed:
+  - Added shared domain configuration (`src/lib/domain/equipment.ts` with typed `CATEGORY_CONFIG`), centralized Zod validators (`src/lib/validation/shared.ts`), consistent Postgres SQLSTATE classification (`src/lib/errors/domain.ts`), and stateless Supabase client factories (`src/server/supabase/clients.ts`).
+  - Replaced broad index signatures and `Record<string, unknown>` casts with explicit types and category-discriminated unions across listings, marketplace, profile, auth, photos, admin, reports, and analytics, with Zod boundary parsing on RPC responses (preserving raw `media_manifest` references for Postgres JSONB review equality).
+  - Separated pure validation/normalization (`validation.ts` / `search.ts`), narrow server helpers (`server.ts` / `processing.ts`), and thin Server Actions (`actions.ts`) across all features; shared MFA admin gate (`src/features/admin/server.ts`) between admin review and reports queues.
+  - Added zero-dependency Node unit test runner and 25 focused unit tests in `tests/unit/` (`npm run test:unit`).
+- Verification:
+  - `npm run lint`: passed.
+  - `npm run typecheck`: passed.
+  - `npm run build`: passed (23/23 routes).
+  - `npm run test:unit`: 25/25 passed.
+  - `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- --workers=1`: 14/14 runnable tests passed (desktop + mobile foundation, media-boundary, shoe-search); 4 skipped (`account.spec.ts` and `admin.spec.ts` require running local Docker/Supabase Auth & Storage). Note: parallel `--workers=2` against cold `next dev --webpack` on Windows hit a Next.js dev manifest race on `/en/demo`; `--workers=1` passed cleanly.
+  - `npm run test:db`: blocked locally because Docker Desktop daemon is not running (`dockerDesktopLinuxEngine` pipe unavailable). No database migrations or SQL were modified.
+  - `git diff --check`: passed.
+- Next: Start Docker/local Supabase to run `npm run test:db` and `node scripts/local-app.mjs test --workers=1` against the PR branch before merging `refactor/mvp-architecture` into `main`.
+
+## PR 1 review — 2026-11-21
+- Reviewed architecture refactor at 5974e0e against e5509b2; local checkout matched PR head. No confirmed functional/security regression found in inspected changes, including RPC response schemas versus migrations, owner/server authority, review snapshot handling and protected photo delivery.
+- Independent checks: 25/25 unit tests; lint and typecheck passed; production build passed after retry outside sandbox (initial EPERM mkdir); Chrome E2E with one worker 14 passed, 4 authenticated tests skipped. GitHub PR workflow 44824227575 succeeded. Docker daemon unavailable, so database/Auth/Storage integration tests were not rerun.
+- Recommendation: worthwhile refactor, hold merge until full local Auth/Storage account/admin tests and database suite pass on PR head, and wire npm run test:unit into CI (currently absent from workflow and npm run check). No source fixes, PR comments, merge or deployment performed.
+
+## PR 1 integration verification — 2026-11-21
+- Closed both pre-merge testing gaps on `refactor/mvp-architecture` (HEAD `aec8fe4`, which wired `- run: npm run test:unit` into `.github/workflows/ci.yml`):
+  - `npm run test:db`: passed — all 18 migrations applied cleanly to a disposable scratch database, 554/554 SQL assertions passed across 14 test files, plus all concurrent lock/race and fixed-snapshot isolation checks passed; scratch database removed.
+  - `node scripts/local-app.mjs test --workers=1` against live local Supabase Auth/Mailpit/Storage/DB and `node scripts/local-app.mjs serve`: **18/18 passed (0 skipped)**, including desktop and mobile `account.spec.ts` (email verification, profile/contact RPCs, conflicts, session refresh, photo upload/replacement/EXIF stripping/hash verification/races, rackets/balls/shoes/bags drafts, `/@username`, QR PNG decode & redirect, WhatsApp redirect, sold/archive/relist/withdraw) and desktop and mobile `admin.spec.ts` (real TOTP enrollment/challenge, review photos, encrypted snapshot closure, rejection/approval, stale decision conflict, owner-vs-admin analytics isolation, reports removal/suspension, MFA re-challenge and role revocation).
+  - `npm run test:unit` (25/25), `npm run lint`, and `npm run typecheck`: all passed.
+- PR #1 (`https://github.com/zeyadkhaled2/padel-hub/pull/1`) remains open and unmerged for final user approval; `v2` remains untouched.

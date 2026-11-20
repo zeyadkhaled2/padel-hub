@@ -20,9 +20,15 @@ export async function serverClient() {
   });
 }
 
-export async function verifiedClient() {
+export async function verifiedUserClient() {
   const client = await serverClient();
   if (!client) return null;
   const { data, error } = await client.auth.getUser();
-  return !error && data.user?.email_confirmed_at ? client : null;
+  if (error || !data.user?.email_confirmed_at) return null;
+  return { client, user: data.user };
+}
+
+export async function verifiedClient() {
+  const verified = await verifiedUserClient();
+  return verified ? verified.client : null;
 }

@@ -112,3 +112,10 @@ Visible browser mounts send same-origin POSTs, deduplicated per listing/tab/UTC 
 
 ## Shoe-size search
 Migration 018 replaces the search RPC signature with an optional trailing numeric size argument (old calls still work via defaults). It retains the same public visibility and pagination rules and matches shoes by exact EU size, validating 20–55 in half steps. The URL `size` parameter is parsed server-side and preserved in pagination/language links; non-shoe category shortcuts clear it. No new index or dependency is needed for the initial inventory.
+
+## Phase 1 architecture refactor — 2026-11-20
+- `src/lib/domain/equipment.ts` centralizes equipment categories, typed `CATEGORY_CONFIG` metadata (photo minimums, allowed offer types, swap support, shoe-size filter compatibility, category-specific fields), listing statuses, curated brands, governorates, and lifecycle predicates.
+- `src/lib/validation/shared.ts` centralizes shared Zod schemas and parsers (UUIDs, positive versions, pagination, usernames, `@handle` decoding, E.164 WhatsApp numbers, EU shoe half-sizes, FormData string extraction).
+- `src/lib/errors/domain.ts` provides a narrow Postgres SQLSTATE classifier (`classifyRpcError` -> `DomainErrorKind`) so feature actions map conflicts, limits, authorization denials, and validation errors to existing localized keys without exposing raw database details.
+- `src/server/supabase/clients.ts` owns stateless anonymous (`anonClient`) and service-role (`serviceClient`) Supabase clients, eliminating cross-feature imports of `publicClient` from `src/features/marketplace/public-data.ts` and duplicate client construction in `src/features/photos/server.ts`.
+- Domain features separate pure validation and RPC-boundary parsing (`validation.ts` / `search.ts`) from narrow server helpers (`server.ts` / `processing.ts`) and thin Server Actions (`actions.ts`), covered by zero-dependency Node unit tests under `tests/unit/` (`npm run test:unit`). Existing routes, database migrations, RLS policies, optimistic concurrency checks, photo authorization/TOCTOU re-checks, and admin-only analytics boundaries remain unchanged.
