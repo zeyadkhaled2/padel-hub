@@ -120,7 +120,7 @@ try {
   console.log(`PASS: ${total} SQL assertions in total.`);
   sql(`insert into auth.users(id,email_confirmed_at) values
     ('aaaaaaaa-1111-4111-8111-111111111111',now()),('bbbbbbbb-2222-4222-8222-222222222222',now());`);
-  const asCaller = (id) => `begin; set local role authenticated; set local request.jwt.claims='{"sub":"${id}","role":"authenticated"}';`;
+  const asCaller = (id) => `begin; set local role authenticated; set local request.jwt.claims='{"sub":"${id}","role":"authenticated","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';`;
   await concurrentRace(
     `${asCaller("aaaaaaaa-1111-4111-8111-111111111111")} select public.create_seller_profile('Race_Player','Synthetic A','cairo');`,
     `${asCaller("bbbbbbbb-2222-4222-8222-222222222222")} select public.create_seller_profile('race_player','Synthetic B','giza');`,
@@ -170,7 +170,7 @@ try {
     if (candidates?.length !== 2) throw new Error("Missing last-slot draft fixtures");
     for (const isolation of ["repeatable read", "serializable"]) {
       sql(`begin isolation level ${isolation}; set local role authenticated;
-        set local request.jwt.claims='{"sub":"${user}"}';
+        set local request.jwt.claims='{"sub":"${user}","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
         do $$ begin
           begin
             perform public.submit_listing('${candidates[0]}',1);
@@ -203,7 +203,7 @@ try {
   }
   const reviewOwner = "eeeeeeee-5555-4555-8555-555555555555";
   const reviewer = "ffffffff-6666-4666-8666-666666666666";
-  const asReviewer = () => `begin; set local role authenticated; set local request.jwt.claims='{"sub":"${reviewer}","aal":"aal2"}';`;
+  const asReviewer = () => `begin; set local role authenticated; set local request.jwt.claims='{"sub":"${reviewer}","aal":"aal2","session_id":"00000000-0000-4000-8000-000000000002","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';`;
   sql(`insert into auth.users(id,email_confirmed_at) values ('${reviewOwner}',now()),('${reviewer}',now());
     insert into private.admin_roles(user_id,role) values('${reviewer}','admin');
     create table test_fixtures.reviews(name text primary key,id uuid,snapshot jsonb);
@@ -220,7 +220,7 @@ try {
   for (const isolation of ["repeatable read", "serializable"]) {
     for (const decision of ["approve", "reject"]) {
       sql(`begin isolation level ${isolation}; set local role authenticated;
-        set local request.jwt.claims='{"sub":"${reviewer}","aal":"aal2"}';
+        set local request.jwt.claims='{"sub":"${reviewer}","aal":"aal2","session_id":"00000000-0000-4000-8000-000000000002","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';
         do $$ begin begin
           perform public.admin_${decision}_listing(
             (select id from test_fixtures.reviews where name='owner_first'),1,1,3,

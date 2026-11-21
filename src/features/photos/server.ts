@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { fetchOwnerListing } from '@/features/listings/server';
 import { serviceClient } from '@/server/supabase/clients';
 import { authConfig, serviceConfig } from '@/server/supabase/config';
-import { serverClient } from '@/server/supabase/server';
+import { verifiedUserClient } from '@/server/supabase/server';
 import {
   PhotoProcessingError,
   processListingPhoto,
@@ -33,6 +33,7 @@ function errorResponse(code: PhotoErrorCode, status: number): Response {
 
 async function authorizePhotoUpload(
   userClient: SupabaseClient,
+  ownerId: string,
   adminClient: SupabaseClient,
   listingId: string,
   expectedVersion: number,
@@ -41,13 +42,6 @@ async function authorizePhotoUpload(
   | { ok: true; ownerId: string }
   | { ok: false; code: PhotoErrorCode; status: number }
 > {
-  const {
-    data: { user },
-  } = await userClient.auth.getUser();
-  if (!user?.email_confirmed_at) {
-    return { ok: false, code: 'signin', status: 401 };
-  }
-
   const draft = await fetchOwnerListing(userClient, listingId);
   if (draft.error || !draft.listing) {
     return { ok: false, code: 'notFound', status: 404 };
@@ -57,12 +51,12 @@ async function authorizePhotoUpload(
   if (!slot.ok) return slot;
 
   const { data: allowed, error: rateError } = await adminClient.rpc('consume_photo_upload', {
-    p_owner: user.id,
+    p_owner: ownerId,
   });
   if (rateError) return { ok: false, code: 'unavailable', status: 503 };
   if (!allowed) return { ok: false, code: 'rateLimited', status: 429 };
 
-  return { ok: true, ownerId: user.id };
+  return { ok: true, ownerId };
 }
 
 async function storePhotoVariants(
@@ -116,12 +110,15 @@ export async function uploadPhoto(request: Request, listing: string) {
   const parsed = parseUploadHeaders(listing, request.headers, config?.origin ?? null);
   if (!parsed.ok) return errorResponse(parsed.code, parsed.status);
 
-  const userClient = await serverClient();
   const adminClient = serviceClient(PHOTO_LIMITS.storageTimeoutMs);
-  if (!userClient || !adminClient) return errorResponse('unavailable', 503);
+  if (!config || !adminClient) return errorResponse('unavailable', 503);
+
+  const verified = await verifiedUserClient();
+  if (!verified) return errorResponse('signin', 401);
 
   const auth = await authorizePhotoUpload(
-    userClient,
+    verified.client,
+    verified.user.id,
     adminClient,
     parsed.listingId,
     parsed.version,
@@ -226,9 +223,11 @@ export async function deliverPhoto(request: Request, asset: string, reviewListin
   if (!adminClient || !service) return errorResponse('unavailable', 503);
 
   try {
-    const userClient = await serverClient();
-    const user = userClient ? (await userClient.auth.getUser()).data.user : null;
-    const viewerId = user?.email_confirmed_at ? user.id : null;
+    // Enforce the full verified account session boundary (never grant private photo
+    // or admin review photo access to an unfinished password-recovery session).
+    const verified = await verifiedUserClient();
+    const userClient = verified?.client ?? null;
+    const viewerId = verified?.user.id ?? null;
 
     const first = await readAuthorizedManifest(
       userClient,

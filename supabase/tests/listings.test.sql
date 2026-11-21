@@ -27,7 +27,7 @@ set local request.jwt.claims='{}';
 select throws_ok($$select public.create_listing_draft('balls')$$,'42501',null,'missing identity denied');
 set local request.jwt.claims='{"sub":"33333333-3333-4333-8333-333333333333"}';
 select throws_ok($$select public.create_listing_draft('balls')$$,'42501',null,'unverified identity denied');
-set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111"}';
+set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select throws_ok($$select public.create_listing_draft('balls')$$,'42501',null,'missing seller profile denied');
 select public.create_seller_profile('draft_owner','Synthetic Owner','cairo');
 insert into fixture values('draft',(public.create_listing_draft('balls')->>'id')::uuid);
@@ -52,7 +52,7 @@ select public.update_my_contact(2,1,'+201000000001',false);
 select throws_ok($$select public.submit_listing((select id from fixture where name='draft'),2)$$,'23514',null,'contact without consent cannot submit');
 select public.update_my_contact(3,2,'+201000000001',true);
 select throws_ok($$select public.submit_listing((select id from fixture where name='draft'),2)$$,'23514',null,'missing photos cannot submit');
-set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","user_metadata":{"role":"admin"}}';
+set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","session_id":"00000000-0000-4000-8000-000000000002","amr":[{"method":"password","timestamp":1795000000}],"user_metadata":{"role":"admin"}}';
 select public.create_seller_profile('draft_other','Synthetic Other','giza');
 select is(public.get_my_listing((select id from fixture where name='draft')),null::jsonb,'cross-owner read returns no data');
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),2,'{"title":"Attack"}')$$,'42501',null,'cross-owner edit denied');
@@ -65,7 +65,7 @@ insert into fixture values
  ('avatar',test_fixtures.asset('11111111-1111-4111-8111-111111111111','profile_avatar')),
  ('foreign',test_fixtures.asset('22222222-2222-4222-8222-222222222222'));
 set local role authenticated;
-set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111"}';
+set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),2,'{}',array[(select id from fixture where name='foreign')])$$,'23514',null,'other owner photo denied');
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),2,'{}',array[(select id from fixture where name='unready')])$$,'23514',null,'processing photo denied');
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),2,'{}',array[(select id from fixture where name='avatar')])$$,'23514',null,'avatar purpose denied');
@@ -141,7 +141,7 @@ select throws_ok($$delete from public.listings$$,'42501',null,'guard remains rea
 reset role;
 -- Racket completeness and business cap at twenty, with only synthetic media.
 set local role authenticated;
-set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222"}';
+set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","session_id":"00000000-0000-4000-8000-000000000002","amr":[{"method":"password","timestamp":1795000000}]}';
 select public.update_seller_profile(1,'{"is_public":true,"account_type":"business"}');
 select public.update_my_contact(2,1,'+201000000002',true);
 insert into fixture values('racket',(public.create_listing_draft('rackets')->>'id')::uuid);

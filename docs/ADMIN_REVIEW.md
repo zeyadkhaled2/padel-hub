@@ -7,8 +7,8 @@
 
 Access is granted only through `private.admin_roles` by an authorized database operator, never through profile/account type or user-editable metadata. A public seller profile is not required for an admin. All queue, photo and decision RPCs require an active role and `aal2`; revoked roles fail immediately. Stale decisions require reload and review. Photos use a private no-store proxy with permission checks before and after download.
 
-## Changing the admin account
-Register and verify the replacement account, then have the operator grant its UUID the admin role. Confirm its MFA sign-in works before setting the old row's `revoked_at = now()`. Do not transfer another person's authenticator secret or reuse an old account's session. No self-service role changes or MFA recovery bypass exists in the app.
+## Changing the admin account & MFA recovery
+Register and verify the replacement account, then have the operator grant its UUID the admin role. Confirm its MFA sign-in works before setting the old row's `revoked_at = now()`. Do not transfer another person's authenticator secret or reuse an old account's session. No self-service role changes or MFA recovery bypass exists in the app. Password recovery on an MFA-enrolled admin enforces TOTP (`aal2`) before updating the password, never removes the MFA factor, and signs out existing sessions globally. Full operator recovery procedures (lost/compromised device, locked-out admin, compromised account, two-person approval, and Auth Admin MFA factor deletion) are documented in [AUTH_DEPLOYMENT_RUNBOOK.md](AUTH_DEPLOYMENT_RUNBOOK.md).
 
 TOTP is enabled in local `supabase/config.toml` and the running Auth container. The previous Auth container is retained stopped as `supabase_auth_padelhub-local_before_mfa_20261118`; do not run it alongside the current Auth container. Database and saved media were preserved. Hosted configuration and recovery procedures remain launch work.
 

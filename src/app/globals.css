@@ -465,6 +465,16 @@ nav a:hover,
   color: var(--accent-text);
 }
 
+.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.secondary:hover {
+  border-color: var(--accent);
+}
+
 .button:hover {
   filter: brightness(0.94);
 }
@@ -1519,7 +1529,15 @@ nav a:hover,
 .account-form .check-field { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding-block: 8px; }
 .check-field input { width: 20px; height: 20px; flex-shrink: 0; margin-block-start: 3px; accent-color: var(--accent); }
 .account-switch { margin-block-start: 16px; }
-@media (max-width: 600px) { .account-page { padding-block-start: 24px; } .form-columns { grid-template-columns: 1fr; } .account-form .button { width: 100%; } }
+.auth-oauth-block { display: flex; flex-direction: column; gap: 12px; margin-block-start: 20px; }
+.auth-oauth-form, .auth-cancel-form { display: flex; flex-direction: column; }
+.auth-google-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 48px; border-radius: 12px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; margin-block: 8px 0; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.auth-inline-link { margin-block: 0; font-size: 14px; }
+.auth-inline-link a { text-decoration: underline; text-underline-offset: 4px; display: inline-flex; align-items: center; min-height: 44px; }
+.auth-cancel-form .button { align-self: flex-start; }
+@media (max-width: 600px) { .account-page { padding-block-start: 24px; } .form-columns { grid-template-columns: 1fr; } .account-form .button, .auth-cancel-form .button { width: 100%; } }
 .photo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-block: 24px; }
 .photo-grid figure, .photo-preview { margin: 0; min-width: 0; }
 .photo-grid img, .photo-preview img { display: block; width: 100%; height: 220px; object-fit: contain; background: var(--surface); border-radius: 12px; }

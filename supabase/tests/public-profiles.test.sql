@@ -5,7 +5,7 @@ select no_plan();
 grant usage on schema extensions to authenticated,anon;
 insert into auth.users(id,email_confirmed_at) values('11111111-1111-4111-8111-111111111111',now());
 set local role authenticated;
-set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111"}';
+set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select public.create_seller_profile('Public_Owner','Public Owner','cairo');
 reset role;
 create temp table qr_profile as select public_id from public.seller_profiles where username='Public_Owner';

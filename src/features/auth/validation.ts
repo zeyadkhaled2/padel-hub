@@ -1,9 +1,37 @@
 import { z } from 'zod';
-import type { AuthFieldErrors, AuthMessage, AuthMode } from './types';
+import type {
+  AuthBannerNotice,
+  AuthFieldErrors,
+  AuthMessage,
+  AuthMode,
+  ResetPasswordFieldErrors,
+  ResetPasswordMessage,
+} from './types';
 
 export type ParsedAuthCredentials =
   | { ok: true; data: { email: string; password: string } }
   | { ok: false; email: string; errors: AuthFieldErrors };
+
+export type ParsedForgotPasswordInput =
+  | { ok: true; email: string }
+  | { ok: false; email: string; errors: { email: 'emailInvalid' } };
+
+export type ParsedResetPasswordInput =
+  | { ok: true; password: string }
+  | { ok: false; errors: ResetPasswordFieldErrors };
+
+export type CallbackTokenParams = {
+  tokenHash: string;
+  type: 'signup' | 'recovery';
+};
+
+export type SessionAmrClass = 'primary' | 'otp_signup_candidate' | 'recovery' | 'restricted';
+
+const MAX_AUTH_PARAM_LENGTH = 2048;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PRIMARY_AMR_METHODS = new Set(['password', 'oauth', 'sso/saml', 'webauthn']);
+const RESTRICTED_AMR_METHODS = new Set(['otp', 'recovery', 'magiclink', 'invite']);
+const HARD_RESTRICTED_AMR_METHODS = new Set(['recovery', 'magiclink', 'invite']);
 
 export function parseAuthCredentials(mode: AuthMode, form: FormData): ParsedAuthCredentials {
   const email = String(form.get('email') ?? '').trim();
@@ -29,6 +57,35 @@ export function parseAuthCredentials(mode: AuthMode, form: FormData): ParsedAuth
   return { ok: true, data: parsed.data };
 }
 
+export function parseForgotPasswordEmail(form: FormData): ParsedForgotPasswordInput {
+  const email = String(form.get('email') ?? '').trim();
+  const parsed = z.email().max(254).safeParse(email);
+  if (!parsed.success) {
+    return { ok: false, email, errors: { email: 'emailInvalid' } };
+  }
+  return { ok: true, email: parsed.data };
+}
+
+export function parseResetPasswordInput(form: FormData): ParsedResetPasswordInput {
+  const password = form.get('password');
+  const confirmPassword = form.get('confirmPassword');
+  const errors: ResetPasswordFieldErrors = {};
+
+  const parsedPassword = z.string().min(8).max(128).safeParse(password);
+  if (!parsedPassword.success) {
+    errors.password = 'passwordInvalid';
+  }
+  if (typeof confirmPassword !== 'string' || confirmPassword !== password) {
+    errors.confirmPassword = 'passwordMismatch';
+  }
+
+  if (errors.password || errors.confirmPassword || !parsedPassword.success) {
+    return { ok: false, errors };
+  }
+
+  return { ok: true, password: parsedPassword.data };
+}
+
 export function mapAuthSignUpError(error: { status?: number }): AuthMessage {
   return error.status === 429 ? 'rateLimited' : 'signupFailed';
 }
@@ -37,4 +94,124 @@ export function mapAuthSignInError(error: { code?: string; status?: number }): A
   if (error.code === 'email_not_confirmed') return 'confirmFirst';
   if (error.status === 429) return 'rateLimited';
   return 'signinFailed';
+}
+
+export function mapResetPasswordError(error: {
+  code?: string;
+  status?: number;
+}): ResetPasswordMessage {
+  if (error.status === 429) return 'rateLimited';
+  if (error.code === 'insufficient_aal') return 'mfaRequiredForReset';
+  if (error.code === 'same_password') return 'passwordSame';
+  if (error.code === 'weak_password') return 'passwordWeak';
+  return 'resetFailed';
+}
+
+export function parseAuthBannerNotice(params: {
+  error?: string;
+  reset?: string;
+}): AuthBannerNotice | null {
+  if (params.error) {
+    if (params.error === 'oauth_cancelled') {
+      return { kind: 'alert', message: 'oauthCancelled' };
+    }
+    if (params.error === 'oauth') {
+      return { kind: 'alert', message: 'oauthFailed' };
+    }
+    return { kind: 'alert', message: 'callbackFailed' };
+  }
+  if (params.reset === '1') {
+    return { kind: 'status', message: 'passwordUpdated' };
+  }
+  return null;
+}
+
+export function mapOAuthCallbackErrorParam(errorParam: string | null): 'oauth_cancelled' | 'oauth' {
+  return errorParam === 'access_denied' ? 'oauth_cancelled' : 'oauth';
+}
+
+export function parseCallbackCode(searchParams: URLSearchParams): string | null {
+  const code = searchParams.get('code')?.trim() ?? '';
+  if (!code || code.length >= MAX_AUTH_PARAM_LENGTH) return null;
+  return code;
+}
+
+export function parseCallbackTokenParams(
+  searchParams: URLSearchParams,
+): CallbackTokenParams | null {
+  const tokenHash = searchParams.get('token_hash')?.trim() ?? '';
+  const type = searchParams.get('type')?.trim() ?? '';
+  if (!tokenHash || tokenHash.length >= MAX_AUTH_PARAM_LENGTH) return null;
+  // Never accept `type=email`: GoTrue accepts recovery token hashes under `type=email`.
+  if (type !== 'signup' && type !== 'recovery') return null;
+  return { tokenHash, type };
+}
+
+export function classifySessionAmr(
+  methods: ReadonlyArray<string | { method?: string; timestamp?: number }> | null | undefined,
+): SessionAmrClass {
+  if (!methods || methods.length === 0) return 'restricted';
+
+  let hasPrimary = false;
+  let hasRestricted = false;
+  let hasHardRestricted = false;
+  let hasOtp = false;
+  let hasRecovery = false;
+  let hasOtherRestricted = false;
+
+  for (const entry of methods) {
+    const method = (typeof entry === 'string' ? entry : entry?.method)?.trim();
+    if (!method) continue;
+    if (PRIMARY_AMR_METHODS.has(method)) hasPrimary = true;
+    if (RESTRICTED_AMR_METHODS.has(method)) hasRestricted = true;
+    if (HARD_RESTRICTED_AMR_METHODS.has(method)) hasHardRestricted = true;
+    if (method === 'otp') hasOtp = true;
+    if (method === 'recovery') hasRecovery = true;
+    if (method === 'magiclink' || method === 'invite') hasOtherRestricted = true;
+  }
+
+  if (hasPrimary && !hasRestricted) return 'primary';
+  if (!hasPrimary && hasOtp && !hasHardRestricted) return 'otp_signup_candidate';
+  if (!hasPrimary && hasRecovery && !hasOtherRestricted) return 'recovery';
+  return 'restricted';
+}
+
+export function hasRecoveryAmr(
+  methods: ReadonlyArray<string | { method?: string; timestamp?: number }> | null | undefined,
+): boolean {
+  const kind = classifySessionAmr(methods);
+  return kind === 'otp_signup_candidate' || kind === 'recovery';
+}
+
+export function extractJwtSessionId(accessToken: string | null | undefined): string | null {
+  if (!accessToken) return null;
+  const parts = accessToken.split('.');
+  if (parts.length !== 3 || !parts[1]) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as {
+      session_id?: unknown;
+    };
+    if (typeof payload.session_id !== 'string' || !UUID_RE.test(payload.session_id)) {
+      return null;
+    }
+    return payload.session_id.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+export function isTrustedOAuthRedirectUrl(
+  rawUrl: string | null | undefined,
+  expectedSupabaseOrigin: string,
+): boolean {
+  if (!rawUrl) return false;
+  try {
+    const parsed = new URL(rawUrl);
+    const expected = new URL(expectedSupabaseOrigin);
+    if (parsed.origin !== expected.origin) return false;
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    return parsed.pathname.startsWith('/auth/v1/authorize');
+  } catch {
+    return false;
+  }
 }

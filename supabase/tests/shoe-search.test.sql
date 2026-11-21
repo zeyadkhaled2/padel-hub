@@ -8,7 +8,7 @@ insert into auth.users(id,email_confirmed_at) values('aaaaaaaa-aaaa-4aaa-8aaa-aa
 insert into private.admin_roles(user_id,role) values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','admin');
 update public.platform_settings set individual_active_pending_limit=100;
 set local role authenticated;
-set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111"}';
+set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select public.create_seller_profile('market_owner','Synthetic Market Owner','giza');
 select public.update_seller_profile(1,'{"is_public":true}');
 select public.update_my_contact(2,1,'+201000000001',true);
@@ -21,7 +21,7 @@ update public.listings set shoe_size_eu=45 where id=(select id from market_fixtu
 set local role anon;
 select is(public.search_public_listings(p_shoe_size=>42.5)->>'total','0','size does not expose pending listings');
 set local role authenticated;
-set local request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","aal":"aal2"}';
+set local request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","aal":"aal2","session_id":"00000000-0000-4000-8000-00000000000a","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';
 do $$ declare item record; snapshot jsonb; begin
  for item in select id from market_fixture loop
   snapshot:=public.admin_get_listing_review(item.id);
