@@ -2,12 +2,17 @@
 // Never prints secrets, never resets databases, never targets localhost Supabase.
 import { createHmac, randomBytes } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { chromium } from '@playwright/test';
-import { loadStagingEnv, requireHostedStagingConfig } from './staging-env.mjs';
+import {
+  loadSmokeAdminState,
+  loadStagingEnv,
+  requireHostedStagingConfig,
+  validateStagingDbUrl,
+} from './staging-env.mjs';
 
 const VALID_MODES = [
   'migrate',
@@ -109,19 +114,7 @@ async function makeSyntheticImage(r, g, b, withExif = false) {
 }
 
 if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
-  if (!cfg.dbUrl) {
-    throw new Error('Missing PADELHUB_STAGING_DB_URL in .env.staging.local (Session Pooler postgresql:// URI).');
-  }
-  try {
-    const parsedDb = new URL(cfg.dbUrl);
-    if (parsedDb.password.startsWith('%5B') || parsedDb.password.startsWith('[')) {
-      console.error('PADELHUB_STAGING_DB_URL password appears wrapped in literal [brackets]; remove [ and ] around the password.');
-      process.exit(1);
-    }
-  } catch {
-    console.error('PADELHUB_STAGING_DB_URL is not a valid postgresql:// URI.');
-    process.exit(1);
-  }
+  validateStagingDbUrl(cfg.dbUrl, cfg.projectRef);
   if (mode === 'repair-006') {
     runSupabaseCli(['migration', 'repair', `--remote=${cfg.dbUrl}`, '--status', 'applied', '20261117000600', '--yes']);
   } else if (mode === 'migrate-dry-run') {
@@ -176,13 +169,14 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
     // Print ONLY the non-secret userId so the DB operator can grant & revoke private.admin_roles.
     console.log(JSON.stringify({ userId: created.data.user.id }));
   } else if (mode === 'verify-revoked-admin') {
-    if (!existsSync(adminStatePath)) {
-      throw new Error('Missing temporary smoke admin state (.cache/staging-admin-smoke.json).');
-    }
-    const adminState = JSON.parse(readFileSync(adminStatePath, 'utf8'));
+    const adminState = loadSmokeAdminState(adminStatePath);
+    assert(
+      Boolean(adminState.factorId && adminState.totpSecret && adminState.storageState),
+      'Smoke admin state is missing MFA enrollment/browser session state; run full "node scripts/staging-app.mjs smoke" before verify-revoked-admin.',
+    );
     let browser = null;
     try {
-      // Verify at API level with fresh aal2 token (using stored TOTP secret if enrolled)
+      // Verify at API level with fresh aal2 token (using enrolled TOTP secret)
       const client = createClient(cfg.supabaseUrl, cfg.publishableKey, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
@@ -191,13 +185,11 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         password: adminState.password,
       });
       assert(!signIn.error, `Admin re-login failed: ${signIn.error?.message}`);
-      if (adminState.factorId && adminState.totpSecret) {
-        const elevated = await client.auth.mfa.challengeAndVerify({
-          factorId: adminState.factorId,
-          code: totp(adminState.totpSecret),
-        });
-        assert(!elevated.error, `Admin TOTP verification failed: ${elevated.error?.message}`);
-      }
+      const elevated = await client.auth.mfa.challengeAndVerify({
+        factorId: adminState.factorId,
+        code: totp(adminState.totpSecret),
+      });
+      assert(!elevated.error, `Admin TOTP verification failed: ${elevated.error?.message}`);
       const access = await client.rpc('get_my_admin_access');
       assert(!access.error, `get_my_admin_access failed: ${access.error?.message}`);
       assert(access.data?.is_admin === false && access.data?.mfa_verified === false, 'Revoked admin must report is_admin=false');
@@ -205,20 +197,20 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert(queue.error?.code === '42501', `Revoked admin pending queue must fail with 42501 (got ${queue.error?.code})`);
 
       // Verify in browser using the live aal2 session cookies saved prior to revocation
-      if (adminState.storageState) {
-        browser = await chromium.launch({ channel: 'chrome', headless: true });
-        const ctx = await browser.newContext({ storageState: adminState.storageState });
-        const page = await ctx.newPage();
-        const res = await page.goto(`${cfg.appOrigin}/en/admin`);
-        assert(res?.status() === 404, `Revoked admin existing aal2 session /en/admin must return 404 (got ${res?.status()})`);
-        await ctx.close();
-      }
+      browser = await chromium.launch({ channel: 'chrome', headless: true });
+      const ctx = await browser.newContext({ storageState: adminState.storageState });
+      const page = await ctx.newPage();
+      const res = await page.goto(`${cfg.appOrigin}/en/admin`);
+      assert(res?.status() === 404, `Revoked admin existing aal2 session /en/admin must return 404 (got ${res?.status()})`);
+      await ctx.close();
       console.log('PASS: Immediate admin role revocation verified (API aal2 + live browser session immediately denied).');
       rmSync(adminStatePath, { force: true });
     } finally {
       if (browser) await browser.close().catch(() => {});
     }
   } else if (mode === 'smoke') {
+    // Full staging smoke requires mandatory admin MFA verification; fail fast before mutating staging.
+    const adminState = loadSmokeAdminState(adminStatePath);
     const tag = randomBytes(4).toString('hex');
     const appOrigin = cfg.appOrigin;
     const results = [];
@@ -227,10 +219,6 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       console.log(`PASS: ${name}`);
     };
 
-    const adminState = existsSync(adminStatePath)
-      ? JSON.parse(readFileSync(adminStatePath, 'utf8'))
-      : null;
-
     const anonClient = createClient(cfg.supabaseUrl, cfg.publishableKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
@@ -238,6 +226,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
     let seller1SessionClient = null;
     let createdListingId = null;
     let browser = null;
+    let adminMfaVerified = false;
 
     try {
       // 1. Auth settings & bucket verification
@@ -642,145 +631,146 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert(s2PhotoRes.status === 404, `Cross-account pending photo must return 404 (got ${s2PhotoRes.status})`);
       pass('Non-admin denial and cross-account pending photo denial verified');
 
-      // 10. MFA Admin Review, Rejection, Resubmission, Approval, Public Visibility, WhatsApp & Reports
-      if (adminState?.email && adminState?.password) {
-        const adminCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-        const adminPage = await adminCtx.newPage();
+      // 10. Mandatory MFA Admin Review, Rejection, Resubmission, Approval, Public Visibility, WhatsApp & Reports
+      const adminCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const adminPage = await adminCtx.newPage();
 
-        await adminPage.goto(`${appOrigin}/en/auth/signin`);
-        await adminPage.getByLabel('Email address').fill(adminState.email);
-        await adminPage.getByLabel('Password', { exact: true }).fill(adminState.password);
-        await adminPage.getByRole('button', { name: 'Sign in', exact: true }).click();
-        await adminPage.waitForURL('**/en/account', { timeout: 25_000 });
+      await adminPage.goto(`${appOrigin}/en/auth/signin`);
+      await adminPage.getByLabel('Email address').fill(adminState.email);
+      await adminPage.getByLabel('Password', { exact: true }).fill(adminState.password);
+      await adminPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await adminPage.waitForURL('**/en/account', { timeout: 25_000 });
 
-        // At aal1, admin photo proxy must fail closed (never 200, never image bytes)
-        const aal1Cookies = (await adminCtx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
-        const aal1Photo = await fetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
-          headers: { cookie: aal1Cookies },
-        });
-        assert(
-          aal1Photo.status !== 200 && aal1Photo.headers.get('content-type') !== 'image/webp',
-          `Admin photo proxy at aal1 must fail closed (got ${aal1Photo.status})`,
-        );
+      // At aal1, admin photo proxy must fail closed (never 200, never image bytes)
+      const aal1Cookies = (await adminCtx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+      const aal1Photo = await fetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
+        headers: { cookie: aal1Cookies },
+      });
+      assert(
+        aal1Photo.status !== 200 && aal1Photo.headers.get('content-type') !== 'image/webp',
+        `Admin photo proxy at aal1 must fail closed (got ${aal1Photo.status})`,
+      );
 
-        // Enroll TOTP MFA on /en/admin
-        await adminPage.goto(`${appOrigin}/en/admin`);
-        await adminPage.locator('button[name="intent"][value="enroll"]').click();
-        const secretEl = adminPage.locator('[data-testid="mfa-secret"]');
-        await secretEl.waitFor({ timeout: 20_000 });
-        const totpSecret = (await secretEl.innerText()).trim();
-        const factorId = await adminPage.locator('input[name="factor"]').inputValue();
-        assert(totpSecret.length >= 16 && factorId, 'TOTP enrollment must produce a factor and setup secret');
-        await adminPage.locator('input[name="code"]').fill(totp(totpSecret));
-        await adminPage.locator('button[name="intent"][value="verify"]').click();
-        await adminPage.locator(`a[href*="/admin/listings/${createdListingId}"]`).waitFor({ timeout: 25_000 });
-        pass('Admin TOTP MFA enrollment and aal2 elevation verified on hosted staging');
+      // Enroll TOTP MFA on /en/admin
+      const adminGateRes = await adminPage.goto(`${appOrigin}/en/admin`);
+      assert(
+        adminGateRes?.status() === 200,
+        `Smoke admin /en/admin returned ${adminGateRes?.status()} — confirm userId ${adminState.userId} is granted in private.admin_roles before running smoke.`,
+      );
+      await adminPage.locator('button[name="intent"][value="enroll"]').click();
+      const secretEl = adminPage.locator('[data-testid="mfa-secret"]');
+      await secretEl.waitFor({ timeout: 20_000 });
+      const totpSecret = (await secretEl.innerText()).trim();
+      const factorId = await adminPage.locator('input[name="factor"]').inputValue();
+      assert(totpSecret.length >= 16 && factorId, 'TOTP enrollment must produce a factor and setup secret');
+      await adminPage.locator('input[name="code"]').fill(totp(totpSecret));
+      await adminPage.locator('button[name="intent"][value="verify"]').click();
+      await adminPage.locator(`a[href*="/admin/listings/${createdListingId}"]`).waitFor({ timeout: 25_000 });
+      pass('Admin TOTP MFA enrollment and aal2 elevation verified on hosted staging');
 
-        // Persist aal2 storage state & TOTP secret ONLY inside gitignored .cache for immediate-revocation verification
-        adminState.factorId = factorId;
-        adminState.totpSecret = totpSecret;
-        adminState.storageState = await adminCtx.storageState();
-        writeFileSync(adminStatePath, JSON.stringify(adminState), { mode: 0o600 });
+      // Persist aal2 storage state & TOTP secret ONLY inside gitignored .cache for immediate-revocation verification
+      adminState.factorId = factorId;
+      adminState.totpSecret = totpSecret;
+      adminState.storageState = await adminCtx.storageState();
+      writeFileSync(adminStatePath, JSON.stringify(adminState), { mode: 0o600 });
 
-        // Open review page (EN), verify admin photo proxy works at aal2
-        await adminPage.goto(`${appOrigin}/en/admin/listings/${createdListingId}`);
-        await adminPage.getByText('Vertex 04 Staging').waitFor({ timeout: 15_000 });
-        const aal2Cookies = (await adminCtx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
-        const aal2Photo = await fetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
-          headers: { cookie: aal2Cookies },
-        });
-        assert(
-          aal2Photo.status === 200 && aal2Photo.headers.get('content-type') === 'image/webp',
-          `Admin photo proxy at aal2 must return 200 webp (got ${aal2Photo.status})`,
-        );
+      // Open review page (EN), verify admin photo proxy works at aal2
+      await adminPage.goto(`${appOrigin}/en/admin/listings/${createdListingId}`);
+      await adminPage.getByText('Vertex 04 Staging').waitFor({ timeout: 15_000 });
+      const aal2Cookies = (await adminCtx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+      const aal2Photo = await fetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
+        headers: { cookie: aal2Cookies },
+      });
+      assert(
+        aal2Photo.status === 200 && aal2Photo.headers.get('content-type') === 'image/webp',
+        `Admin photo proxy at aal2 must return 200 webp (got ${aal2Photo.status})`,
+      );
 
-        // Reject once -> confirm owner sees rejection reason -> resubmit -> approve in Arabic review UI
-        await adminPage.locator('textarea[name="reason"]').fill('Staging smoke rejection check');
-        await adminPage.locator('button[name="intent"][value="reject"]').click();
-        await adminPage.waitForURL('**/en/admin?done=reject', { timeout: 25_000 });
+      // Reject once -> confirm owner sees rejection reason -> resubmit -> approve in Arabic review UI
+      await adminPage.locator('textarea[name="reason"]').fill('Staging smoke rejection check');
+      await adminPage.locator('button[name="intent"][value="reject"]').click();
+      await adminPage.waitForURL('**/en/admin?done=reject', { timeout: 25_000 });
 
-        await page.goto(`${appOrigin}/en/account/listings/${createdListingId}`);
-        await page.getByText('Staging smoke rejection check').waitFor({ timeout: 15_000 });
-        await page.getByRole('button', { name: 'Submit for approval', exact: true }).click();
-        await page.getByRole('status').filter({ hasText: 'Submitted.' }).waitFor({ timeout: 20_000 });
+      await page.goto(`${appOrigin}/en/account/listings/${createdListingId}`);
+      await page.getByText('Staging smoke rejection check').waitFor({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Submit for approval', exact: true }).click();
+      await page.getByRole('status').filter({ hasText: 'Submitted.' }).waitFor({ timeout: 20_000 });
 
-        await adminPage.goto(`${appOrigin}/ar/admin/listings/${createdListingId}`);
-        await adminPage.getByText('دمعة').waitFor({ timeout: 15_000 });
-        await adminPage.locator('button[name="intent"][value="approve"]').click();
-        await adminPage.waitForURL('**/ar/admin?done=approve', { timeout: 25_000 });
-        pass('MFA-admin review (EN/AR), photo proxy, rejection reason, resubmission, and approval verified');
+      await adminPage.goto(`${appOrigin}/ar/admin/listings/${createdListingId}`);
+      await adminPage.getByText('دمعة').waitFor({ timeout: 15_000 });
+      await adminPage.locator('button[name="intent"][value="approve"]').click();
+      await adminPage.waitForURL('**/ar/admin?done=approve', { timeout: 25_000 });
+      pass('MFA-admin review (EN/AR), photo proxy, rejection reason, resubmission, and approval verified');
 
-        // Public marketplace visibility (EN desktop + AR 390px mobile overflow check) + public photo + WhatsApp redirect
-        const anonCtxDesktop = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-        const anonDesktop = await anonCtxDesktop.newPage();
-        await anonDesktop.goto(`${appOrigin}/en/equipment/${createdListingId}`);
-        await anonDesktop.getByText(`Staging Racket ${tag}`).waitFor({ timeout: 15_000 });
-        await anonDesktop.getByText('Teardrop').waitFor({ timeout: 15_000 });
+      // Public marketplace visibility (EN desktop + AR 390px mobile overflow check) + public photo + WhatsApp redirect
+      const anonCtxDesktop = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const anonDesktop = await anonCtxDesktop.newPage();
+      await anonDesktop.goto(`${appOrigin}/en/equipment/${createdListingId}`);
+      await anonDesktop.getByText(`Staging Racket ${tag}`).waitFor({ timeout: 15_000 });
+      await anonDesktop.getByText('Teardrop').waitFor({ timeout: 15_000 });
 
-        const anonCtxMobile = await browser.newContext({ viewport: { width: 390, height: 844 } });
-        const anonMobile = await anonCtxMobile.newPage();
-        await anonMobile.goto(`${appOrigin}/ar/equipment/${createdListingId}`);
-        await anonMobile.getByText(`Staging Racket ${tag}`).waitFor({ timeout: 15_000 });
-        await anonMobile.getByText('دمعة').waitFor({ timeout: 15_000 });
-        const arOverflow = await anonMobile.evaluate(
-          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        );
-        assert(arOverflow <= 1, `Arabic mobile 390px horizontal overflow detected: ${arOverflow}px`);
+      const anonCtxMobile = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const anonMobile = await anonCtxMobile.newPage();
+      await anonMobile.goto(`${appOrigin}/ar/equipment/${createdListingId}`);
+      await anonMobile.getByText(`Staging Racket ${tag}`).waitFor({ timeout: 15_000 });
+      await anonMobile.getByText('دمعة').waitFor({ timeout: 15_000 });
+      const arOverflow = await anonMobile.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      assert(arOverflow <= 1, `Arabic mobile 390px horizontal overflow detected: ${arOverflow}px`);
 
-        const publicPhotoRes = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`);
-        assert(
-          publicPhotoRes.status === 200 && publicPhotoRes.headers.get('content-type') === 'image/webp',
-          `Approved public photo must return 200 webp (got ${publicPhotoRes.status})`,
-        );
+      const publicPhotoRes = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`);
+      assert(
+        publicPhotoRes.status === 200 && publicPhotoRes.headers.get('content-type') === 'image/webp',
+        `Approved public photo must return 200 webp (got ${publicPhotoRes.status})`,
+      );
 
-        const waRes = await fetch(`${appOrigin}/api/contact/${createdListingId}?locale=en`, { redirect: 'manual' });
-        assert(waRes.status === 302, `WhatsApp contact must return 302 (got ${waRes.status})`);
-        const waLoc = waRes.headers.get('location') || '';
-        assert(waLoc.startsWith('https://wa.me/201000000051?text='), `Unexpected WhatsApp location: ${waLoc}`);
-        assert((waRes.headers.get('cache-control') || '').includes('no-store'), 'WhatsApp redirect must be no-store');
-        pass('Public approved listing (EN desktop & AR 390px mobile), approved photo delivery, and WhatsApp redirect verified');
+      const waRes = await fetch(`${appOrigin}/api/contact/${createdListingId}?locale=en`, { redirect: 'manual' });
+      assert(waRes.status === 302, `WhatsApp contact must return 302 (got ${waRes.status})`);
+      const waLoc = waRes.headers.get('location') || '';
+      assert(waLoc.startsWith('https://wa.me/201000000051?text='), `Unexpected WhatsApp location: ${waLoc}`);
+      assert((waRes.headers.get('cache-control') || '').includes('no-store'), 'WhatsApp redirect must be no-store');
+      pass('Public approved listing (EN desktop & AR 390px mobile), approved photo delivery, and WhatsApp redirect verified');
 
-        // Abuse report submission (Seller 2) & MFA-admin dismissal
-        const repRpc = await seller2Client.rpc('report_content', {
-          p_type: 'listing',
-          p_target: createdListingId,
-          p_reason: 'other',
-          p_details: `Staging smoke report ${tag}`,
-        });
-        assert(!repRpc.error, `Abuse report submission failed: ${repRpc.error?.message}`);
+      // Abuse report submission (Seller 2) & MFA-admin dismissal
+      const repRpc = await seller2Client.rpc('report_content', {
+        p_type: 'listing',
+        p_target: createdListingId,
+        p_reason: 'other',
+        p_details: `Staging smoke report ${tag}`,
+      });
+      assert(!repRpc.error, `Abuse report submission failed: ${repRpc.error?.message}`);
 
-        await adminPage.goto(`${appOrigin}/en/admin/reports`);
-        await adminPage.getByText(`Staging smoke report ${tag}`).waitFor({ timeout: 15_000 });
-        const reportSection = adminPage.locator('section.disclosure', { hasText: `Staging smoke report ${tag}` }).first();
-        await reportSection.locator('textarea[name="details"]').fill('Dismissed synthetic staging smoke report');
-        await reportSection.locator('button[name="intent"][value="dismiss"]').click();
-        await adminPage.waitForURL('**/en/admin/reports?done=1', { timeout: 25_000 });
-        pass('Abuse report submission and MFA-admin dismissal verified on hosted staging');
+      await adminPage.goto(`${appOrigin}/en/admin/reports`);
+      await adminPage.getByText(`Staging smoke report ${tag}`).waitFor({ timeout: 15_000 });
+      const reportSection = adminPage.locator('section.disclosure', { hasText: `Staging smoke report ${tag}` }).first();
+      await reportSection.locator('textarea[name="details"]').fill('Dismissed synthetic staging smoke report');
+      await reportSection.locator('button[name="intent"][value="dismiss"]').click();
+      await adminPage.waitForURL('**/en/admin/reports?done=1', { timeout: 25_000 });
+      pass('Abuse report submission and MFA-admin dismissal verified on hosted staging');
 
-        // Withdraw listing -> verify revoked public listing immediately blocks detail, contact, and photo
-        const latest = await seller1SessionClient.rpc('get_my_listing', { p_listing_id: createdListingId });
-        const withdraw = await seller1SessionClient.rpc('withdraw_listing', {
-          p_listing_id: createdListingId,
-          p_expected_version: latest.data.version,
-        });
-        assert(!withdraw.error && withdraw.data?.status === 'draft', 'Seller withdrawal to draft succeeded');
-        const withdrawnId = createdListingId;
-        createdListingId = null;
+      // Withdraw listing -> verify revoked public listing immediately blocks detail, contact, and photo
+      const latest = await seller1SessionClient.rpc('get_my_listing', { p_listing_id: createdListingId });
+      const withdraw = await seller1SessionClient.rpc('withdraw_listing', {
+        p_listing_id: createdListingId,
+        p_expected_version: latest.data.version,
+      });
+      assert(!withdraw.error && withdraw.data?.status === 'draft', 'Seller withdrawal to draft succeeded');
+      const withdrawnId = createdListingId;
+      createdListingId = null;
 
-        const revokedDetail = await fetch(`${appOrigin}/en/equipment/${withdrawnId}`);
-        assert(revokedDetail.status === 404, `Withdrawn listing detail must return 404 (got ${revokedDetail.status})`);
-        const revokedContact = await fetch(`${appOrigin}/api/contact/${withdrawnId}`, { redirect: 'manual' });
-        assert(revokedContact.status === 404, `Withdrawn listing WhatsApp must return 404 (got ${revokedContact.status})`);
-        const revokedPhoto = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${withdrawnId}&variant=card`);
-        assert(revokedPhoto.status === 404, `Withdrawn listing public photo must return 404 (got ${revokedPhoto.status})`);
-        pass('Revoked public listing immediately blocks detail, contact, and public photo access');
+      const revokedDetail = await fetch(`${appOrigin}/en/equipment/${withdrawnId}`);
+      assert(revokedDetail.status === 404, `Withdrawn listing detail must return 404 (got ${revokedDetail.status})`);
+      const revokedContact = await fetch(`${appOrigin}/api/contact/${withdrawnId}`, { redirect: 'manual' });
+      assert(revokedContact.status === 404, `Withdrawn listing WhatsApp must return 404 (got ${revokedContact.status})`);
+      const revokedPhoto = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${withdrawnId}&variant=card`);
+      assert(revokedPhoto.status === 404, `Withdrawn listing public photo must return 404 (got ${revokedPhoto.status})`);
+      pass('Revoked public listing immediately blocks detail, contact, and public photo access');
 
-        await anonCtxDesktop.close();
-        await anonCtxMobile.close();
-        await adminCtx.close();
-      } else {
-        console.log('SKIP: Admin MFA review/approval/report smoke section (run prepare-smoke-admin first).');
-      }
+      await anonCtxDesktop.close();
+      await anonCtxMobile.close();
+      await adminCtx.close();
+      adminMfaVerified = true;
 
       // 11. Logout & session invalidation in browser
       await page.goto(`${appOrigin}/en/account`);
@@ -790,6 +780,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await page.waitForURL('**/en/auth/signin', { timeout: 20_000 });
       pass('Logout and session invalidation verified in browser');
 
+      assert(adminMfaVerified, 'Admin MFA verification is mandatory for staging smoke');
       await s2Ctx.close();
       await sellerCtx.close();
       console.log(`\nALL STAGING SMOKE CHECKS PASSED (${results.length} passed, 0 failed).`);

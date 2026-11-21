@@ -132,3 +132,20 @@ Updated: 2026-11-21. Isolated hosted Supabase staging (`padelhub-staging`, `eu-c
   - Local authenticated Playwright suite (`node scripts/local-app.mjs test --workers=1` against `node scripts/local-app.mjs serve`): **18/18 passed (0 failed, 0 skipped)** across desktop & mobile.
   - `git diff --check`: passed; full diff audited for zero secret leakage.
 - Limitations & next: External transactional SMTP (Resend) is not yet configured (Free-tier built-in auth email ~2/hr is not claimed as external delivery); Vercel Hobby 4.5 MB serverless body cap vs. 8 MiB photo limit documented; hosted staging web preview left on local-connected verification per owner preference so Vercel `main` preview remains untouched; backups/restore drill belongs to Phase 2D. Next milestone: **Phase 2B (External transactional email & auth recovery)**.
+
+## PR #3 review fixes — 2026-11-21
+- Branch: `chore/hosted-supabase-staging` (PR #3 remains open and unmerged). No SQL migrations or schema changes.
+- Addressed all three PR #3 review findings:
+  1. **Staging DB URL project-ref validation**: Added `extractSupabaseProjectRef` and `validateStagingDbUrl` in `scripts/staging-env.mjs` (plus `scripts/staging-env.d.mts`) and invoked `validateStagingDbUrl(cfg.dbUrl, cfg.projectRef)` before `migrate`, `migrate-dry-run`, and `repair-006` in `scripts/staging-app.mjs` so mismatched Supabase project refs (direct or pooler hosts, conflicting query `options` reference, loopback/external hosts, bracketed/missing passwords) fail fast without echoing credentials.
+  2. **Reject non-HTTPS hosted application origins**: Enforced `{ requireHttpsForRemote: true }` on `PADELHUB_APP_ORIGIN` in `src/server/supabase/env.ts` (`parseAuthEnv` / `parseServiceEnv`) and `validateHostedAppOrigin` in `scripts/staging-env.mjs`, allowing `http://` only for loopback hosts (`127.0.0.1`, `localhost`, `[::1]`).
+  3. **Fail full staging smoke if admin MFA is skipped**: Added `requireSmokeAdminState` / `loadSmokeAdminState` in `scripts/staging-env.mjs`, removed the silent `SKIP:` branch in `scripts/staging-app.mjs` (`smoke` now fails fast with exit code 1 if `.cache/staging-admin-smoke.json` is missing/malformed, verifies `/en/admin` returns HTTP 200, and asserts `adminMfaVerified === true`), and hardened `verify-revoked-admin` to require complete MFA/browser state.
+- Regression tests & verification:
+  - Added regression coverage in `tests/unit/supabase-config.test.ts` and `tests/unit/staging-scripts.test.ts` (unit helper checks + isolated CLI subprocess tests for `migrate`, `migrate-dry-run`, `repair-006`, `smoke`, and `verify-revoked-admin`).
+  - `npm run test:unit`: **36/36 passed**.
+  - `npm run check`: `eslint .`, `next typegen && tsc --noEmit`, and `next build --webpack` (23/23 routes) passed.
+  - Hosted staging CLI & smoke rerun against `padelhub-staging` (`sxghreukdkxclymysryp`):
+    - `node scripts/staging-app.mjs smoke` without `.cache/staging-admin-smoke.json`: failed immediately with exit code 1 (no `SKIP:`).
+    - `node scripts/staging-app.mjs migrate-dry-run`: passed project-ref validation and confirmed `Remote database is up to date`.
+    - Full hosted staging smoke (`prepare-smoke-admin` → `private.admin_roles` grant → `serve` → `smoke` → revoke → `verify-revoked-admin`): **19/19 smoke checks + 1/1 immediate revocation check passed (0 failed, 0 skipped)**; verified `active_admins = 0` and `visible_or_pending_listings = 0` on `padelhub-staging`.
+  - Local Docker-dependent checks (`npm run test:db` and `node scripts/local-app.mjs test`) were not rerun in this follow-up because Docker Desktop daemon is currently stopped (`dockerDesktopLinuxEngine` unavailable); no SQL, migrations, or local database logic changed since the passing 574-assertion / 18-E2E run on this branch.
+  - `git diff --check`: passed; full diff audited for zero secret leakage.

@@ -13,15 +13,15 @@ Last updated: 2026-11-21. Scope: **Phase 2A (Isolated Hosted Supabase Staging)**
 
 ## 2. Required Environment Variables
 
-See [.env.example](../.env.example). All four application variables are **server-only** and parsed by `src/server/supabase/env.ts` & `src/server/supabase/config.ts` with fail-closed validation (no fallback to `NEXT_PUBLIC_*` or generic `SUPABASE_*` variables, rejects swapped/identical publishable and secret keys, enforces HTTPS for remote Supabase URLs):
+See [.env.example](../.env.example). All four application variables are **server-only** and parsed by `src/server/supabase/env.ts` & `src/server/supabase/config.ts` with fail-closed validation (no fallback to `NEXT_PUBLIC_*` or generic `SUPABASE_*` variables, rejects swapped/identical publishable and secret keys, enforces HTTPS for remote Supabase URLs and non-loopback application origins):
 
 | Variable | Scope | Purpose |
 | --- | --- | --- |
 | `PADELHUB_SUPABASE_URL` | Server-only runtime | Base HTTPS origin of the staging Supabase project (e.g. `https://<ref>.supabase.co`, no path/trailing slash). |
 | `PADELHUB_SUPABASE_PUBLISHABLE_KEY` | Server-only runtime | Publishable (`sb_publishable_...`) or legacy `anon` JWT key for anonymous/session clients. Never place a secret key here. |
 | `PADELHUB_SUPABASE_SERVICE_ROLE_KEY` | **Server-only secret** | Secret (`sb_secret_...`) or legacy `service_role` key used exclusively server-side for private Storage uploads/downloads, consented WhatsApp redirects, and best-effort analytics. **Never** place in `NEXT_PUBLIC_*`, client components, build logs, or git. |
-| `PADELHUB_APP_ORIGIN` | Server-only runtime | Canonical origin of the staging web app (no trailing slash), used for Auth `emailRedirectTo`, `secure` cookie flags, and `Origin` checks. |
-| `PADELHUB_STAGING_DB_URL` | **Operator-only CLI** | Session Pooler `postgresql://...` URI used only locally/CI to push migrations via Supabase CLI. **Do not** add this to Next.js app runtime or Vercel env vars. |
+| `PADELHUB_APP_ORIGIN` | Server-only runtime | Canonical origin of the staging web app (no trailing slash; HTTPS required for non-loopback hosts, HTTP allowed only for `127.0.0.1` / `localhost` / `[::1]`), used for Auth `emailRedirectTo`, `secure` cookie flags, and `Origin` checks. |
+| `PADELHUB_STAGING_DB_URL` | **Operator-only CLI** | Session Pooler or direct `postgresql://...` URI used only locally/CI to push migrations via Supabase CLI. `scripts/staging-app.mjs` validates that its Supabase project ref matches `PADELHUB_SUPABASE_URL` before running any migration or repair command. **Do not** add this to Next.js app runtime or Vercel env vars. |
 
 For local staging testing, keep values only in gitignored `.env.staging.local` (ignored by `.gitignore` and `.vercelignore`). Never commit real secrets.
 
@@ -92,10 +92,11 @@ node scripts/staging-app.mjs serve
 In a second terminal, run the non-destructive staging verification suite (uses synthetic users/images only, withdraws created listings, revokes any temporary test admin role):
 
 ```bash
-# Optional: create a temporary synthetic admin user (prints only userId; grant in private.admin_roles before smoke, then revoke)
+# Required: create a temporary synthetic admin user (prints only userId; grant in private.admin_roles before smoke, then revoke)
 node scripts/staging-app.mjs prepare-smoke-admin
 
-# Run non-destructive Auth, Storage, RLS, MFA, EN/AR, desktop/mobile smoke checks
+# Run full non-destructive Auth, Storage, RLS, mandatory admin TOTP MFA, EN/AR, desktop/mobile smoke checks
+# (fails fast with non-zero exit if admin MFA state is missing or private.admin_roles was not granted)
 node scripts/staging-app.mjs smoke
 
 # After revoking the temporary admin role in private.admin_roles:

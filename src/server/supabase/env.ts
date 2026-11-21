@@ -71,7 +71,7 @@ function cleanKey(raw: string | undefined): string | null {
 // generic SUPABASE_* variables so local, staging, and production stay isolated.
 export function parseAuthEnv(env: SupabaseEnvInput): SupabaseAuthConfig | null {
   const url = parseHttpOrigin(env.PADELHUB_SUPABASE_URL, { requireHttpsForRemote: true });
-  const origin = parseHttpOrigin(env.PADELHUB_APP_ORIGIN);
+  const origin = parseHttpOrigin(env.PADELHUB_APP_ORIGIN, { requireHttpsForRemote: true });
   const key = cleanKey(env.PADELHUB_SUPABASE_PUBLISHABLE_KEY);
   const serviceKey = cleanKey(env.PADELHUB_SUPABASE_SERVICE_ROLE_KEY);
 

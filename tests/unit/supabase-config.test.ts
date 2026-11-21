@@ -21,6 +21,7 @@ test('parseHttpOrigin normalizes trailing slash and rejects unsafe or malformed 
   assert.equal(parseHttpOrigin('https://staging.supabase.co/'), 'https://staging.supabase.co');
   assert.equal(parseHttpOrigin('  http://127.0.0.1:54321/  ', { requireHttpsForRemote: true }), 'http://127.0.0.1:54321');
   assert.equal(parseHttpOrigin('http://localhost:3100', { requireHttpsForRemote: true }), 'http://localhost:3100');
+  assert.equal(parseHttpOrigin('http://[::1]:3100', { requireHttpsForRemote: true }), 'http://[::1]:3100');
 
   assert.equal(parseHttpOrigin(undefined), null);
   assert.equal(parseHttpOrigin(''), null);
@@ -30,6 +31,38 @@ test('parseHttpOrigin normalizes trailing slash and rejects unsafe or malformed 
   assert.equal(parseHttpOrigin('https://staging.supabase.co?foo=bar'), null);
   assert.equal(parseHttpOrigin('https://user:pass@staging.supabase.co'), null);
   assert.equal(parseHttpOrigin('http://staging.supabase.co', { requireHttpsForRemote: true }), null);
+  assert.equal(parseHttpOrigin('http://localhost.evil.example', { requireHttpsForRemote: true }), null);
+});
+
+test('parseAuthEnv and parseServiceEnv reject non-HTTPS hosted app origins while allowing loopback HTTP', () => {
+  for (const insecureOrigin of [
+    'http://staging.padelhub.example',
+    'http://padel-hub-beta.vercel.app',
+    'http://192.168.1.25:3100',
+    'http://localhost.evil.example:3100',
+  ]) {
+    const env = {
+      PADELHUB_SUPABASE_URL: 'https://example-staging.supabase.co',
+      PADELHUB_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid',
+      PADELHUB_SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_valid',
+      PADELHUB_APP_ORIGIN: insecureOrigin,
+    };
+    assert.equal(parseAuthEnv(env), null, `parseAuthEnv should reject ${insecureOrigin}`);
+    assert.equal(parseServiceEnv(env), null, `parseServiceEnv should reject ${insecureOrigin}`);
+  }
+
+  for (const loopbackOrigin of [
+    'http://127.0.0.1:3100',
+    'http://localhost:3100',
+    'http://[::1]:3100',
+  ]) {
+    const parsed = parseAuthEnv({
+      PADELHUB_SUPABASE_URL: 'https://example-staging.supabase.co',
+      PADELHUB_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid',
+      PADELHUB_APP_ORIGIN: loopbackOrigin,
+    });
+    assert.equal(parsed?.origin, loopbackOrigin, `parseAuthEnv should allow loopback ${loopbackOrigin}`);
+  }
 });
 
 test('parseAuthEnv parses valid local and hosted configs without fallback to NEXT_PUBLIC vars', () => {
