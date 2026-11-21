@@ -21,7 +21,7 @@ See [.env.example](../.env.example). All four application variables are **server
 | `PADELHUB_SUPABASE_PUBLISHABLE_KEY` | Server-only runtime | Publishable (`sb_publishable_...`) or legacy `anon` JWT key for anonymous/session clients. Never place a secret key here. |
 | `PADELHUB_SUPABASE_SERVICE_ROLE_KEY` | **Server-only secret** | Secret (`sb_secret_...`) or legacy `service_role` key used exclusively server-side for private Storage uploads/downloads, consented WhatsApp redirects, and best-effort analytics. **Never** place in `NEXT_PUBLIC_*`, client components, build logs, or git. |
 | `PADELHUB_APP_ORIGIN` | Server-only runtime | Canonical origin of the staging web app (no trailing slash; HTTPS required for non-loopback hosts, HTTP allowed only for `127.0.0.1` / `localhost` / `[::1]`), used for Auth `emailRedirectTo`, `secure` cookie flags, and `Origin` checks. |
-| `PADELHUB_STAGING_DB_URL` | **Operator-only CLI** | Session Pooler or direct `postgresql://...` URI used only locally/CI to push migrations via Supabase CLI. `scripts/staging-app.mjs` validates that its Supabase project ref matches `PADELHUB_SUPABASE_URL` before running any migration or repair command. **Do not** add this to Next.js app runtime or Vercel env vars. |
+| `PADELHUB_STAGING_DB_URL` | **Operator-only CLI** | Session Pooler or direct `postgresql://...` URI used only locally/CI to push migrations via Supabase CLI. `scripts/staging-env.mjs` independently pins the approved staging project ref (`APPROVED_STAGING_PROJECT_REF = 'sxghreukdkxclymysryp'`), and `scripts/staging-app.mjs` validates that both `PADELHUB_SUPABASE_URL` and `PADELHUB_STAGING_DB_URL` match that pinned ref before running any staging operation. **Do not** add this to Next.js app runtime or Vercel env vars. |
 
 For local staging testing, keep values only in gitignored `.env.staging.local` (ignored by `.gitignore` and `.vercelignore`). Never commit real secrets.
 
@@ -52,6 +52,8 @@ On hosted Supabase Postgres 17, schema `auth` is owned by `supabase_admin` (inac
 
 To bootstrap a brand-new hosted Supabase project cleanly using Supabase CLI (without linking the local repository):
 
+> **Safeguard:** `scripts/staging-env.mjs` pins `APPROVED_STAGING_PROJECT_REF` (`sxghreukdkxclymysryp`) independently from `.env.staging.local` so staging commands refuse to target another project (such as production) even if both URLs are accidentally swapped. If provisioning a replacement staging project in the future, update `APPROVED_STAGING_PROJECT_REF` in a reviewed commit first. Migration-history repair also requires an explicit `--confirm-repair=<projectRef>:20261117000600` flag.
+
 ```bash
 # 1. Inspect pending migrations (safe dry run)
 node scripts/staging-app.mjs migrate-dry-run
@@ -59,8 +61,8 @@ node scripts/staging-app.mjs migrate-dry-run
 # 2. Push migrations 001–005 (halts cleanly at 006 with SQLSTATE P0001 on fresh hosted projects)
 node scripts/staging-app.mjs migrate
 
-# 3. Record 20261117000600 as superseded by forward-only migration 019
-node scripts/staging-app.mjs repair-006
+# 3. Record 20261117000600 as superseded by forward-only migration 019 (requires explicit confirmation)
+node scripts/staging-app.mjs repair-006 --confirm-repair=sxghreukdkxclymysryp:20261117000600
 
 # 4. Push migrations 007–019
 node scripts/staging-app.mjs migrate

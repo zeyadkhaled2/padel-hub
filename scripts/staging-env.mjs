@@ -3,8 +3,15 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+// Independently pinned approved staging Supabase project reference (public subdomain ref, not a secret).
+// Prevents staging scripts from targeting another project (such as production) even if both
+// PADELHUB_SUPABASE_URL and PADELHUB_STAGING_DB_URL are accidentally swapped together.
+export const APPROVED_STAGING_PROJECT_REF = 'sxghreukdkxclymysryp';
+export const SUPERSEDED_HOSTED_MIGRATION_VERSION = '20261117000600';
+
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
 const PROJECT_REF_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+const MIGRATION_VERSION_RE = /^\d{14}$/;
 const HOSTED_SUPABASE_HOST_RE = /^([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\.supabase\.co$/;
 const DIRECT_DB_HOST_RE = /^db\.([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\.supabase\.co$/;
 const POOLER_DB_HOST_RE = /^([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\.pooler\.supabase\.com$/;
@@ -12,6 +19,14 @@ const POOLER_USER_RE = /^postgres\.([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i;
 
 function isLoopbackHost(hostname) {
   return LOOPBACK_HOSTS.has(hostname.toLowerCase());
+}
+
+function normalizeProjectRef(raw, label) {
+  const ref = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  if (!PROJECT_REF_RE.test(ref)) {
+    throw new Error(`${label} is missing or invalid.`);
+  }
+  return ref;
 }
 
 function readJwtRole(token) {
@@ -123,11 +138,8 @@ export function validateHostedAppOrigin(originRaw) {
   return parsed.origin;
 }
 
-export function validateStagingDbUrl(dbUrl, expectedProjectRef) {
-  const expectedRef = typeof expectedProjectRef === 'string' ? expectedProjectRef.trim().toLowerCase() : '';
-  if (!PROJECT_REF_RE.test(expectedRef)) {
-    throw new Error('Expected Supabase project ref is missing or invalid.');
-  }
+export function validateStagingDbUrl(dbUrl, expectedProjectRef = APPROVED_STAGING_PROJECT_REF) {
+  const expectedRef = normalizeProjectRef(expectedProjectRef, 'Expected Supabase project ref');
 
   const raw = typeof dbUrl === 'string' ? dbUrl.trim() : '';
   if (!raw) {
@@ -179,7 +191,7 @@ export function validateStagingDbUrl(dbUrl, expectedProjectRef) {
     for (const refMatch of refMatches) {
       if (refMatch[1].toLowerCase() !== expectedRef) {
         throw new Error(
-          `PADELHUB_STAGING_DB_URL query options reference does not match PADELHUB_SUPABASE_URL project "${expectedRef}".`,
+          `PADELHUB_STAGING_DB_URL query options reference does not match approved staging project "${expectedRef}".`,
         );
       }
     }
@@ -204,7 +216,7 @@ export function validateStagingDbUrl(dbUrl, expectedProjectRef) {
     const actualRef = directMatch[1];
     if (actualRef !== expectedRef) {
       throw new Error(
-        `PADELHUB_STAGING_DB_URL direct database host targets project "${actualRef}", which does not match PADELHUB_SUPABASE_URL project "${expectedRef}".`,
+        `PADELHUB_STAGING_DB_URL direct database host targets project "${actualRef}", which does not match approved staging project "${expectedRef}".`,
       );
     }
     if (decodedUser !== 'postgres' && decodedUser.toLowerCase() !== `postgres.${expectedRef}`) {
@@ -220,13 +232,13 @@ export function validateStagingDbUrl(dbUrl, expectedProjectRef) {
     const userMatch = POOLER_USER_RE.exec(decodedUser);
     if (!userMatch) {
       throw new Error(
-        `PADELHUB_STAGING_DB_URL pooler username must be "postgres.${expectedRef}" to match PADELHUB_SUPABASE_URL.`,
+        `PADELHUB_STAGING_DB_URL pooler username must be "postgres.${expectedRef}" to match approved staging project "${expectedRef}".`,
       );
     }
     const actualRef = userMatch[1].toLowerCase();
     if (actualRef !== expectedRef) {
       throw new Error(
-        `PADELHUB_STAGING_DB_URL pooler username targets project "${actualRef}", which does not match PADELHUB_SUPABASE_URL project "${expectedRef}".`,
+        `PADELHUB_STAGING_DB_URL pooler username targets project "${actualRef}", which does not match approved staging project "${expectedRef}".`,
       );
     }
     return { mode: 'pooler', host, projectRef: expectedRef };
@@ -235,6 +247,44 @@ export function validateStagingDbUrl(dbUrl, expectedProjectRef) {
   throw new Error(
     `PADELHUB_STAGING_DB_URL host "${host}" is not a valid Supabase direct or pooler host for project "${expectedRef}".`,
   );
+}
+
+export function requireMigrationRepairConfirmation(
+  cliArgs,
+  expectedProjectRef = APPROVED_STAGING_PROJECT_REF,
+  migrationVersion = SUPERSEDED_HOSTED_MIGRATION_VERSION,
+) {
+  const ref = normalizeProjectRef(expectedProjectRef, 'Expected Supabase project ref');
+  const version = typeof migrationVersion === 'string' ? migrationVersion.trim() : '';
+  if (!MIGRATION_VERSION_RE.test(version)) {
+    throw new Error('Migration version for repair confirmation is missing or invalid.');
+  }
+
+  const expectedToken = `${ref}:${version}`;
+  const args = Array.isArray(cliArgs) ? cliArgs : [];
+  const provided = [];
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = String(args[i]);
+    if (arg.startsWith('--confirm-repair=')) {
+      provided.push(arg.slice('--confirm-repair='.length).trim());
+    } else if (arg === '--confirm-repair') {
+      if (i + 1 < args.length) {
+        provided.push(String(args[i + 1]).trim());
+        i += 1;
+      } else {
+        provided.push('');
+      }
+    }
+  }
+
+  if (provided.length !== 1 || provided[0] !== expectedToken) {
+    throw new Error(
+      `Refusing to mutate Supabase migration history without explicit confirmation. Re-run with "--confirm-repair=${expectedToken}" only after confirming migrations 001–005 succeeded and ${version} failed with SQLSTATE P0001 on project "${ref}".`,
+    );
+  }
+
+  return { projectRef: ref, migrationVersion: version };
 }
 
 export function requireSmokeAdminState(adminState) {
@@ -274,11 +324,16 @@ export function loadSmokeAdminState(adminStatePath) {
   return requireSmokeAdminState(parsed);
 }
 
-export function requireHostedStagingConfig(env) {
+export function requireHostedStagingConfig(env, options = {}) {
+  const approvedProjectRef = normalizeProjectRef(
+    options.approvedProjectRef ?? APPROVED_STAGING_PROJECT_REF,
+    'Approved staging project ref',
+  );
   const urlRaw = env.PADELHUB_SUPABASE_URL?.trim();
   const pubKey = env.PADELHUB_SUPABASE_PUBLISHABLE_KEY?.trim();
   const serviceKey = env.PADELHUB_SUPABASE_SERVICE_ROLE_KEY?.trim();
   const originRaw = (env.PADELHUB_APP_ORIGIN || 'http://127.0.0.1:3100').trim();
+  const configuredRefRaw = env.PADELHUB_STAGING_PROJECT_REF?.trim();
 
   if (!urlRaw || !pubKey || !serviceKey) {
     throw new Error(
@@ -290,7 +345,22 @@ export function requireHostedStagingConfig(env) {
     throw new Error('Supabase API keys must not contain whitespace.');
   }
 
+  if (configuredRefRaw) {
+    const configuredRef = normalizeProjectRef(configuredRefRaw, 'PADELHUB_STAGING_PROJECT_REF');
+    if (configuredRef !== approvedProjectRef) {
+      throw new Error(
+        `PADELHUB_STAGING_PROJECT_REF ("${configuredRef}") does not match the approved staging project ref ("${approvedProjectRef}").`,
+      );
+    }
+  }
+
   const supabase = extractSupabaseProjectRef(urlRaw);
+  if (supabase.projectRef !== approvedProjectRef) {
+    throw new Error(
+      `PADELHUB_SUPABASE_URL targets project "${supabase.projectRef}", which does not match the approved staging project ref ("${approvedProjectRef}").`,
+    );
+  }
+
   const appOrigin = validateHostedAppOrigin(originRaw);
 
   if (
@@ -304,6 +374,7 @@ export function requireHostedStagingConfig(env) {
   return {
     supabaseUrl: supabase.origin,
     projectRef: supabase.projectRef,
+    approvedProjectRef,
     publishableKey: pubKey,
     serviceRoleKey: serviceKey,
     appOrigin,

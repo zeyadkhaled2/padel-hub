@@ -8,9 +8,12 @@ import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { chromium } from '@playwright/test';
 import {
+  APPROVED_STAGING_PROJECT_REF,
+  SUPERSEDED_HOSTED_MIGRATION_VERSION,
   loadSmokeAdminState,
   loadStagingEnv,
   requireHostedStagingConfig,
+  requireMigrationRepairConfirmation,
   validateStagingDbUrl,
 } from './staging-env.mjs';
 
@@ -114,9 +117,22 @@ async function makeSyntheticImage(r, g, b, withExif = false) {
 }
 
 if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
-  validateStagingDbUrl(cfg.dbUrl, cfg.projectRef);
+  validateStagingDbUrl(cfg.dbUrl, APPROVED_STAGING_PROJECT_REF);
   if (mode === 'repair-006') {
-    runSupabaseCli(['migration', 'repair', `--remote=${cfg.dbUrl}`, '--status', 'applied', '20261117000600', '--yes']);
+    requireMigrationRepairConfirmation(
+      process.argv.slice(3),
+      APPROVED_STAGING_PROJECT_REF,
+      SUPERSEDED_HOSTED_MIGRATION_VERSION,
+    );
+    runSupabaseCli([
+      'migration',
+      'repair',
+      `--remote=${cfg.dbUrl}`,
+      '--status',
+      'applied',
+      SUPERSEDED_HOSTED_MIGRATION_VERSION,
+      '--yes',
+    ]);
   } else if (mode === 'migrate-dry-run') {
     runSupabaseCli(['db', 'push', `--remote=${cfg.dbUrl}`, '--skip-vault', '--dry-run']);
   } else {

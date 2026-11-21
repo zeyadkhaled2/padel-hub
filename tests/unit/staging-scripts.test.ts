@@ -6,9 +6,12 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  APPROVED_STAGING_PROJECT_REF,
+  SUPERSEDED_HOSTED_MIGRATION_VERSION,
   extractSupabaseProjectRef,
   loadSmokeAdminState,
   requireHostedStagingConfig,
+  requireMigrationRepairConfirmation,
   requireSmokeAdminState,
   validateHostedAppOrigin,
   validateStagingDbUrl,
@@ -25,7 +28,7 @@ function fakeJwt(role: string): string {
 }
 
 function runStagingCli(
-  mode: string,
+  cliArgs: string[],
   extraEnv: Record<string, string>,
   cwd: string,
 ) {
@@ -36,7 +39,7 @@ function runStagingCli(
     COMSPEC: process.env.COMSPEC,
     ...extraEnv,
   };
-  return spawnSync(process.execPath, [stagingAppScript, mode], {
+  return spawnSync(process.execPath, [stagingAppScript, ...cliArgs], {
     cwd,
     env: sanitizedEnv,
     encoding: 'utf8',
@@ -46,10 +49,10 @@ function runStagingCli(
 
 test('extractSupabaseProjectRef validates hosted Supabase URLs and extracts normalized project ref', () => {
   assert.deepEqual(
-    extractSupabaseProjectRef('https://sxghreukdkxclymysryp.supabase.co/'),
+    extractSupabaseProjectRef(`https://${APPROVED_STAGING_PROJECT_REF}.supabase.co/`),
     {
-      origin: 'https://sxghreukdkxclymysryp.supabase.co',
-      projectRef: 'sxghreukdkxclymysryp',
+      origin: `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co`,
+      projectRef: APPROVED_STAGING_PROJECT_REF,
     },
   );
   assert.deepEqual(
@@ -62,19 +65,19 @@ test('extractSupabaseProjectRef validates hosted Supabase URLs and extracts norm
 
   for (const invalidUrl of [
     '',
-    'http://sxghreukdkxclymysryp.supabase.co',
+    `http://${APPROVED_STAGING_PROJECT_REF}.supabase.co`,
     'http://127.0.0.1:54321',
-    'https://db.sxghreukdkxclymysryp.supabase.co',
+    `https://db.${APPROVED_STAGING_PROJECT_REF}.supabase.co`,
     'https://evil.example.com',
-    'https://sxghreukdkxclymysryp.supabase.co/rest/v1',
-    'https://sxghreukdkxclymysryp.supabase.co?x=1',
-    'https://user:pass@sxghreukdkxclymysryp.supabase.co',
+    `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co/rest/v1`,
+    `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co?x=1`,
+    `https://user:pass@${APPROVED_STAGING_PROJECT_REF}.supabase.co`,
   ]) {
     assert.throws(() => extractSupabaseProjectRef(invalidUrl), `Expected rejection for ${invalidUrl}`);
   }
 });
 
-test('validateHostedAppOrigin and requireHostedStagingConfig reject non-HTTPS hosted app origins', () => {
+test('validateHostedAppOrigin and requireHostedStagingConfig enforce pinned staging ref and HTTPS hosted origins', () => {
   assert.equal(validateHostedAppOrigin('https://staging.padelhub.example/'), 'https://staging.padelhub.example');
   assert.equal(validateHostedAppOrigin('http://127.0.0.1:3100/'), 'http://127.0.0.1:3100');
   assert.equal(validateHostedAppOrigin('http://localhost:3100'), 'http://localhost:3100');
@@ -94,7 +97,7 @@ test('validateHostedAppOrigin and requireHostedStagingConfig reject non-HTTPS ho
     assert.throws(
       () =>
         requireHostedStagingConfig({
-          PADELHUB_SUPABASE_URL: 'https://stagingref1234.supabase.co',
+          PADELHUB_SUPABASE_URL: `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co`,
           PADELHUB_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid',
           PADELHUB_SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_valid',
           PADELHUB_APP_ORIGIN: badOrigin,
@@ -103,20 +106,60 @@ test('validateHostedAppOrigin and requireHostedStagingConfig reject non-HTTPS ho
     );
   }
 
+  // Accepts the pinned approved staging project ref by default.
   const valid = requireHostedStagingConfig({
-    PADELHUB_SUPABASE_URL: 'https://stagingref1234.supabase.co/',
+    PADELHUB_SUPABASE_URL: `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co/`,
     PADELHUB_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid',
     PADELHUB_SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_valid',
     PADELHUB_APP_ORIGIN: 'https://staging.padelhub.example/',
+    PADELHUB_STAGING_PROJECT_REF: APPROVED_STAGING_PROJECT_REF,
   });
-  assert.equal(valid.projectRef, 'stagingref1234');
-  assert.equal(valid.supabaseUrl, 'https://stagingref1234.supabase.co');
+  assert.equal(valid.projectRef, APPROVED_STAGING_PROJECT_REF);
+  assert.equal(valid.approvedProjectRef, APPROVED_STAGING_PROJECT_REF);
+  assert.equal(valid.supabaseUrl, `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co`);
   assert.equal(valid.appOrigin, 'https://staging.padelhub.example');
+
+  // Rejects an unapproved project ref (e.g. accidental production project URL).
+  assert.throws(
+    () =>
+      requireHostedStagingConfig({
+        PADELHUB_SUPABASE_URL: 'https://prodref9999.supabase.co',
+        PADELHUB_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid',
+        PADELHUB_SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_valid',
+        PADELHUB_APP_ORIGIN: 'https://staging.padelhub.example',
+      }),
+    /does not match the approved staging project ref/,
+  );
+
+  // Rejects mismatched optional PADELHUB_STAGING_PROJECT_REF.
+  assert.throws(
+    () =>
+      requireHostedStagingConfig({
+        PADELHUB_SUPABASE_URL: `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co`,
+        PADELHUB_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid',
+        PADELHUB_SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_valid',
+        PADELHUB_APP_ORIGIN: 'https://staging.padelhub.example',
+        PADELHUB_STAGING_PROJECT_REF: 'prodref9999',
+      }),
+    /PADELHUB_STAGING_PROJECT_REF.*does not match the approved staging project ref/,
+  );
+
+  // Respects programmatic approvedProjectRef override in unit tests.
+  const custom = requireHostedStagingConfig(
+    {
+      PADELHUB_SUPABASE_URL: 'https://customref1234.supabase.co',
+      PADELHUB_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid',
+      PADELHUB_SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_valid',
+      PADELHUB_APP_ORIGIN: 'https://staging.padelhub.example',
+    },
+    { approvedProjectRef: 'customref1234' },
+  );
+  assert.equal(custom.approvedProjectRef, 'customref1234');
 
   // Also catches swapped legacy JWT roles.
   assert.throws(() =>
     requireHostedStagingConfig({
-      PADELHUB_SUPABASE_URL: 'https://stagingref1234.supabase.co',
+      PADELHUB_SUPABASE_URL: `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co`,
       PADELHUB_SUPABASE_PUBLISHABLE_KEY: fakeJwt('service_role'),
       PADELHUB_SUPABASE_SERVICE_ROLE_KEY: fakeJwt('anon'),
       PADELHUB_APP_ORIGIN: 'https://staging.padelhub.example',
@@ -124,13 +167,12 @@ test('validateHostedAppOrigin and requireHostedStagingConfig reject non-HTTPS ho
   );
 });
 
-test('validateStagingDbUrl matches expected Supabase project ref and never leaks DB passwords', () => {
-  const expectedRef = 'stagingref1234';
+test('validateStagingDbUrl matches approved Supabase project ref and never leaks DB passwords', () => {
+  const expectedRef = APPROVED_STAGING_PROJECT_REF;
 
   assert.deepEqual(
     validateStagingDbUrl(
       `postgresql://postgres.${expectedRef}:${CANARY_DB_PASSWORD}@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
-      expectedRef,
     ),
     {
       mode: 'pooler',
@@ -208,6 +250,36 @@ test('validateStagingDbUrl matches expected Supabase project ref and never leaks
   }
 });
 
+test('requireMigrationRepairConfirmation requires explicit project-and-version confirmation token', () => {
+  const validToken = `${APPROVED_STAGING_PROJECT_REF}:${SUPERSEDED_HOSTED_MIGRATION_VERSION}`;
+
+  assert.deepEqual(requireMigrationRepairConfirmation([`--confirm-repair=${validToken}`]), {
+    projectRef: APPROVED_STAGING_PROJECT_REF,
+    migrationVersion: SUPERSEDED_HOSTED_MIGRATION_VERSION,
+  });
+  assert.deepEqual(requireMigrationRepairConfirmation(['--confirm-repair', validToken]), {
+    projectRef: APPROVED_STAGING_PROJECT_REF,
+    migrationVersion: SUPERSEDED_HOSTED_MIGRATION_VERSION,
+  });
+
+  for (const badArgs of [
+    [],
+    ['--yes'],
+    ['--force'],
+    ['--confirm-repair'],
+    ['--confirm-repair='],
+    [`--confirm-repair=prodref9999:${SUPERSEDED_HOSTED_MIGRATION_VERSION}`],
+    [`--confirm-repair=${APPROVED_STAGING_PROJECT_REF}:20261116000100`],
+    [`--confirm-repair=${validToken}`, `--confirm-repair=prodref9999:${SUPERSEDED_HOSTED_MIGRATION_VERSION}`],
+  ]) {
+    assert.throws(
+      () => requireMigrationRepairConfirmation(badArgs),
+      /Refusing to mutate Supabase migration history without explicit confirmation/,
+      `Expected rejection for repair args ${JSON.stringify(badArgs)}`,
+    );
+  }
+});
+
 test('requireSmokeAdminState and loadSmokeAdminState enforce mandatory admin MFA state', () => {
   assert.throws(() => requireSmokeAdminState(null), /Missing smoke admin state/);
   assert.throws(() => requireSmokeAdminState({}), /userId, email, and password are required/);
@@ -239,37 +311,79 @@ test('requireSmokeAdminState and loadSmokeAdminState enforce mandatory admin MFA
   }
 });
 
-test('staging-app CLI enforces DB project-ref match, HTTPS hosted origin, and mandatory admin MFA state', () => {
+test('staging-app CLI enforces pinned project ref, repair confirmation, HTTPS origin, and admin MFA state', () => {
   const dir = mkdtempSync(resolve(tmpdir(), 'padelhub-staging-cli-'));
   try {
-    const baseEnv = {
-      PADELHUB_SUPABASE_URL: 'https://stagingref1234.supabase.co',
+    const approvedEnv = {
+      PADELHUB_SUPABASE_URL: `https://${APPROVED_STAGING_PROJECT_REF}.supabase.co`,
       PADELHUB_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid',
       PADELHUB_SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_valid',
       PADELHUB_APP_ORIGIN: 'https://staging.padelhub.example',
     };
+    const approvedDbUrl = `postgresql://postgres.${APPROVED_STAGING_PROJECT_REF}:${CANARY_DB_PASSWORD}@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`;
 
-    // 1. All migration/repair modes must reject mismatched Supabase project refs before running Supabase CLI.
-    for (const mode of ['migrate', 'migrate-dry-run', 'repair-006']) {
+    // 1. Even if BOTH PADELHUB_SUPABASE_URL and PADELHUB_STAGING_DB_URL target the same unapproved project
+    //    (e.g. accidental production credentials), every staging operation must fail closed against the pinned ref.
+    for (const mode of ['migrate', 'migrate-dry-run', 'repair-006', 'smoke']) {
       const res = runStagingCli(
-        mode,
+        [mode],
         {
-          ...baseEnv,
+          ...approvedEnv,
+          PADELHUB_SUPABASE_URL: 'https://prodref9999.supabase.co',
           PADELHUB_STAGING_DB_URL: `postgresql://postgres.prodref9999:${CANARY_DB_PASSWORD}@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
         },
         dir,
       );
-      assert.notEqual(res.status, 0, `${mode} must exit non-zero on project-ref mismatch`);
-      assert.match(res.stderr, /does not match PADELHUB_SUPABASE_URL project "stagingref1234"/);
+      assert.notEqual(res.status, 0, `${mode} must reject unapproved project ref`);
+      assert.match(res.stderr, new RegExp(`approved staging project ref \\("${APPROVED_STAGING_PROJECT_REF}"\\)`));
+      assert.equal(res.stderr.includes(CANARY_DB_PASSWORD), false, `${mode} stderr must not leak DB password`);
+    }
+
+    // 2. All migration/repair modes must reject mismatched DB URLs against the approved project ref before CLI exec.
+    for (const mode of ['migrate', 'migrate-dry-run', 'repair-006']) {
+      const res = runStagingCli(
+        [mode],
+        {
+          ...approvedEnv,
+          PADELHUB_STAGING_DB_URL: `postgresql://postgres.prodref9999:${CANARY_DB_PASSWORD}@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
+        },
+        dir,
+      );
+      assert.notEqual(res.status, 0, `${mode} must exit non-zero on DB project-ref mismatch`);
+      assert.match(res.stderr, new RegExp(`does not match approved staging project "${APPROVED_STAGING_PROJECT_REF}"`));
       assert.equal(res.stderr.includes(CANARY_DB_PASSWORD), false, `${mode} stderr must not leak DB password`);
       assert.equal(res.stdout.includes(CANARY_DB_PASSWORD), false, `${mode} stdout must not leak DB password`);
     }
 
-    // 2. Non-HTTPS remote PADELHUB_APP_ORIGIN must be rejected at CLI startup.
+    // 3. repair-006 must refuse to run without explicit --confirm-repair=<ref>:<version> confirmation,
+    //    even when both URLs validly point to the approved staging project.
+    for (const extraArgs of [
+      [],
+      ['--yes'],
+      [`--confirm-repair=prodref9999:${SUPERSEDED_HOSTED_MIGRATION_VERSION}`],
+      [`--confirm-repair=${APPROVED_STAGING_PROJECT_REF}:20261116000100`],
+    ]) {
+      const res = runStagingCli(
+        ['repair-006', ...extraArgs],
+        {
+          ...approvedEnv,
+          PADELHUB_STAGING_DB_URL: approvedDbUrl,
+        },
+        dir,
+      );
+      assert.notEqual(res.status, 0, `repair-006 ${extraArgs.join(' ')} must require explicit confirmation`);
+      assert.match(
+        res.stderr,
+        new RegExp(`--confirm-repair=${APPROVED_STAGING_PROJECT_REF}:${SUPERSEDED_HOSTED_MIGRATION_VERSION}`),
+      );
+      assert.equal(res.stderr.includes(CANARY_DB_PASSWORD), false, 'repair-006 stderr must not leak DB password');
+    }
+
+    // 4. Non-HTTPS remote PADELHUB_APP_ORIGIN must be rejected at CLI startup.
     const insecureOriginRes = runStagingCli(
-      'smoke',
+      ['smoke'],
       {
-        ...baseEnv,
+        ...approvedEnv,
         PADELHUB_APP_ORIGIN: 'http://staging.padelhub.example',
       },
       dir,
@@ -277,13 +391,13 @@ test('staging-app CLI enforces DB project-ref match, HTTPS hosted origin, and ma
     assert.notEqual(insecureOriginRes.status, 0, 'smoke must reject non-HTTPS hosted origin');
     assert.match(insecureOriginRes.stderr, /must use https:\/\/ for non-loopback hosts/);
 
-    // 3. Full staging smoke must fail fast (non-zero) if admin MFA state is missing — never skip and exit 0.
-    const missingAdminRes = runStagingCli('smoke', baseEnv, dir);
+    // 5. Full staging smoke must fail fast (non-zero) if admin MFA state is missing — never skip and exit 0.
+    const missingAdminRes = runStagingCli(['smoke'], approvedEnv, dir);
     assert.notEqual(missingAdminRes.status, 0, 'smoke must exit non-zero when admin MFA state is missing');
     assert.match(missingAdminRes.stderr, /Full staging smoke requires admin MFA verification/);
     assert.equal(missingAdminRes.stdout.includes('SKIP:'), false, 'smoke must never print SKIP for admin MFA');
 
-    // 4. verify-revoked-admin must fail if MFA enrollment/browser session state is missing.
+    // 6. verify-revoked-admin must fail if MFA enrollment/browser session state is missing.
     mkdirSync(resolve(dir, '.cache'), { recursive: true });
     writeFileSync(
       resolve(dir, '.cache', 'staging-admin-smoke.json'),
@@ -294,7 +408,7 @@ test('staging-app CLI enforces DB project-ref match, HTTPS hosted origin, and ma
       }),
       'utf8',
     );
-    const missingMfaStateRes = runStagingCli('verify-revoked-admin', baseEnv, dir);
+    const missingMfaStateRes = runStagingCli(['verify-revoked-admin'], approvedEnv, dir);
     assert.notEqual(missingMfaStateRes.status, 0, 'verify-revoked-admin must reject incomplete MFA state');
     assert.match(missingMfaStateRes.stderr, /missing MFA enrollment\/browser session state/);
   } finally {

@@ -12,7 +12,7 @@ Target environment: `padelhub-staging` (`ref: sxghreukdkxclymysryp`, `eu-central
 - **Private Storage**: Provisioned `media-private` bucket (`public = false`, `file_size_limit = 8388608`, `allowed_mime_types = ['image/webp']`) with zero public/`anon`/`authenticated` Storage policies.
 - **Application environment hardening & tooling**:
   - Hardened server-only env parsing in `src/server/supabase/env.ts`, `config.ts`, `clients.ts`, and `src/features/photos/server.ts` (strict origin normalization, HTTPS enforcement for remote Supabase URLs and non-loopback application origins, fail-closed rejection of swapped/identical publishable and secret keys, zero fallback to `NEXT_PUBLIC_*` or `SUPABASE_*`).
-  - Added safe template `.env.example`, unit tests (`tests/unit/supabase-config.test.ts`, `tests/unit/staging-scripts.test.ts`), hosted-mode SQL tests (`supabase/tests/hosted-auth-helpers.test.sql`), non-destructive staging tooling (`scripts/staging-env.mjs`, `scripts/staging-app.mjs` with DB URL project-ref validation before migration/repair and fail-closed mandatory admin MFA smoke verification), and runbook (`docs/STAGING_SETUP.md`).
+  - Added safe template `.env.example`, unit tests (`tests/unit/supabase-config.test.ts`, `tests/unit/staging-scripts.test.ts`), hosted-mode SQL tests (`supabase/tests/hosted-auth-helpers.test.sql`), non-destructive staging tooling (`scripts/staging-env.mjs`, `scripts/staging-app.mjs` with an independently pinned approved staging project ref, DB URL project-ref validation, explicit `--confirm-repair=<ref>:<version>` confirmation for migration-history repairs, and fail-closed mandatory admin MFA smoke verification), and runbook (`docs/STAGING_SETUP.md`).
 
 ## 2. What Was Tested
 
@@ -26,7 +26,7 @@ Target environment: `padelhub-staging` (`ref: sxghreukdkxclymysryp`, `eu-central
 - **Local verification suites** (run after clean `npm ci`):
   - `npm ci`: passed (438 packages installed cleanly from lockfile).
   - `npm run check`: passed (`eslint .`, `next typegen && tsc --noEmit`, `next build --webpack` 23/23 routes).
-  - `npm run test:unit`: **36/36 passed** (including server-only Supabase env-hardening tests in `tests/unit/supabase-config.test.ts` and staging CLI guard regression tests in `tests/unit/staging-scripts.test.ts`).
+  - `npm run test:unit`: **37/37 passed** (including server-only Supabase env-hardening tests in `tests/unit/supabase-config.test.ts` and staging CLI guard regression tests in `tests/unit/staging-scripts.test.ts`).
   - `npm run test:db`: **574/574 SQL assertions passed** across 15 SQL test files (including 20 new hosted-mode simulation assertions in `supabase/tests/hosted-auth-helpers.test.sql` with zero writer `auth` schema USAGE) plus all **14 concurrency/lock/isolation races**; scratch DB removed; local Studio DB untouched.
   - `node scripts/local-app.mjs test --workers=1` (against `node scripts/local-app.mjs serve` and local Supabase): **18/18 passed (0 failed, 0 skipped)** across desktop & mobile (`account.spec.ts`, `admin.spec.ts`, `foundation.spec.ts`, `media-boundary.spec.ts`, `shoe-search.spec.ts`).
 
