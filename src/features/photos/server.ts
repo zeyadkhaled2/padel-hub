@@ -2,7 +2,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { fetchOwnerListing } from '@/features/listings/server';
 import { serviceClient } from '@/server/supabase/clients';
-import { authConfig } from '@/server/supabase/config';
+import { authConfig, serviceConfig } from '@/server/supabase/config';
 import { serverClient } from '@/server/supabase/server';
 import {
   PhotoProcessingError,
@@ -222,9 +222,8 @@ export async function deliverPhoto(request: Request, asset: string, reviewListin
   if (!parsed.ok) return errorResponse(parsed.code, parsed.status);
 
   const adminClient = serviceClient(PHOTO_LIMITS.storageTimeoutMs);
-  const config = authConfig();
-  const serviceKey = process.env.PADELHUB_SUPABASE_SERVICE_ROLE_KEY;
-  if (!adminClient || !config || !serviceKey) return errorResponse('unavailable', 503);
+  const service = serviceConfig();
+  if (!adminClient || !service) return errorResponse('unavailable', 503);
 
   try {
     const userClient = await serverClient();
@@ -245,8 +244,8 @@ export async function deliverPhoto(request: Request, asset: string, reviewListin
     if (request.headers.has('range')) return errorResponse('rangeUnsupported', 416);
 
     const bytes = await downloadVerifiedVariant(
-      config.url,
-      serviceKey,
+      service.url,
+      service.key,
       first.manifest,
       parsed.variant,
     );
