@@ -713,11 +713,12 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       ]) {
         await adminPage.getByRole('heading', { name: headingName }).waitFor({ timeout: 15_000 });
       }
-      const adminOverviewHtml = await adminPage.content();
+      const mainAlertCount = await adminPage.locator('main [role="alert"]').count();
       assert(
-        !adminOverviewHtml.includes('Overview metrics could not be loaded'),
-        'Admin overview RPC failed to render live metrics on hosted staging',
+        mainAlertCount === 0,
+        `Admin overview rendered ${mainAlertCount} unexpected alert(s) on hosted staging`,
       );
+      const adminOverviewHtml = await adminPage.content();
       assert(!adminOverviewHtml.includes('+201000000051'), 'Admin overview must never leak seller WhatsApp numbers');
       assert(
         !adminOverviewHtml.includes(`processed/${activePhotoId}/`),
