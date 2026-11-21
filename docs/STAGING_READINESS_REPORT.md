@@ -66,6 +66,8 @@ Documented in full in [STAGING_SETUP.md](STAGING_SETUP.md), including fresh host
 
 ## 8. Readiness for Phase 2B
 
-**Ready for Phase 2B (External Transactional Email & Auth Recovery):**
-- Hosted staging Postgres, Auth, TOTP MFA, private Storage, RLS boundaries, and forward-only migration pipeline are live and verified end-to-end.
-- Next step: configure custom transactional SMTP (Resend) on `padelhub-staging`, test real external signup confirmation and password-recovery email delivery, and implement recovery/Google OAuth flows per the Phase 2 roadmap.
+**Phase 2B application code, password recovery, OAuth integration, email templates, and admin MFA recovery procedures are implemented and verified against `padelhub-staging`; external provider credentials remain owner-blocked:**
+- Verified live on `padelhub-staging` (`smoke-phase2b` + `smoke` + `verify-revoked-admin`): forgot-password anti-enumeration, EN/AR desktop & 390px mobile recovery, mid-recovery `/account` & `/admin` isolation, reuse rejection, old/new password check, seller profile preservation, OAuth cancellation/error sanitization & open-redirect blocks, MFA-enrolled recovery TOTP gate (`insufficient_aal` protection), and operator `auth.admin.mfa.deleteFactor` lost-factor recovery + fresh re-enrollment + immediate revocation.
+- **Blocked pending owner external service configuration** (see [AUTH_DEPLOYMENT_RUNBOOK.md](AUTH_DEPLOYMENT_RUNBOOK.md)):
+  1. **Resend custom SMTP & DNS**: requires verified sending domain (SPF/DKIM/DMARC), disabling link/open tracking, configuring SMTP credentials in Supabase Dashboard, and executing a real external inbox delivery + confirmation/recovery test.
+  2. **Google Cloud OAuth & staging Redirect URLs**: requires Google Cloud Web OAuth Client ID & Secret (minimal `openid email profile` scopes), enabling Google in Supabase Auth Providers, adding `/en/auth/recovery` & `/ar/auth/recovery` to staging Redirect URLs, and executing live Google OAuth sign-in tests (new user, existing verified email/password user, repeat user, and admin MFA check).

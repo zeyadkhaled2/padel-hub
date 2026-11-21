@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { authConfig } from './config';
 
+export const RECOVERY_UID_COOKIE = 'padelhub_recovery_uid';
+
 export async function serverClient() {
   const config = authConfig();
   if (!config) return null;
@@ -25,6 +27,9 @@ export async function verifiedUserClient() {
   if (!client) return null;
   const { data, error } = await client.auth.getUser();
   if (error || !data.user?.email_confirmed_at) return null;
+  // Do not treat an unfinished password-recovery session as an active account session.
+  const store = await cookies();
+  if (store.get(RECOVERY_UID_COOKIE)?.value === data.user.id) return null;
   return { client, user: data.user };
 }
 

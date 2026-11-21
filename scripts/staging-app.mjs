@@ -21,10 +21,12 @@ const VALID_MODES = [
   'migrate',
   'migrate-dry-run',
   'repair-006',
+  'auth-status',
   'setup-bucket',
   'serve',
   'prepare-smoke-admin',
   'smoke',
+  'smoke-phase2b',
   'verify-revoked-admin',
 ];
 
@@ -143,7 +145,23 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  if (mode === 'setup-bucket') {
+  if (mode === 'auth-status') {
+    const settingsRes = await fetch(`${cfg.supabaseUrl}/auth/v1/settings`, {
+      headers: { apikey: cfg.publishableKey },
+    });
+    assert(settingsRes.ok, `Auth settings HTTP ${settingsRes.status}`);
+    const settings = await settingsRes.json();
+    console.log(
+      JSON.stringify({
+        projectRef: cfg.projectRef,
+        disable_signup: settings.disable_signup,
+        mailer_autoconfirm: settings.mailer_autoconfirm,
+        email_enabled: settings.external?.email === true,
+        google_enabled: settings.external?.google === true,
+        anonymous_users: settings.external?.anonymous_users === true,
+      }),
+    );
+  } else if (mode === 'setup-bucket') {
     await ensurePrivateBucket(serviceClient);
   } else if (mode === 'serve') {
     await ensurePrivateBucket(serviceClient);
@@ -813,6 +831,349 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
           }
         } catch {
           // Best-effort cleanup
+        }
+      }
+    }
+  } else if (mode === 'smoke-phase2b') {
+    // Non-destructive Phase 2B verification on hosted staging:
+    // - Password recovery UI, anti-enumeration, token_hash flow, mid-recovery isolation, reuse rejection, old vs new password, seller profile preservation (EN desktop & AR 390px mobile)
+    // - Continue with Google button, OAuth cancellation/error sanitization, open-redirect blocks, PKCE initiation check
+    // - Synthetic admin MFA recovery verification (password recovery never bypasses MFA, operator deleteFactor invalidates sessions & enables fresh re-enrollment)
+    const adminState = loadSmokeAdminState(adminStatePath);
+    const tag = randomBytes(4).toString('hex');
+    const appOrigin = cfg.appOrigin;
+    const results = [];
+    const disposableUserIds = [];
+    const pass = (name) => {
+      results.push({ name, ok: true });
+      console.log(`PASS: ${name}`);
+    };
+
+    let browser = null;
+    try {
+      const settingsRes = await fetch(`${cfg.supabaseUrl}/auth/v1/settings`, {
+        headers: { apikey: cfg.publishableKey },
+      });
+      assert(settingsRes.ok, `Auth settings HTTP ${settingsRes.status}`);
+      const settings = await settingsRes.json();
+      assert(settings.mailer_autoconfirm === false, 'mailer_autoconfirm must remain false');
+      const googleEnabled = settings.external?.google === true;
+      pass(`Auth settings checked (email confirmation enforced, google_enabled=${googleEnabled})`);
+
+      // 1. OAuth error/cancellation & recovery callback open-redirect / XSS sanitization checks
+      const cancelRes = await fetch(
+        `${appOrigin}/en/auth/callback?error=access_denied&error_description=InjectedPayload&next=https://evil.example`,
+        { redirect: 'manual' },
+      );
+      assert(cancelRes.status === 307 || cancelRes.status === 302, `OAuth cancel redirect status ${cancelRes.status}`);
+      assert(
+        cancelRes.headers.get('location') === `${appOrigin}/en/auth/signin?error=oauth_cancelled`,
+        `Unexpected cancel redirect: ${cancelRes.headers.get('location')}`,
+      );
+      assert((cancelRes.headers.get('cache-control') || '').includes('no-store'), 'Callback must be no-store');
+      assert(cancelRes.headers.get('referrer-policy') === 'no-referrer', 'Callback must set Referrer-Policy: no-referrer');
+
+      const oauthErrRes = await fetch(
+        `${appOrigin}/ar/auth/callback?error=server_error&next=https://evil.example`,
+        { redirect: 'manual' },
+      );
+      assert(
+        oauthErrRes.headers.get('location') === `${appOrigin}/ar/auth/signin?error=oauth`,
+        `Unexpected OAuth error redirect: ${oauthErrRes.headers.get('location')}`,
+      );
+
+      const badRecRes = await fetch(
+        `${appOrigin}/en/auth/recovery?token_hash=invalid_token&type=recovery&next=https://evil.example`,
+        { redirect: 'manual' },
+      );
+      assert(
+        badRecRes.headers.get('location') === `${appOrigin}/en/auth/reset-password?error=invalid`,
+        `Unexpected invalid recovery redirect: ${badRecRes.headers.get('location')}`,
+      );
+      assert((badRecRes.headers.get('cache-control') || '').includes('no-store'), 'Recovery callback must be no-store');
+
+      const badCbRecRes = await fetch(
+        `${appOrigin}/en/auth/callback?token_hash=invalid_token&type=recovery&next=https://evil.example`,
+        { redirect: 'manual' },
+      );
+      assert(
+        badCbRecRes.headers.get('location') === `${appOrigin}/en/auth/reset-password?error=invalid`,
+        `Unexpected callback recovery delegation redirect: ${badCbRecRes.headers.get('location')}`,
+      );
+      pass('OAuth cancellation, error sanitization, recovery callback delegation, and open-redirect blocks verified');
+
+      browser = await chromium.launch({ channel: 'chrome', headless: true });
+
+      // 2. EN/AR, light/dark, 390px mobile UI + Google button & graceful disabled/PKCE check
+      const mobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const mobilePage = await mobileCtx.newPage();
+      for (const locale of ['en', 'ar']) {
+        for (const route of ['signin', 'signup', 'forgot-password', 'reset-password']) {
+          for (const theme of ['light', 'dark']) {
+            const navRes = await mobilePage.goto(`${appOrigin}/${locale}/auth/${route}`);
+            assert(navRes?.status() === 200, `GET /${locale}/auth/${route} failed (${navRes?.status()})`);
+            assert((navRes?.headers()['cache-control'] || '').includes('no-store'), `/${locale}/auth/${route} must be no-store`);
+            await mobilePage
+              .getByRole('combobox', { name: locale === 'en' ? 'Color theme' : 'مظهر الموقع' })
+              .selectOption(theme);
+            const overflow = await mobilePage.evaluate(
+              () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            );
+            assert(overflow <= 1, `Horizontal overflow on /${locale}/auth/${route} (${theme}, 390px): ${overflow}px`);
+          }
+        }
+      }
+      await mobilePage.goto(`${appOrigin}/en/auth/signin?error=oauth_cancelled`);
+      await mobilePage.getByRole('alert').filter({ hasText: /cancelled/i }).waitFor({ timeout: 10_000 });
+      await mobilePage.getByRole('button', { name: 'Continue with Google', exact: true }).waitFor({ timeout: 10_000 });
+      await mobilePage.getByRole('link', { name: 'Forgot password?', exact: true }).waitFor({ timeout: 10_000 });
+      if (!googleEnabled) {
+        await mobilePage.getByRole('button', { name: 'Continue with Google', exact: true }).click();
+        await mobilePage.getByRole('alert').filter({ hasText: /Google sign-in is not available/i }).waitFor({ timeout: 15_000 });
+      }
+      await mobileCtx.close();
+      pass('Auth pages (signin/signup/forgot/reset) verified across EN/AR, light/dark, and 390px mobile with zero overflow');
+
+      // 3. Forgot-password anti-enumeration + end-to-end password recovery with seller profile preservation
+      const sellerEmail = `staging_rec_${tag}@example.test`;
+      const oldPassword = `RecOld!${randomBytes(6).toString('hex')}`;
+      const newPassword = `RecNew!${randomBytes(6).toString('hex')}`;
+      const arPassword = `RecAr!${randomBytes(6).toString('hex')}`;
+      const created = await serviceClient.auth.admin.createUser({
+        email: sellerEmail,
+        password: oldPassword,
+        email_confirm: true,
+      });
+      assert(!created.error && created.data.user, `Create recovery test user failed: ${created.error?.message}`);
+      disposableUserIds.push(created.data.user.id);
+
+      const userCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const userPage = await userCtx.newPage();
+
+      // Anti-enumeration check on unknown email
+      await userPage.goto(`${appOrigin}/en/auth/forgot-password`);
+      await userPage.getByLabel('Email address').fill(`unknown_${tag}@example.test`);
+      await userPage.getByRole('button', { name: 'Send reset link', exact: true }).click();
+      await userPage.getByRole('status').filter({ hasText: 'If an account exists' }).waitFor({ timeout: 15_000 });
+
+      // Sign in, create a private seller profile, verify normal session CANNOT use /en/auth/reset-password
+      await userPage.goto(`${appOrigin}/en/auth/signin`);
+      await userPage.getByLabel('Email address').fill(sellerEmail);
+      await userPage.getByLabel('Password', { exact: true }).fill(oldPassword);
+      await userPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await userPage.waitForURL('**/en/account', { timeout: 25_000 });
+
+      await userPage.getByLabel('Username', { exact: true }).fill(`rec_${tag}`);
+      await userPage.getByLabel('Display name').fill('Recovery Seller Preserved');
+      await userPage.getByLabel('Governorate').selectOption('cairo');
+      await userPage.getByRole('button', { name: 'Create profile', exact: true }).click();
+      await userPage.getByRole('heading', { name: 'Profile details' }).waitFor({ timeout: 20_000 });
+
+      await userPage.goto(`${appOrigin}/en/auth/reset-password`);
+      assert((await userPage.locator('input[type="password"]').count()) === 0, 'Normal logged-in session must NOT bypass recovery gate');
+      await userPage.goto(`${appOrigin}/en/account`);
+      await userPage.getByRole('button', { name: 'Sign out', exact: true }).click();
+      await userPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+
+      // Generate genuine hosted recovery token_hash (sends zero external emails)
+      const recLink1 = await serviceClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: sellerEmail,
+        options: { redirectTo: `${appOrigin}/en/auth/recovery` },
+      });
+      assert(!recLink1.error && recLink1.data.properties.hashed_token, `generateLink failed: ${recLink1.error?.message}`);
+      const tokenHash1 = recLink1.data.properties.hashed_token;
+
+      await userPage.goto(
+        `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(tokenHash1)}&type=recovery&next=https://evil.example`,
+      );
+      await userPage.waitForURL('**/en/auth/reset-password', { timeout: 20_000 });
+      assert(!userPage.url().includes(tokenHash1), 'Recovery redirect must strip token_hash from URL');
+
+      // Mid-recovery session cannot inspect /en/account
+      await userPage.goto(`${appOrigin}/en/account`);
+      await userPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      await userPage.goto(`${appOrigin}/en/auth/reset-password`);
+
+      // Password mismatch rejected cleanly
+      await userPage.getByLabel('New password', { exact: true }).fill(newPassword);
+      await userPage.getByLabel('Confirm new password', { exact: true }).fill('WrongMismatch!123');
+      await userPage.getByRole('button', { name: 'Update password', exact: true }).click();
+      await userPage.getByText('Passwords do not match.').waitFor({ timeout: 10_000 });
+
+      // Valid update signs out globally and redirects to /en/auth/signin?reset=1
+      await userPage.getByLabel('New password', { exact: true }).fill(newPassword);
+      await userPage.getByLabel('Confirm new password', { exact: true }).fill(newPassword);
+      await userPage.getByRole('button', { name: 'Update password', exact: true }).click();
+      await userPage.waitForURL('**/en/auth/signin?reset=1', { timeout: 20_000 });
+      await userPage.getByRole('status').filter({ hasText: 'Your password has been updated' }).waitFor({ timeout: 10_000 });
+
+      // Reused token fails closed
+      await userPage.goto(`${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(tokenHash1)}&type=recovery`);
+      await userPage.waitForURL('**/en/auth/reset-password?error=invalid', { timeout: 20_000 });
+      assert((await userPage.locator('input[type="password"]').count()) === 0, 'Reused recovery link must not unlock reset form');
+
+      // Old password fails; new password works and preserves seller profile
+      await userPage.goto(`${appOrigin}/en/auth/signin`);
+      await userPage.getByLabel('Email address').fill(sellerEmail);
+      await userPage.getByLabel('Password', { exact: true }).fill(oldPassword);
+      await userPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await userPage.getByText(/Sign-in failed/i).waitFor({ timeout: 15_000 });
+
+      await userPage.getByLabel('Password', { exact: true }).fill(newPassword);
+      await userPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await userPage.waitForURL('**/en/account', { timeout: 25_000 });
+      assert((await userPage.getByLabel('Display name').inputValue()) === 'Recovery Seller Preserved', 'Seller profile preserved after reset');
+      await userCtx.close();
+
+      // Arabic 390px mobile recovery round-trip
+      const recLinkAr = await serviceClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: sellerEmail,
+        options: { redirectTo: `${appOrigin}/ar/auth/recovery` },
+      });
+      assert(!recLinkAr.error && recLinkAr.data.properties.hashed_token, 'AR generateLink succeeded');
+      const arCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const arPage = await arCtx.newPage();
+      await arPage.goto(
+        `${appOrigin}/ar/auth/recovery?token_hash=${encodeURIComponent(recLinkAr.data.properties.hashed_token)}&type=recovery`,
+      );
+      await arPage.waitForURL('**/ar/auth/reset-password', { timeout: 20_000 });
+      await arPage.locator('input[name="password"]').fill(arPassword);
+      await arPage.locator('input[name="confirmPassword"]').fill(arPassword);
+      await arPage.locator('form.account-form button.primary').click();
+      await arPage.waitForURL('**/ar/auth/signin?reset=1', { timeout: 20_000 });
+      await arCtx.close();
+      pass('End-to-end password recovery (EN desktop & AR mobile), mid-recovery isolation, reuse rejection, old/new password check, and profile preservation verified');
+
+      // 4. Synthetic Admin MFA Recovery Verification (Task 2B-4)
+      const adminCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const adminPage = await adminCtx.newPage();
+
+      await adminPage.goto(`${appOrigin}/en/auth/signin`);
+      await adminPage.getByLabel('Email address').fill(adminState.email);
+      await adminPage.getByLabel('Password', { exact: true }).fill(adminState.password);
+      await adminPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await adminPage.waitForURL('**/en/account', { timeout: 25_000 });
+
+      // Enroll TOTP on /en/admin
+      const adminGateRes = await adminPage.goto(`${appOrigin}/en/admin`);
+      assert(
+        adminGateRes?.status() === 200,
+        `Smoke admin /en/admin returned ${adminGateRes?.status()} — grant userId ${adminState.userId} in private.admin_roles before running smoke-phase2b.`,
+      );
+      await adminPage.locator('button[name="intent"][value="enroll"]').click();
+      const secretEl = adminPage.locator('[data-testid="mfa-secret"]');
+      await secretEl.waitFor({ timeout: 20_000 });
+      const initialSecret = (await secretEl.innerText()).trim();
+      const initialFactorId = await adminPage.locator('input[name="factor"]').inputValue();
+      await adminPage.locator('input[name="code"]').fill(totp(initialSecret));
+      await adminPage.locator('button[name="intent"][value="verify"]').click();
+      await adminPage.getByRole('heading', { name: 'Review listings', exact: true }).waitFor({ timeout: 20_000 });
+      pass('Synthetic admin enrolled TOTP MFA and verified normal aal2 admin access');
+
+      // Trigger password recovery on the MFA-enrolled admin in a fresh browser context -> MUST require TOTP before password change AND MUST NOT bypass /en/admin!
+      const adminRecLink = await serviceClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: adminState.email,
+        options: { redirectTo: `${appOrigin}/en/auth/recovery` },
+      });
+      assert(!adminRecLink.error && adminRecLink.data.properties.hashed_token, 'Admin recovery generateLink succeeded');
+
+      const adminRecCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const adminRecPage = await adminRecCtx.newPage();
+      await adminRecPage.goto(
+        `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(adminRecLink.data.properties.hashed_token)}&type=recovery`,
+      );
+      await adminRecPage.waitForURL('**/en/auth/reset-password', { timeout: 20_000 });
+      // Must show TOTP verification form (NOT password inputs) because user has verified MFA!
+      assert((await adminRecPage.locator('input[name="code"]').count()) === 1, 'MFA-enrolled recovery must require 6-digit TOTP step');
+      assert((await adminRecPage.locator('input[name="password"]').count()) === 0, 'MFA-enrolled recovery must NOT show password input at aal1');
+      // Recovery session cannot access /en/admin either
+      await adminRecPage.goto(`${appOrigin}/en/admin`);
+      await adminRecPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      await adminRecPage.goto(`${appOrigin}/en/auth/reset-password`);
+
+      // Invalid TOTP code rejected
+      await adminRecPage.locator('input[name="code"]').fill('000000');
+      await adminRecPage.locator('form.account-form button.primary').click();
+      await adminRecPage
+        .locator('main')
+        .getByRole('alert')
+        .filter({ hasText: /six-digit code/i })
+        .waitFor({ timeout: 15_000 });
+
+      // Valid TOTP code unlocks password reset, updates password, signs out globally, and MFA factor remains intact!
+      const adminPass2 = `AdminPass2!${randomBytes(6).toString('hex')}`;
+      await adminRecPage.locator('input[name="code"]').fill(totp(initialSecret));
+      await adminRecPage.locator('form.account-form button.primary').click();
+      await adminRecPage.locator('input[name="password"]').waitFor({ timeout: 20_000 });
+      await adminRecPage.locator('input[name="password"]').fill(adminPass2);
+      await adminRecPage.locator('input[name="confirmPassword"]').fill(adminPass2);
+      await adminRecPage.locator('form.account-form button.primary').click();
+      await adminRecPage.waitForURL('**/en/auth/signin?reset=1', { timeout: 20_000 });
+      await adminRecCtx.close();
+
+      // Confirm MFA factor is STILL verified after password reset (never auto-removed)
+      const factorsAfterReset = await serviceClient.auth.admin.mfa.listFactors({ userId: adminState.userId });
+      assert(
+        !factorsAfterReset.error &&
+          factorsAfterReset.data.factors.some((f) => f.id === initialFactorId && f.status === 'verified'),
+        'Password reset must NEVER remove or disable an admin TOTP MFA factor',
+      );
+      pass('Password recovery on MFA-enrolled admin enforces TOTP, blocks /admin bypass, and preserves verified MFA factor');
+
+      // Operator lost-authenticator recovery: delete lost factor via service-role Admin MFA API -> verify fresh re-enrollment works!
+      const deletedFactor = await serviceClient.auth.admin.mfa.deleteFactor({
+        userId: adminState.userId,
+        id: initialFactorId,
+      });
+      assert(!deletedFactor.error, `Operator MFA deleteFactor failed: ${deletedFactor.error?.message}`);
+      const factorsAfterDelete = await serviceClient.auth.admin.mfa.listFactors({ userId: adminState.userId });
+      assert(
+        !factorsAfterDelete.error && factorsAfterDelete.data.factors.length === 0,
+        'Operator deleteFactor must remove lost verified factor',
+      );
+
+      // Re-login with new password -> /en/admin prompts fresh TOTP enrollment (cannot access queue without re-enrolling!)
+      const reEnrollCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const reEnrollPage = await reEnrollCtx.newPage();
+      await reEnrollPage.goto(`${appOrigin}/en/auth/signin`);
+      await reEnrollPage.getByLabel('Email address').fill(adminState.email);
+      await reEnrollPage.getByLabel('Password', { exact: true }).fill(adminPass2);
+      await reEnrollPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await reEnrollPage.waitForURL('**/en/account', { timeout: 25_000 });
+
+      await reEnrollPage.goto(`${appOrigin}/en/admin`);
+      await reEnrollPage.locator('button[name="intent"][value="enroll"]').click();
+      const freshSecretEl = reEnrollPage.locator('[data-testid="mfa-secret"]');
+      await freshSecretEl.waitFor({ timeout: 20_000 });
+      const freshSecret = (await freshSecretEl.innerText()).trim();
+      const freshFactorId = await reEnrollPage.locator('input[name="factor"]').inputValue();
+      assert(freshSecret !== initialSecret && freshFactorId !== initialFactorId, 'Fresh re-enrollment must generate a brand-new factor & secret');
+      await reEnrollPage.locator('input[name="code"]').fill(totp(freshSecret));
+      await reEnrollPage.locator('button[name="intent"][value="verify"]').click();
+      await reEnrollPage.getByRole('heading', { name: 'Review listings', exact: true }).waitFor({ timeout: 20_000 });
+
+      // Update saved adminState with new password, fresh factor, and aal2 storageState for verify-revoked-admin!
+      adminState.password = adminPass2;
+      adminState.factorId = freshFactorId;
+      adminState.totpSecret = freshSecret;
+      adminState.storageState = await reEnrollCtx.storageState();
+      writeFileSync(adminStatePath, JSON.stringify(adminState), { mode: 0o600 });
+
+      await reEnrollCtx.close();
+      await adminCtx.close();
+      pass('Operator lost-factor MFA recovery (deleteFactor -> forced fresh re-enrollment -> aal2 verification) verified');
+
+      console.log(`\nALL PHASE 2B STAGING SMOKE CHECKS PASSED (${results.length} passed, 0 failed).`);
+    } finally {
+      if (browser) await browser.close().catch(() => {});
+      for (const uid of disposableUserIds) {
+        try {
+          await serviceClient.auth.admin.deleteUser(uid);
+        } catch {
+          // Synthetic user with FK-protected seller_profiles row stays private and inactive.
         }
       }
     }

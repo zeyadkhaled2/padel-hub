@@ -6,9 +6,18 @@ import {
   parseProfileMutation,
 } from '@/features/profile/validation';
 import {
+  hasRecoveryAmr,
+  isTrustedOAuthRedirectUrl,
   mapAuthSignInError,
   mapAuthSignUpError,
+  mapOAuthCallbackErrorParam,
+  mapResetPasswordError,
+  parseAuthBannerNotice,
   parseAuthCredentials,
+  parseCallbackCode,
+  parseCallbackTokenParams,
+  parseForgotPasswordEmail,
+  parseResetPasswordInput,
 } from '@/features/auth/validation';
 
 test('parseProfileMutation validates profile creation, details and contact updates', () => {
@@ -171,4 +180,129 @@ test('auth credential validation and error mapping match signup/signin policies'
   assert.equal(mapAuthSignInError({ code: 'email_not_confirmed' }), 'confirmFirst');
   assert.equal(mapAuthSignInError({ status: 429 }), 'rateLimited');
   assert.equal(mapAuthSignInError({ code: 'invalid_credentials' }), 'signinFailed');
+});
+
+test('password recovery and OAuth callback validators enforce bounds, allowlists and safety checks', () => {
+  const badEmailForm = new FormData();
+  badEmailForm.set('email', 'not-an-email');
+  assert.deepEqual(parseForgotPasswordEmail(badEmailForm), {
+    ok: false,
+    email: 'not-an-email',
+    errors: { email: 'emailInvalid' },
+  });
+
+  const okEmailForm = new FormData();
+  okEmailForm.set('email', '  player@example.com  ');
+  assert.deepEqual(parseForgotPasswordEmail(okEmailForm), {
+    ok: true,
+    email: 'player@example.com',
+  });
+
+  const shortReset = new FormData();
+  shortReset.set('password', 'short');
+  shortReset.set('confirmPassword', 'different');
+  assert.deepEqual(parseResetPasswordInput(shortReset), {
+    ok: false,
+    errors: { password: 'passwordInvalid', confirmPassword: 'passwordMismatch' },
+  });
+
+  const mismatchReset = new FormData();
+  mismatchReset.set('password', 'StrongPass123!');
+  mismatchReset.set('confirmPassword', 'StrongPass124!');
+  assert.deepEqual(parseResetPasswordInput(mismatchReset), {
+    ok: false,
+    errors: { confirmPassword: 'passwordMismatch' },
+  });
+
+  const validReset = new FormData();
+  validReset.set('password', 'StrongPass123!');
+  validReset.set('confirmPassword', 'StrongPass123!');
+  assert.deepEqual(parseResetPasswordInput(validReset), {
+    ok: true,
+    password: 'StrongPass123!',
+  });
+
+  assert.equal(mapResetPasswordError({ status: 429 }), 'rateLimited');
+  assert.equal(mapResetPasswordError({ code: 'insufficient_aal' }), 'mfaRequiredForReset');
+  assert.equal(mapResetPasswordError({ code: 'same_password' }), 'passwordSame');
+  assert.equal(mapResetPasswordError({ code: 'weak_password' }), 'passwordWeak');
+  assert.equal(mapResetPasswordError({ code: 'unknown' }), 'resetFailed');
+
+  // Allowlisted banner notices never reflect arbitrary query strings.
+  assert.deepEqual(parseAuthBannerNotice({ reset: '1' }), {
+    kind: 'status',
+    message: 'passwordUpdated',
+  });
+  assert.deepEqual(parseAuthBannerNotice({ error: 'oauth_cancelled' }), {
+    kind: 'alert',
+    message: 'oauthCancelled',
+  });
+  assert.deepEqual(parseAuthBannerNotice({ error: 'oauth' }), {
+    kind: 'alert',
+    message: 'oauthFailed',
+  });
+  assert.deepEqual(parseAuthBannerNotice({ error: 'anything_else' }), {
+    kind: 'alert',
+    message: 'callbackFailed',
+  });
+  assert.equal(parseAuthBannerNotice({ reset: '0' }), null);
+
+  assert.equal(mapOAuthCallbackErrorParam('access_denied'), 'oauth_cancelled');
+  assert.equal(mapOAuthCallbackErrorParam('server_error'), 'oauth');
+  assert.equal(mapOAuthCallbackErrorParam(null), 'oauth');
+
+  // Callback query parsing bounds length and restricts token_hash types.
+  assert.equal(parseCallbackCode(new URLSearchParams('code=abc123')), 'abc123');
+  assert.equal(parseCallbackCode(new URLSearchParams(`code=${'a'.repeat(2048)}`)), null);
+  assert.deepEqual(
+    parseCallbackTokenParams(new URLSearchParams('token_hash=tok_123&type=recovery')),
+    { tokenHash: 'tok_123', type: 'recovery' },
+  );
+  assert.deepEqual(
+    parseCallbackTokenParams(new URLSearchParams('token_hash=tok_123&type=signup')),
+    { tokenHash: 'tok_123', type: 'signup' },
+  );
+  assert.equal(
+    parseCallbackTokenParams(new URLSearchParams('token_hash=tok_123&type=invite')),
+    null,
+  );
+  assert.equal(
+    parseCallbackTokenParams(new URLSearchParams('token_hash=&type=recovery')),
+    null,
+  );
+
+  // Recovery AMR detection accepts otp/recovery (string or object form) and rejects password/oauth.
+  assert.equal(hasRecoveryAmr([{ method: 'otp', timestamp: 1 }]), true);
+  assert.equal(hasRecoveryAmr([{ method: 'totp', timestamp: 2 }, { method: 'otp', timestamp: 1 }]), true);
+  assert.equal(hasRecoveryAmr(['recovery']), true);
+  assert.equal(hasRecoveryAmr([{ method: 'password', timestamp: 1 }]), false);
+  assert.equal(hasRecoveryAmr([{ method: 'oauth', timestamp: 1 }]), false);
+  assert.equal(hasRecoveryAmr([]), false);
+
+  // OAuth redirect target must match the configured Supabase Auth origin and /auth/v1/authorize path.
+  assert.equal(
+    isTrustedOAuthRedirectUrl(
+      'https://sxghreukdkxclymysryp.supabase.co/auth/v1/authorize?provider=google',
+      'https://sxghreukdkxclymysryp.supabase.co',
+    ),
+    true,
+  );
+  assert.equal(
+    isTrustedOAuthRedirectUrl(
+      'https://evil.example/auth/v1/authorize?provider=google',
+      'https://sxghreukdkxclymysryp.supabase.co',
+    ),
+    false,
+  );
+  assert.equal(
+    isTrustedOAuthRedirectUrl(
+      'https://sxghreukdkxclymysryp.supabase.co/other-path',
+      'https://sxghreukdkxclymysryp.supabase.co',
+    ),
+    false,
+  );
+  assert.equal(
+    isTrustedOAuthRedirectUrl('javascript:alert(1)', 'https://sxghreukdkxclymysryp.supabase.co'),
+    false,
+  );
 });
