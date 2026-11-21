@@ -6,7 +6,7 @@ select no_plan();
 grant usage on schema extensions to authenticated,anon,service_role;
 insert into auth.users(id,email_confirmed_at) values('11111111-1111-4111-8111-111111111111',now()),('22222222-2222-4222-8222-222222222222',now());
 set local role authenticated;
-set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111"}';
+set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select public.create_seller_profile('photo_owner','Photo owner','cairo');
 reset role;
 create temp table photo_test as select test_fixtures.listing('11111111-1111-4111-8111-111111111111') listing,gen_random_uuid() asset,gen_random_uuid() attempt;

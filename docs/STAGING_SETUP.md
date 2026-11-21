@@ -36,7 +36,10 @@ For local staging testing, keep values only in gitignored `.env.staging.local` (
    - Add exact **Redirect URLs**:
      - `<PADELHUB_APP_ORIGIN>/en/auth/callback`
      - `<PADELHUB_APP_ORIGIN>/ar/auth/callback`
+     - `<PADELHUB_APP_ORIGIN>/en/auth/recovery`
+     - `<PADELHUB_APP_ORIGIN>/ar/auth/recovery`
    - Do **not** add wildcard redirect URLs (`*`) or unapproved domains.
+   - For custom SMTP (Resend), bilingual email templates (`supabase/templates/`), Google Cloud OAuth setup, and admin MFA recovery procedures, see [AUTH_DEPLOYMENT_RUNBOOK.md](AUTH_DEPLOYMENT_RUNBOOK.md).
 3. **Provision the private Storage bucket**:
    - Run `node scripts/staging-app.mjs setup-bucket` (or create bucket `media-private` with `public = false`, `file_size_limit = 8388608`, `allowed_mime_types = ['image/webp']`).
    - Confirm `storage.objects` and `storage.buckets` have **zero** public/`anon`/`authenticated` policies; all media reads and writes happen strictly through server-only verified handlers (`/api/listings/[listingId]/photos`, `/api/media/[mediaId]`, `/api/admin/listings/[id]/photos/[media]`).
@@ -100,6 +103,12 @@ node scripts/staging-app.mjs prepare-smoke-admin
 # Run full non-destructive Auth, Storage, RLS, mandatory admin TOTP MFA, EN/AR, desktop/mobile smoke checks
 # (fails fast with non-zero exit if admin MFA state is missing or private.admin_roles was not granted)
 node scripts/staging-app.mjs smoke
+
+# Run Phase 2B recovery, OAuth callback safety, and synthetic admin MFA recovery smoke checks
+node scripts/staging-app.mjs smoke-phase2b
+
+# Check non-secret staging Auth provider flags (confirmation enforced, email/google enabled)
+node scripts/staging-app.mjs auth-status
 
 # After revoking the temporary admin role in private.admin_roles:
 node scripts/staging-app.mjs verify-revoked-admin

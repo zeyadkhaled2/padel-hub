@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { classifySessionAmr } from '@/features/auth/validation';
 import { authConfig } from './config';
 
 export async function serverClient() {
@@ -23,9 +24,28 @@ export async function serverClient() {
 export async function verifiedUserClient() {
   const client = await serverClient();
   if (!client) return null;
+
+  // Verify the live token signature and confirmed-email status with Supabase Auth first.
   const { data, error } = await client.auth.getUser();
   if (error || !data.user?.email_confirmed_at) return null;
-  return { client, user: data.user };
+
+  // Enforce server-side recovery-session isolation independent of any client cookie or TTL.
+  const { data: aalData, error: aalError } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aalError || !aalData) return null;
+
+  const amrClass = classifySessionAmr(aalData.currentAuthenticationMethods);
+  if (amrClass === 'primary') {
+    return { client, user: data.user };
+  }
+
+  if (amrClass === 'otp_signup_candidate') {
+    const active = await client.rpc('is_my_account_session_active');
+    if (!active.error && active.data === true) {
+      return { client, user: data.user };
+    }
+  }
+
+  return null;
 }
 
 export async function verifiedClient() {
