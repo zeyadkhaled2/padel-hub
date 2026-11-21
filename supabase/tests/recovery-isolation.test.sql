@@ -5,7 +5,7 @@ begin;
 create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
-select plan(33);
+select plan(34);
 grant usage on schema extensions to authenticated,anon,service_role;
 
 insert into auth.users(id, email_confirmed_at, recovery_sent_at) values
@@ -64,6 +64,9 @@ select throws_ok($$select public.get_my_profile_bundle()$$, '42501', 'Verified a
 
 set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal1","session_id":"10000000-0000-4000-8000-000000000001"}';
 select throws_ok($$select public.get_my_profile_bundle()$$, '42501', 'Verified account required', 'session_id without amr fails closed');
+
+set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal1"}';
+select throws_ok($$select public.get_my_profile_bundle()$$, '42501', 'Verified account required', 'missing both amr and session_id fails closed');
 
 -- 5. MFA-enrolled admin in aal2 recovery session (otp + totp) is STILL denied admin RPCs, while password + totp succeeds (5 assertions)
 set local request.jwt.claims = '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal2","session_id":"a0000000-0000-4000-8000-00000000000a","amr":[{"method":"otp","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';

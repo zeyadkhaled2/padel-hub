@@ -15,7 +15,7 @@ create temp table browser_review_actor(id uuid default gen_random_uuid());
 insert into browser_review_actor default values;
 insert into auth.users(id,email_confirmed_at) select id,now() from browser_review_actor;
 insert into private.admin_roles(user_id,role) select id,'admin' from browser_review_actor;
-select set_config('request.jwt.claims',jsonb_build_object('sub',id,'aal','aal2')::text,true) from browser_review_actor;
+select set_config('request.jwt.claims',jsonb_build_object('sub',id,'aal','aal2','session_id',gen_random_uuid(),'amr',jsonb_build_array(jsonb_build_object('method','password','timestamp',1795000000),jsonb_build_object('method','totp','timestamp',1795000001)))::text,true) from browser_review_actor;
 set local role authenticated;
 do $$ declare snapshot jsonb; begin
  snapshot:=public.admin_get_listing_review('${id}');

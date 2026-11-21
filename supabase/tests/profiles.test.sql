@@ -31,7 +31,7 @@ set local request.jwt.claims='{}';
 select throws_ok($$select public.create_seller_profile('rpc_missing','Test','cairo')$$,'42501',null,'missing subject denied');
 set local request.jwt.claims='{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}';
 select throws_ok($$select public.create_seller_profile('rpc_unverified','Test','cairo')$$,'42501',null,'unverified account denied');
-set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal1"}';
+set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal1","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select is(public.get_my_profile_bundle(),null::jsonb,'owner without profile gets null bundle');
 select is(public.create_seller_profile('rpc_owner','Synthetic Owner','cairo')->>'username','rpc_owner','verified owner creates own profile');
 select is((public.get_my_profile_bundle()->>'is_public')::boolean,false,'creation private by default');
@@ -62,7 +62,7 @@ select is((public.update_my_contact(7,3,null,true)->>'public_contact_consent')::
 select is(public.get_my_profile_bundle()->>'whatsapp_e164',null::text,'cleared number removed from owner bundle');
 select throws_ok($$select * from private.seller_contacts$$,'42501',null,'owner cannot bypass bundle to read private table');
 select throws_ok($$update public.seller_profiles set bio='bypass'$$,'42501',null,'direct profile mutation denied');
-set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","aal":"aal2","user_metadata":{"role":"admin"}}';
+set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","aal":"aal2","session_id":"00000000-0000-4000-8000-000000000002","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}],"user_metadata":{"role":"admin"}}';
 select is(public.get_my_profile_bundle(),null::jsonb,'metadata-admin spoof cannot read another profile');
 select throws_ok($$select public.update_seller_profile(8,'{"bio":"cross-owner"}')$$,'42501',null,'metadata-admin spoof cannot update other profile');
 select throws_ok($$select public.create_seller_profile('RPC_OWNER','Synthetic B','giza')$$,'23505',null,'another account cannot claim active handle');
@@ -80,7 +80,7 @@ select is((select count(*)::integer from private.audit_logs where after_state::t
 select is((select count(*)::integer from public.seller_profiles),2,'failed claims roll back inserted profiles');
 update public.seller_profiles set account_status='suspended' where username='rpc_owner';
 set local role authenticated;
-set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
+set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select is(public.get_my_profile_bundle()->>'account_status','suspended','suspended owner retains private bundle');
 select throws_ok($$select public.update_seller_profile(8,'{"bio":"changed"}')$$,'42501',null,'suspended profile content edit denied');
 select is((public.update_seller_profile(8,'{"is_public":false}')->>'is_public')::boolean,false,'suspended owner may turn privacy off');
@@ -106,7 +106,7 @@ select throws_ok($$update public.seller_profiles set bio='guard escape'$$,'42501
 reset role;
 -- Downgrade counts all pending+active rows under the prescribed lock order.
 set local role authenticated;
-set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}';
+set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","session_id":"00000000-0000-4000-8000-000000000002","amr":[{"method":"password","timestamp":1795000000}]}';
 select is(public.update_seller_profile(1,'{"account_type":"business"}')->>'account_type','business','owner may change account type');
 reset role;
 set constraints all deferred;

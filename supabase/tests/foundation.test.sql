@@ -120,7 +120,7 @@ select throws_ok('select * from private.rate_limit_windows','42501',null,'anonym
 select throws_ok($$insert into public.listings(seller_id,category) values('11111111-1111-4111-8111-111111111111','rackets')$$,'42501',null,'direct write denied');
 reset role;
 set local role authenticated;
-set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal1"}';
+set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal1","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 set local app.trusted_rpc='1';
 select throws_ok('select * from public.platform_settings','42501',null,'owner denied public.platform_settings');
 select throws_ok('select * from public.egypt_governorates','42501',null,'owner denied public.egypt_governorates');
@@ -144,7 +144,7 @@ select throws_ok('select * from private.rate_limit_windows','42501',null,'owner 
 select throws_ok($$insert into public.listings(seller_id,category) values('11111111-1111-4111-8111-111111111111','rackets')$$,'42501',null,'direct write denied');
 reset role;
 set local role authenticated;
-set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","aal":"aal2","user_metadata":{"role":"admin"}}';
+set local request.jwt.claims='{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","aal":"aal2","session_id":"00000000-0000-4000-8000-000000000002","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}],"user_metadata":{"role":"admin"}}';
 set local app.trusted_rpc='1';
 select throws_ok('select * from public.platform_settings','42501',null,'admin aal2 denied public.platform_settings');
 select throws_ok('select * from public.egypt_governorates','42501',null,'admin aal2 denied public.egypt_governorates');
