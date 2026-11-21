@@ -451,6 +451,119 @@ test.describe('local verified accounts', () => {
     await page.goto('/en/auth/callback?code=invalid&next=https://example.com');
     await expect(page).toHaveURL(/127\.0\.0\.1:3100\/en\/auth\/signin\?error=confirmation$/);
     await expect(page.locator('main').getByRole('alert')).toContainText('confirmation link');
+
+    // Password recovery end-to-end via local Mailpit: unknown email, valid reset, reuse rejection, old vs new password, profile preserved.
+    await page.goto('/en/auth/signin');
+    await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Forgot password?', exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/auth\/forgot-password$/);
+
+    // Unknown email returns the exact same generic confirmation without leaking account existence.
+    await page.getByLabel('Email address').fill(`nonexistent-${suffix}@example.test`);
+    await page.getByRole('button', { name: 'Send reset link', exact: true }).click();
+    await expect(page.getByRole('status')).toContainText('If an account exists');
+
+    // Known verified account requests password reset.
+    const beforeMessages = (await (await request.get('http://127.0.0.1:54324/api/v1/messages')).json()).messages ?? [];
+    const seenIds = new Set<string>(beforeMessages.map((m: { ID: string }) => m.ID));
+    await page.getByLabel('Email address').fill(email);
+    await page.getByRole('button', { name: 'Send reset link', exact: true }).click();
+    await expect(page.getByRole('status')).toContainText('If an account exists');
+
+    let recoveryMsgId: string | undefined;
+    await expect.poll(async () => {
+      const body = await (await request.get('http://127.0.0.1:54324/api/v1/messages')).json();
+      recoveryMsgId = body.messages?.find(
+        (m: { ID: string; To: { Address: string }[] }) =>
+          !seenIds.has(m.ID) && m.To.some((to) => to.Address === email),
+      )?.ID;
+      return !!recoveryMsgId;
+    }, { timeout: 20_000 }).toBe(true);
+    const recoveryMsg = await (await request.get(`http://127.0.0.1:54324/api/v1/message/${recoveryMsgId}`)).json();
+    const recoveryLink = (recoveryMsg.HTML || recoveryMsg.Text)
+      .match(/https?:\/\/[^\s"<>]+\/auth\/v1\/verify[^\s"<>]*/)?.[0]
+      ?.replaceAll('&amp;', '&');
+    if (!recoveryLink) throw new Error('Local recovery message has no verification link');
+
+    await page.goto(recoveryLink);
+    await expect(page).toHaveURL(/\/en\/auth\/reset-password$/);
+
+    // Mid-recovery session cannot access account pages, private photos, or photo upload APIs.
+    await page.goto('/en/account');
+    await expect(page).toHaveURL(/\/en\/auth\/signin$/);
+    await page.goto('/en/account/listings');
+    await expect(page).toHaveURL(/\/en\/auth\/signin$/);
+    expect((await page.request.get(imageUrl)).status()).toBe(404);
+    expect(
+      (
+        await page.request.post(`/api/listings/${listingId}/photos`, {
+          headers: { Origin: 'http://127.0.0.1:3100', 'X-Listing-Version': '1' },
+          data: source,
+        })
+      ).status(),
+    ).toBe(401);
+
+    // Simulating cookie expiry/removal and token refresh keeps the recovery boundary intact.
+    const recCookies = (await context.cookies()).filter((c) => /^sb-.*-auth-token(?:\.\d+)?$/.test(c.name));
+    await context.clearCookies();
+    if (recCookies.length > 0) {
+      const recSerialized = recCookies.sort((a, b) => a.name.localeCompare(b.name)).map((c) => c.value).join('');
+      const recSession = JSON.parse(Buffer.from(recSerialized.replace(/^base64-/, ''), 'base64url').toString());
+      recSession.expires_at = 1;
+      const recExpired = `base64-${Buffer.from(JSON.stringify(recSession)).toString('base64url')}`;
+      const recBaseName = recCookies[0].name.replace(/\.\d+$/, '');
+      const recChunks = recExpired.match(/.{1,3000}/g)!;
+      await context.addCookies(
+        recChunks.map((value, index) => ({
+          ...recCookies[0],
+          name: recChunks.length === 1 ? recBaseName : `${recBaseName}.${index}`,
+          value,
+        })),
+      );
+    }
+    await page.goto('/en/account');
+    await expect(page).toHaveURL(/\/en\/auth\/signin$/);
+    expect((await page.request.get(imageUrl)).status()).toBe(404);
+    expect(
+      (
+        await page.request.post(`/api/listings/${listingId}/photos`, {
+          headers: { Origin: 'http://127.0.0.1:3100', 'X-Listing-Version': '1' },
+          data: source,
+        })
+      ).status(),
+    ).toBe(401);
+    await page.goto('/en/auth/reset-password');
+
+    // Mismatched password confirmation is rejected safely.
+    const nextPassword = 'Reset-Local-Padel-942!';
+    await page.getByLabel('New password', { exact: true }).fill(nextPassword);
+    await page.getByLabel('Confirm new password', { exact: true }).fill('Different-Padel-942!');
+    await page.getByRole('button', { name: 'Update password', exact: true }).click();
+    await expect(page.getByText('Passwords do not match.')).toBeVisible();
+
+    // Valid password reset signs out globally and redirects to sign-in with confirmation banner.
+    await page.getByLabel('New password', { exact: true }).fill(nextPassword);
+    await page.getByLabel('Confirm new password', { exact: true }).fill(nextPassword);
+    await page.getByRole('button', { name: 'Update password', exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/auth\/signin\?reset=1$/);
+    await expect(page.getByRole('status')).toContainText('Your password has been updated');
+
+    // Reusing the same recovery link fails safely.
+    await page.goto(recoveryLink);
+    await expect(page).toHaveURL(/\/en\/auth\/reset-password\?error=invalid$/);
+    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+
+    // Old password no longer works; new password signs in and preserves existing seller profile.
+    await page.goto('/en/auth/signin');
+    await page.getByLabel('Email address').fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(page.getByText('Sign-in failed', { exact: false })).toBeVisible();
+
+    await page.getByLabel('Password', { exact: true }).fill(nextPassword);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/account$/);
+    await expect(page.getByLabel('Display name')).toHaveValue('Latest saved player');
   });
 });
 

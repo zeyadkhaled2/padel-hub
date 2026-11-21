@@ -4,7 +4,7 @@ begin;
 create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
-select plan(38);
+select plan(40);
 grant usage on schema extensions to anon,authenticated,service_role;
 
 insert into auth.users(id,email_confirmed_at) values
@@ -107,6 +107,12 @@ select throws_ok($$select public.admin_dashboard_overview()$$,'42501',null,'norm
 
 set local request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal1","session_id":"00000000-0000-4000-8000-00000000000a","amr":[{"method":"password","timestamp":1795000000}]}';
 select throws_ok($$select public.admin_dashboard_overview()$$,'42501',null,'admin without MFA (aal1) denied');
+
+set local request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal2","session_id":"00000000-0000-4000-8000-000000000099","amr":[{"method":"otp","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';
+select throws_ok($$select public.admin_dashboard_overview()$$,'42501',null,'admin MFA-elevated recovery session denied');
+
+set local request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal2"}';
+select throws_ok($$select public.admin_dashboard_overview()$$,'42501',null,'admin JWT missing session_id and amr fails closed');
 
 -- 4. Active admin with aal2 receives exact DB-derived KPIs, needs_attention, trends, and safe activity (26 assertions)
 set local request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal2","session_id":"00000000-0000-4000-8000-00000000000a","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';

@@ -130,3 +130,55 @@ test('interactive inspection showcase and FAQ sections work in both locales', as
     }),
   ).toBeVisible();
 });
+
+test('auth recovery and OAuth callback routes fail closed and fit EN/AR narrow themes', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(60_000);
+  // OAuth cancellation and error callbacks redirect to fixed sign-in notices without reflecting raw descriptions.
+  const cancelled = await request.get(
+    '/en/auth/callback?error=access_denied&error_description=InjectedText&next=https://evil.example',
+    { maxRedirects: 0 },
+  );
+  expect([302, 307]).toContain(cancelled.status());
+  expect(cancelled.headers()['location']).toMatch(/\/en\/auth\/signin\?error=oauth_cancelled$/);
+  expect(cancelled.headers()['cache-control']).toContain('no-store');
+  expect(cancelled.headers()['referrer-policy']).toBe('no-referrer');
+
+  const badRecovery = await request.get(
+    '/ar/auth/recovery?token_hash=invalid_hash&type=recovery&next=https://evil.example',
+    { maxRedirects: 0 },
+  );
+  expect([302, 307]).toContain(badRecovery.status());
+  expect(badRecovery.headers()['location']).toMatch(/\/ar\/auth\/reset-password\?error=invalid$/);
+  expect(badRecovery.headers()['cache-control']).toContain('no-store');
+  expect(badRecovery.headers()['referrer-policy']).toBe('no-referrer');
+
+  // Direct visit to reset-password without a verified recovery session never shows password inputs or account data.
+  for (const locale of ['en', 'ar']) {
+    const res = await page.goto(`/${locale}/auth/reset-password`);
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+    await expect(page.locator('main')).not.toContainText('InjectedText');
+  }
+
+  // Narrow-viewport EN/AR light/dark check on forgot-password.
+  await page.setViewportSize({ width: 320, height: 780 });
+  for (const locale of ['en', 'ar']) {
+    await page.goto(`/${locale}/auth/forgot-password`);
+    const themeSelect = page.getByRole('combobox', {
+      name: locale === 'en' ? 'Color theme' : 'مظهر الموقع',
+    });
+    for (const theme of ['light', 'dark']) {
+      await themeSelect.selectOption(theme);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+    }
+  }
+});

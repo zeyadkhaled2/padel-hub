@@ -1,6 +1,6 @@
 # Local accounts and profiles
 
-This is a local integration, separate from demo inventory. It supports email signup and confirmation, password sign-in, sign-out, server-verified sessions, private profile creation, profile edits, username changes and explicit WhatsApp consent. Google OAuth, password recovery and public storefront pages are unfinished. Listing drafts, buyer browsing and admin review are implemented locally; see ADMIN_REVIEW.md. Equipment photo upload/preview now works; see PHOTOS.md and use scripts/local-app.mjs to enable its server-only Storage access. Do not use this setup for production accounts.
+This is a local integration, separate from demo inventory. It supports email signup and confirmation, password sign-in, forgot-password/reset-password recovery (`/auth/forgot-password`, `/auth/recovery`, `/auth/reset-password`), Continue with Google initiation/callback (when the Supabase Google provider is configured), sign-out, server-verified sessions, private profile creation, profile edits, fixed usernames, and explicit WhatsApp consent. Listing drafts, buyer browsing, public `/@username` profiles, QR codes, reports, analytics, and admin review are implemented locally; see [ADMIN_REVIEW.md](ADMIN_REVIEW.md) and [AUTH_DEPLOYMENT_RUNBOOK.md](AUTH_DEPLOYMENT_RUNBOOK.md). Equipment photo upload/preview works; see [PHOTOS.md](PHOTOS.md) and use `scripts/local-app.mjs` to enable its server-only Storage access. Do not use this setup for production accounts.
 
 ## Run
 

@@ -54,7 +54,7 @@ select throws_ok(
 );
 
 -- 5. Verified owner profile, contact, listing draft, and owner list succeed without auth schema USAGE.
-set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select is(
  (public.create_seller_profile('hosted_seller', 'Hosted Seller', 'cairo'))->>'username',
  'hosted_seller',
@@ -87,14 +87,14 @@ create temp table hosted_fixture as select test_fixtures.listing('11111111-1111-
 grant select on hosted_fixture to authenticated;
 
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal1"}';
+set local request.jwt.claims = '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal1","session_id":"00000000-0000-4000-8000-00000000000a","amr":[{"method":"password","timestamp":1795000000}]}';
 select is(
  public.get_my_admin_access(),
  '{"is_admin":true,"mfa_verified":false}'::jsonb,
  'aal1 admin access reports mfa_verified=false without writer auth schema USAGE'
 );
 
-set local request.jwt.claims = '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal2"}';
+set local request.jwt.claims = '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal2","session_id":"00000000-0000-4000-8000-00000000000a","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';
 select is(
  public.get_my_admin_access(),
  '{"is_admin":true,"mfa_verified":true}'::jsonb,
@@ -119,7 +119,7 @@ select is(
 );
 
 -- 7. Another verified user can report the active listing without writer auth schema USAGE.
-set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","session_id":"00000000-0000-4000-8000-000000000003","amr":[{"method":"password","timestamp":1795000000}]}';
 select lives_ok(
  $$select public.report_content('listing', (select id from hosted_fixture), 'spam', 'Synthetic hosted test report')$$,
  'report_content works without writer auth schema USAGE'
