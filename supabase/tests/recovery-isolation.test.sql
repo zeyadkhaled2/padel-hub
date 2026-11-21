@@ -5,18 +5,21 @@ begin;
 create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
-select plan(34);
+select plan(45);
 grant usage on schema extensions to authenticated,anon,service_role;
 
 insert into auth.users(id, email_confirmed_at, recovery_sent_at) values
  ('11111111-1111-4111-8111-111111111111', now(), now()),
  ('22222222-2222-4222-8222-222222222222', now(), null),
+ ('33333333-3333-4333-8333-333333333333', now(), null),
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', now(), now());
 
 insert into auth.sessions(id, user_id, created_at) values
  ('10000000-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', now()),
  ('20000000-0000-4000-8000-000000000002', '22222222-2222-4222-8222-222222222222', now()),
  ('20000000-0000-4000-8000-000000000003', '22222222-2222-4222-8222-222222222222', now()),
+ ('30000000-0000-4000-8000-000000000001', '33333333-3333-4333-8333-333333333333', now()),
+ ('30000000-0000-4000-8000-000000000002', '33333333-3333-4333-8333-333333333333', now()),
  ('a0000000-0000-4000-8000-00000000000a', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', now());
 
 insert into private.admin_roles(user_id, role) values
@@ -112,6 +115,46 @@ delete from auth.sessions where id = '20000000-0000-4000-8000-000000000002';
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","aal":"aal1","session_id":"20000000-0000-4000-8000-000000000002","amr":[{"method":"otp","timestamp":1795000000}]}';
 select is(public.is_my_account_session_active(), false, 'deleted signup session becomes inactive immediately');
+
+-- 7. GoTrue PKCE email/signup AMR fails closed unless allowlisted, rejects mixed/recovery claims, and revokes on logout (11 assertions)
+set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","aal":"aal1","session_id":"30000000-0000-4000-8000-000000000001","amr":[{"method":"email/signup","timestamp":1795000000}]}';
+select is(public.is_my_account_session_active(), false, 'unapproved pkce email/signup session reports inactive');
+select throws_ok($$select public.get_my_profile_bundle()$$, '42501', 'Verified account required', 'unapproved pkce email/signup session denied');
+
+set local request.jwt.claims = '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","aal":"aal2","session_id":"a0000000-0000-4000-8000-00000000000a","amr":[{"method":"email/signup","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';
+select throws_ok($$select public.get_my_admin_access()$$, '42501', 'Verified account required', 'unapproved aal2 email/signup+totp admin denied');
+
+set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","aal":"aal1","session_id":"10000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000},{"method":"email/signup","timestamp":1795000001}]}';
+select throws_ok($$select public.get_my_profile_bundle()$$, '42501', 'Verified account required', 'mixed password+email/signup amr denied');
+
+set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","aal":"aal1","session_id":"30000000-0000-4000-8000-000000000001","amr":[{"method":"email/signup","timestamp":1795000000},{"method":"otp","timestamp":1795000001}]}';
+select throws_ok($$select public.get_my_profile_bundle()$$, '42501', 'Verified account required', 'mixed email/signup+otp amr denied');
+
+reset role;
+set local role service_role;
+select is(
+ public.approve_signup_confirmation_session('30000000-0000-4000-8000-000000000001', '33333333-3333-4333-8333-333333333333'),
+ true,
+ 'signup approval registers initial pkce email/signup session once'
+);
+
+reset role;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","aal":"aal1","session_id":"30000000-0000-4000-8000-000000000001","amr":[{"method":"email/signup","timestamp":1795000000}]}';
+select is(public.is_my_account_session_active(), true, 'approved pkce email/signup session is active');
+select lives_ok($$select public.get_my_profile_bundle()$$, 'approved pkce email/signup session can call get_my_profile_bundle');
+
+set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","aal":"aal1","session_id":"30000000-0000-4000-8000-000000000001","amr":[{"method":"email/signup","timestamp":1795000000},{"method":"recovery","timestamp":1795000001}]}';
+select throws_ok($$select public.get_my_profile_bundle()$$, '42501', 'Verified account required', 'mixed email/signup+recovery amr denied even for approved session');
+
+set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","aal":"aal1","session_id":"30000000-0000-4000-8000-000000000002","amr":[{"method":"email/signup","timestamp":1795000000}]}';
+select throws_ok($$select public.get_my_profile_bundle()$$, '42501', 'Verified account required', 'unapproved second pkce email/signup session for same user is denied');
+
+reset role;
+delete from auth.sessions where id = '30000000-0000-4000-8000-000000000001';
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","aal":"aal1","session_id":"30000000-0000-4000-8000-000000000001","amr":[{"method":"email/signup","timestamp":1795000000}]}';
+select is(public.is_my_account_session_active(), false, 'deleted pkce email/signup session becomes inactive immediately');
 
 select * from finish();
 rollback;

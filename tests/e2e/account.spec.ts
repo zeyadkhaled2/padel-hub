@@ -447,6 +447,7 @@ test.describe('local verified accounts', () => {
     await expect(forgedPage).toHaveURL(/\/en\/auth\/signin$/);
     await forged.close();
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/auth\/signin$/);
     // Confirmation is one-time; no arbitrary next URL may influence the callback.
     await page.goto('/en/auth/callback?code=invalid&next=https://example.com');
     await expect(page).toHaveURL(/127\.0\.0\.1:3100\/en\/auth\/signin\?error=confirmation$/);
@@ -548,9 +549,9 @@ test.describe('local verified accounts', () => {
     await expect(page).toHaveURL(/\/en\/auth\/signin\?reset=1$/);
     await expect(page.getByRole('status')).toContainText('Your password has been updated');
 
-    // Reusing the same recovery link fails safely.
+    // Reusing the same recovery link fails safely (browser preserves GoTrue's #error fragment across redirect).
     await page.goto(recoveryLink);
-    await expect(page).toHaveURL(/\/en\/auth\/reset-password\?error=invalid$/);
+    await expect(page).toHaveURL(/\/en\/auth\/reset-password\?error=invalid(?:#.*)?$/);
     await expect(page.locator('input[type="password"]')).toHaveCount(0);
 
     // Old password no longer works; new password signs in and preserves existing seller profile.

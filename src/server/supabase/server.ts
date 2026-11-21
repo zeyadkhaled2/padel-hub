@@ -1,7 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { classifySessionAmr } from '@/features/auth/validation';
+import { classifySessionAmr, isSignupSessionCandidate } from '@/features/auth/validation';
 import { authConfig } from './config';
 
 export async function serverClient() {
@@ -38,7 +38,7 @@ export async function verifiedUserClient() {
     return { client, user: data.user };
   }
 
-  if (amrClass === 'otp_signup_candidate') {
+  if (isSignupSessionCandidate(amrClass)) {
     const active = await client.rpc('is_my_account_session_active');
     if (!active.error && active.data === true) {
       return { client, user: data.user };

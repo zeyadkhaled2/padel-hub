@@ -147,7 +147,7 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     expect((await sellerPage.request.get(`/api/contact/${id}`,{maxRedirects:0})).status()).toBe(302);
     expect(await rpc('get_listing_metrics')).not.toHaveProperty('contacts');
     await page.goto('/en/admin');
-    await expect(page.getByText('WhatsApp clicks',{exact:true})).toBeVisible();
+    await expect(page.getByRole('main').getByText('WhatsApp clicks',{exact:true})).toBeVisible();
     await expect(page.getByRole('list',{name:'Daily engagement (last 7 UTC days)'}).getByRole('listitem')).toHaveCount(7);
     await expect(activityList).toContainText('Approved listing');
     expect(await page.content()).not.toContain('+201000000001');
