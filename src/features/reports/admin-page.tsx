@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { requireAdminAccess } from '@/features/admin/server';
+import { AdminShell } from '@/features/admin/shell';
 import { Link } from '@/i18n/navigation';
 import { PAGE_SIZE } from '@/lib/domain/equipment';
 import { parsePageParam } from '@/lib/validation/shared';
@@ -35,49 +36,72 @@ export default async function ReportsPage({
   const reportsPage = result.error ? null : parseAdminReportsPage(result.data);
 
   return (
-    <main id="main" className="container account-page">
-      <Link href="/admin">{t('admin')}</Link>
-      <h1>{t('queue')}</h1>
-      {query.done === '1' && <p role="status">{t('resolved')}</p>}
-      {!reportsPage ? (
-        <p role="alert">{t('unavailable')}</p>
-      ) : (
-        <>
-          <p>{t('count', { count: reportsPage.total })}</p>
-          {reportsPage.items.map((item) => (
-            <section key={item.id} className="disclosure">
-              <h2>
-                <bdi>{item.title || `@${item.username}`}</bdi>
-              </h2>
-              <p>{t(item.reason_code)}</p>
-              <p className="user-copy">{item.details}</p>
-              <Link
-                href={
-                  item.target_type === 'listing'
-                    ? `/equipment/${item.listing_id}`
-                    : `/@${item.username}`
-                }
-                target="_blank"
-                rel="noreferrer"
-              >
-                {t('view')}
-              </Link>
-              <ResolveForm
-                id={item.id}
-                version={item.version}
-                targetVersion={item.target_version}
-                type={item.target_type}
-              />
-            </section>
-          ))}
-          <nav aria-label={t('pages')}>
-            {page > 1 && <Link href={`/admin/reports?page=${page - 1}`}>{t('previous')}</Link>}{' '}
-            {page * PAGE_SIZE < reportsPage.total && (
-              <Link href={`/admin/reports?page=${page + 1}`}>{t('next')}</Link>
+    <AdminShell active="reports" openReportsCount={reportsPage?.total}>
+      <div className="admin-subpage">
+        <Link href="/admin" className="text-link">
+          {t('admin')}
+        </Link>
+        <h1>{t('queue')}</h1>
+        {query.done === '1' && (
+          <p role="status" className="admin-status-banner">
+            {t('resolved')}
+          </p>
+        )}
+        {!reportsPage ? (
+          <p role="alert" className="admin-alert">
+            {t('unavailable')}
+          </p>
+        ) : (
+          <>
+            <p className="field-hint">{t('count', { count: reportsPage.total })}</p>
+            {reportsPage.items.length === 0 ? (
+              <p className="admin-empty-state">{t('empty')}</p>
+            ) : (
+              reportsPage.items.map((item) => (
+                <section key={item.id} className="disclosure">
+                  <h2>
+                    <bdi>{item.title || `@${item.username}`}</bdi>
+                  </h2>
+                  <p>{t(item.reason_code)}</p>
+                  <p className="user-copy">{item.details}</p>
+                  <Link
+                    href={
+                      item.target_type === 'listing'
+                        ? `/equipment/${item.listing_id}`
+                        : `/@${item.username}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-link"
+                  >
+                    {t('view')}
+                  </Link>
+                  <ResolveForm
+                    id={item.id}
+                    version={item.version}
+                    targetVersion={item.target_version}
+                    type={item.target_type}
+                  />
+                </section>
+              ))
             )}
-          </nav>
-        </>
-      )}
-    </main>
+            {(page > 1 || page * PAGE_SIZE < reportsPage.total) && (
+              <nav className="admin-pagination" aria-label={t('pages')}>
+                {page > 1 && (
+                  <Link href={`/admin/reports?page=${page - 1}`} className="admin-page-link">
+                    {t('previous')}
+                  </Link>
+                )}
+                {page * PAGE_SIZE < reportsPage.total && (
+                  <Link href={`/admin/reports?page=${page + 1}`} className="admin-page-link">
+                    {t('next')}
+                  </Link>
+                )}
+              </nav>
+            )}
+          </>
+        )}
+      </div>
+    </AdminShell>
   );
 }

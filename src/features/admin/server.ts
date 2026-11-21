@@ -3,9 +3,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { notFound, redirect } from 'next/navigation';
 import { localeValue } from '@/features/auth/types';
 import { verifiedClient } from '@/server/supabase/server';
-import type { AdminAccess, PendingListingsPage, ReviewSnapshot } from './types';
+import type {
+  AdminAccess,
+  AdminDashboardOverview,
+  PendingListingsPage,
+  ReviewSnapshot,
+} from './types';
 import {
   parseAdminAccess,
+  parseAdminDashboardOverview,
   parsePendingListingsPage,
   parseReviewSnapshot,
 } from './validation';
@@ -31,6 +37,16 @@ export async function requireAdminAccess(
   if (options.requireMfa && !access.mfa_verified) redirect(`/${safeLocale}/admin`);
 
   return { status: 'ok', client, access };
+}
+
+export async function fetchAdminOverview(
+  client: SupabaseClient,
+): Promise<{ overview: AdminDashboardOverview | null; error: boolean }> {
+  const { data, error } = await client.rpc('admin_dashboard_overview');
+  if (error) return { overview: null, error: true };
+  const parsed = parseAdminDashboardOverview(data);
+  if (!parsed) return { overview: null, error: true };
+  return { overview: parsed, error: false };
 }
 
 export async function fetchPendingListings(

@@ -31,10 +31,13 @@ Updated 2026-11-21. Earlier day estimates were not measured and are withdrawn. T
 
 - **Phase 2A — Isolated hosted Supabase staging:** provisioned `padelhub-staging` (`eu-central-1`, Free plan, \$0/mo), added forward-only migration `019` (`hosted_auth_claim_helpers`), verified all 19 migrations, email-confirmation enforcement, TOTP MFA (`aal2`) + immediate revocation, private Storage/EXIF/hash-verified delivery, RLS isolation, EN/AR desktop & mobile smoke checks, fail-closed server env hardening, `.env.example`, and deployment/rollback runbooks (`docs/STAGING_SETUP.md`, `docs/STAGING_READINESS_REPORT.md`).
 
+- **Phase Admin A — Overview Dashboard:** reusable `AdminShell` navigation (Overview, Listings, Reports live; Sellers, Analytics, Audit log, Settings, Operations labeled Planned), MFA-enforced `admin_dashboard_overview()` RPC (migration `023`), 11 live DB-derived KPIs (including seller-reported sold/traded and caveated WhatsApp clicks), Needs Attention queue highlights, genuine 7-day/30-day UTC trends and 7-day daily engagement breakdown, and privacy-safe recent audit activity feed across EN/AR, RTL, light/dark, and mobile/desktop layouts.
+
 ## Remaining, in order
-1. **Phase 2B — External transactional email & auth recovery:** Resend custom SMTP on staging, verified external email delivery, password recovery UI, and Google login.
-2. **Phase 2C/2D — Production readiness:** account deletion flows, MFA recovery procedures, rate-limiting/abuse review, automated DB + separate private media backups, restore drill, monitoring, and final accessibility/privacy/security checks. Configurable-limit screens remain optional for launch.
-3. **Hosted pilot:** user-approved production hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness; recruit 5–10 willing sellers with permissioned inventory.
+1. **Phase 2B — External transactional email & auth recovery:** Resend custom SMTP on staging, verified external email delivery, password recovery UI, and Google login (PR #4 open).
+2. **Phases Admin B–F — Full Admin Dashboard sequence:** Complete Listing Management (B), Seller Management (C), Reports/Moderation Enhancements (D), Analytics & Audit Log (E), Settings & Operations (F), one independently reviewed PR per phase.
+3. **Phase 2C/2D — Production readiness:** account deletion flows, MFA recovery procedures, rate-limiting/abuse review, automated DB + separate private media backups, restore drill, monitoring, and final accessibility/privacy/security checks.
+4. **Hosted pilot:** user-approved production hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness; recruit 5–10 willing sellers with permissioned inventory.
 
 **Frontend on hold:** Ziad is working on `v2`. Review/integration and admin visual refinement wait until he explicitly says it is ready. This does not block independent functional work.
 

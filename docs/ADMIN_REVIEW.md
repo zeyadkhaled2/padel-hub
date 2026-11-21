@@ -14,6 +14,7 @@ TOTP is enabled in local `supabase/config.toml` and the running Auth container. 
 
 ## Existing contracts
 - `get_my_admin_access()`: current verified account's role/MFA flags only.
+- `admin_dashboard_overview()`: aggregated, MFA-enforced (`aal2` + active `private.admin_roles`) overview KPIs, needs-attention summary, 7-day/30-day UTC trends, daily engagement counters, and up to 12 privacy-safe recent listing/moderation audit entries (column-level `SELECT` on `private.audit_logs` excluding `actor_user_id`, `before_state`, and `after_state`).
 - `admin_pending_listings(page)`: 24 pending summaries, oldest first, total count.
 - `admin_get_listing_review(id)`: exact listing/profile versions and media manifest for decisions.
 - `admin_approve_listing` / `admin_reject_listing`: existing transactional decisions; never replace the reviewed snapshot with a freshly fetched one when submitting.

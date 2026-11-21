@@ -1,19 +1,140 @@
 /* eslint-disable @next/next/no-img-element -- Review photos bypass the shared image optimizer. */
+import { Suspense } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { AnalyticsSummary } from '@/features/analytics/summary';
 import { Link } from '@/i18n/navigation';
 import { PAGE_SIZE } from '@/lib/domain/equipment';
 import { parsePageParam, uuidSchema } from '@/lib/validation/shared';
 import { decideListing } from './actions';
 import { MfaForm, ReviewForm } from './forms';
+import { AdminOverviewDashboard, RecentActivitySection } from './overview-sections';
 import {
+  fetchAdminOverview,
   fetchListingReviewSnapshot,
   fetchPendingListings,
   requireAdminAccess,
 } from './server';
+import { AdminShell } from './shell';
 import type { ReviewDecisionState } from './types';
 import { getReviewListingDisplayRows } from './validation';
+
+function AdminOverviewFallback({ label }: { label: string }) {
+  return (
+    <main id="main" className="container admin-loading" aria-busy="true">
+      <p className="field-hint">{label}</p>
+      <div className="admin-skeleton-grid" aria-hidden="true">
+        <div className="admin-skeleton-card" />
+        <div className="admin-skeleton-card" />
+        <div className="admin-skeleton-card" />
+        <div className="admin-skeleton-card" />
+      </div>
+    </main>
+  );
+}
+
+async function AdminOverviewContent({
+  client,
+  current,
+  done,
+}: {
+  client: SupabaseClient;
+  current: number;
+  done?: string;
+}) {
+  const t = await getTranslations('admin');
+  const [overviewResult, pending] = await Promise.all([
+    fetchAdminOverview(client),
+    fetchPendingListings(client, current),
+  ]);
+
+  const overview = overviewResult.overview;
+  const pendingCount = overview?.needs_attention.pending_listings ?? pending.page?.total;
+  const openReportsCount = overview?.needs_attention.open_reports;
+
+  return (
+    <AdminShell
+      active="overview"
+      pendingCount={pendingCount}
+      openReportsCount={openReportsCount}
+    >
+      <header className="admin-page-header">
+        <div>
+          <h1>{t('overview.title')}</h1>
+          <p className="field-hint">{t('overview.subtitle')}</p>
+        </div>
+      </header>
+
+      {['approve', 'reject'].includes(done ?? '') && (
+        <p role="status" className="admin-status-banner">
+          {t('saved')}
+        </p>
+      )}
+
+      {overviewResult.error || !overview ? (
+        <p role="alert" className="admin-alert">
+          {t('overview.overviewUnavailable')}
+        </p>
+      ) : (
+        <AdminOverviewDashboard overview={overview} />
+      )}
+
+      <section
+        id="pending-queue"
+        className="admin-section"
+        aria-labelledby="admin-pending-heading"
+      >
+        <div className="admin-section-head">
+          <div>
+            <h2 id="admin-pending-heading">{t('queue')}</h2>
+            {pending.page && (
+              <p className="field-hint">{t('count', { count: pending.page.total })}</p>
+            )}
+          </div>
+        </div>
+
+        {pending.error || !pending.page ? (
+          <p role="alert" className="admin-alert">
+            {t('unavailable')}
+          </p>
+        ) : pending.page.total === 0 ? (
+          <p className="admin-empty-state">{t('overview.pendingEmpty')}</p>
+        ) : (
+          <>
+            <ul className="admin-queue">
+              {pending.page.items.map((item) => (
+                <li key={item.id}>
+                  <Link href={`/admin/listings/${item.id}`} prefetch={false}>
+                    <bdi>{item.title || t('overview.untitledListing')}</bdi>
+                  </Link>
+                  <span className="admin-queue-seller">
+                    <bdi>{item.display_name}</bdi>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {(current > 1 || current * PAGE_SIZE < pending.page.total) && (
+              <nav className="admin-pagination" aria-label={t('pages')}>
+                {current > 1 && (
+                  <Link href={`/admin?page=${current - 1}#pending-queue`} className="admin-page-link">
+                    {t('previous')}
+                  </Link>
+                )}
+                {current * PAGE_SIZE < pending.page.total && (
+                  <Link href={`/admin?page=${current + 1}#pending-queue`} className="admin-page-link">
+                    {t('next')}
+                  </Link>
+                )}
+              </nav>
+            )}
+          </>
+        )}
+      </section>
+
+      {overview && <RecentActivitySection items={overview.recent_activity} />}
+    </AdminShell>
+  );
+}
 
 export async function AdminPage({
   params,
@@ -53,42 +174,11 @@ export async function AdminPage({
 
   const parsedPage = parsePageParam(query.page);
   const current = parsedPage.ok ? parsedPage.page : 1;
-  const pending = await fetchPendingListings(gate.client, current);
-  const reports = await getTranslations('reports');
 
   return (
-    <main id="main" className="container account-page">
-      <Link href="/account">{t('account')}</Link>
-      <h1>{t('queue')}</h1>
-      <Link href="/admin/reports">{reports('queue')}</Link>
-      <AnalyticsSummary admin />
-      {['approve', 'reject'].includes(query.done ?? '') && <p role="status">{t('saved')}</p>}
-      {pending.error || !pending.page ? (
-        <p role="alert">{t('unavailable')}</p>
-      ) : (
-        <>
-          <p>{t('count', { count: pending.page.total })}</p>
-          <ul className="admin-queue">
-            {pending.page.items.map((item) => (
-              <li key={item.id}>
-                <Link href={`/admin/listings/${item.id}`} prefetch={false}>
-                  <bdi>{item.title}</bdi>
-                </Link>
-                <span>
-                  <bdi>{item.display_name}</bdi>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <nav className="category-links" aria-label={t('pages')}>
-            {current > 1 && <Link href={`/admin?page=${current - 1}`}>{t('previous')}</Link>}
-            {current * PAGE_SIZE < pending.page.total && (
-              <Link href={`/admin?page=${current + 1}`}>{t('next')}</Link>
-            )}
-          </nav>
-        </>
-      )}
-    </main>
+    <Suspense fallback={<AdminOverviewFallback label={t('overview.loading')} />}>
+      <AdminOverviewContent client={gate.client} current={current} done={query.done} />
+    </Suspense>
   );
 }
 
@@ -115,10 +205,14 @@ export async function AdminReviewPage({
   const { snapshot, error } = await fetchListingReviewSnapshot(gate.client, id);
   if (error || !snapshot) {
     return (
-      <main id="main" className="container account-page">
-        <p role="alert">{t('unavailable')}</p>
-        <Link href="/admin">{t('queue')}</Link>
-      </main>
+      <AdminShell active="listings">
+        <p role="alert" className="admin-alert">
+          {t('unavailable')}
+        </p>
+        <Link href="/admin" className="text-link">
+          {t('queue')}
+        </Link>
+      </AdminShell>
     );
   }
 
@@ -132,67 +226,71 @@ export async function AdminReviewPage({
   const detailRows = getReviewListingDisplayRows(snapshot.listing);
 
   return (
-    <main id="main" className="container account-page">
-      <Link href="/admin">{t('queue')}</Link>
-      <h1>{t('review')}</h1>
-      <p className="form-notice">{t('reviewHint')}</p>
-      <p>
-        <bdi>
-          {snapshot.profile.display_name} · @{snapshot.profile.username}
-        </bdi>
-      </p>
-      <p>
-        {t('eligibility', {
-          visibility: snapshot.profile.is_public ? t('yes') : t('no'),
-          contact:
-            snapshot.profile.public_contact_consent && snapshot.profile.has_contact
-              ? t('yes')
-              : t('no'),
-          status: snapshot.profile.account_status,
-        })}
-      </p>
-      <dl className="review-details">
-        {detailRows.map(({ key, value }) => (
-          <div key={key}>
-            <dt>{e.has(key) ? e(key) : t(key)}</dt>
-            <dd>
-              <bdi>
-                {key === 'racket_shape'
-                  ? e(`shapes.${String(value)}`)
-                  : typeof value === 'boolean'
-                    ? t(value ? 'yes' : 'no')
-                    : String(value)}
-              </bdi>
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {snapshot.listing.status === 'pending' ? (
-        <>
-          <div className="photo-grid">
-            {snapshot.media_manifest.map((item, index) => (
-              <figure key={item.media_id}>
-                <a
-                  href={`/api/admin/listings/${id}/photos/${item.media_id}?variant=full`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <img
-                    src={`/api/admin/listings/${id}/photos/${item.media_id}`}
-                    alt={t('photo', { number: index + 1 })}
-                    width={640}
-                    height={480}
-                  />
-                </a>
-                <figcaption>{t('photo', { number: index + 1 })}</figcaption>
-              </figure>
-            ))}
-          </div>
-          <ReviewForm action={submitReview} />
-        </>
-      ) : (
-        <p role="status">{t('notPending')}</p>
-      )}
-    </main>
+    <AdminShell active="listings">
+      <div className="admin-subpage">
+        <Link href="/admin" className="text-link">
+          {t('queue')}
+        </Link>
+        <h1>{t('review')}</h1>
+        <p className="form-notice">{t('reviewHint')}</p>
+        <p>
+          <bdi>
+            {snapshot.profile.display_name} · @{snapshot.profile.username}
+          </bdi>
+        </p>
+        <p className="field-hint">
+          {t('eligibility', {
+            visibility: snapshot.profile.is_public ? t('yes') : t('no'),
+            contact:
+              snapshot.profile.public_contact_consent && snapshot.profile.has_contact
+                ? t('yes')
+                : t('no'),
+            status: snapshot.profile.account_status,
+          })}
+        </p>
+        <dl className="review-details">
+          {detailRows.map(({ key, value }) => (
+            <div key={key}>
+              <dt>{e.has(key) ? e(key) : t(key)}</dt>
+              <dd>
+                <bdi>
+                  {key === 'racket_shape'
+                    ? e(`shapes.${String(value)}`)
+                    : typeof value === 'boolean'
+                      ? t(value ? 'yes' : 'no')
+                      : String(value)}
+                </bdi>
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {snapshot.listing.status === 'pending' ? (
+          <>
+            <div className="photo-grid">
+              {snapshot.media_manifest.map((item, index) => (
+                <figure key={item.media_id}>
+                  <a
+                    href={`/api/admin/listings/${id}/photos/${item.media_id}?variant=full`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <img
+                      src={`/api/admin/listings/${id}/photos/${item.media_id}`}
+                      alt={t('photo', { number: index + 1 })}
+                      width={640}
+                      height={480}
+                    />
+                  </a>
+                  <figcaption>{t('photo', { number: index + 1 })}</figcaption>
+                </figure>
+              ))}
+            </div>
+            <ReviewForm action={submitReview} />
+          </>
+        ) : (
+          <p role="status">{t('notPending')}</p>
+        )}
+      </div>
+    </AdminShell>
   );
 }

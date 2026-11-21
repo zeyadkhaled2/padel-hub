@@ -75,7 +75,26 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await page.getByRole('button',{name:'Verify code'}).click();
     await expect(page.locator('main').getByRole('alert')).toContainText('could not be verified');
     await page.getByLabel('Authenticator code').fill(totp(secret));await page.getByRole('button',{name:'Verify code'}).click();
+    await expect(page.getByRole('heading',{name:'Admin overview'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Needs attention'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Marketplace overview'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Marketplace trends'})).toBeVisible();
     await expect(page.getByRole('heading',{name:'Review listings'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Recent activity'})).toBeVisible();
+    const activityList=page.getByRole('region',{name:'Recent activity'}).getByRole('list');
+    await expect(activityList).toContainText('Submitted listing for review');
+    const adminNav=page.getByRole('navigation',{name:'Admin navigation'});
+    await expect(adminNav.getByRole('link',{name:'Overview'})).toBeVisible();
+    await expect(adminNav.getByRole('link',{name:/Listings/})).toBeVisible();
+    await expect(adminNav.getByRole('link',{name:/Reports/})).toBeVisible();
+    await expect(adminNav.locator('.admin-nav-planned')).toHaveCount(5);
+    await expect(adminNav.locator('.admin-nav-planned a')).toHaveCount(0);
+    for(const kpiLabel of ['Total seller profiles','Active sellers','Suspended sellers','Total listings','Active listings','Pending listings','Rejected listings','Sold or traded (seller-reported)','Open reports','Approximate views','WhatsApp clicks']) {
+      await expect(page.locator('.admin-kpi-card .admin-kpi-label',{hasText:kpiLabel}).first()).toBeVisible();
+    }
+    const overviewHtml=await page.content();
+    expect(overviewHtml).not.toContain('+201000000001');
+    expect(overviewHtml).not.toContain(`processed/${asset}/`);
     await page.getByRole('link',{name:`Admin test balls ${suffix}`,exact:true}).click();
     await expect(page.getByRole('heading',{name:'Review listing',exact:true})).toBeVisible();
     expect(await page.content()).not.toContain(`processed/${asset}/`);
@@ -87,7 +106,9 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
         for(const view of ['queue','review']) {
           await page.goto(view==='queue'?`/${locale}/admin`:`/${locale}/admin/listings/${id}`);
           await page.getByRole('combobox',{name:locale==='en'?'Color theme':'مظهر الموقع'}).selectOption(theme);
+          expect(await page.evaluate(()=>document.documentElement.dir)).toBe(locale==='ar'?'rtl':'ltr');
           expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+          if(view==='queue' && ((width===390&&locale==='ar'&&theme==='dark')||(width===1440&&locale==='en'&&theme==='light')))await page.screenshot({path:`.cache/admin-overview-${locale}-${theme}.png`,fullPage:true});
           if(view==='review' && ((width===390&&locale==='ar'&&theme==='dark')||(width===1440&&locale==='en'&&theme==='light')))await page.screenshot({path:`.cache/admin-review-${locale}-${theme}.png`,fullPage:true});
         }
       }
@@ -127,6 +148,9 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     expect(await rpc('get_listing_metrics')).not.toHaveProperty('contacts');
     await page.goto('/en/admin');
     await expect(page.getByText('WhatsApp clicks',{exact:true})).toBeVisible();
+    await expect(page.getByRole('list',{name:'Daily engagement (last 7 UTC days)'}).getByRole('listitem')).toHaveCount(7);
+    await expect(activityList).toContainText('Approved listing');
+    expect(await page.content()).not.toContain('+201000000001');
     expect((await rpc('get_listing_metrics')).views).toBe(1);
     await sellerPage.goto('/en/account/listings');
     await expect(sellerPage.getByRole('heading',{name:'Listing activity'})).toBeVisible();
@@ -180,6 +204,11 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await profileReport.getByRole('button',{name:'Suspend profile',exact:true}).click();
     await expect(page.getByRole('status')).toContainText('Report resolved');
     expect((await sellerPage.request.get(`/en/@a_${suffix}`)).status()).toBe(404);
+    await page.goto('/en/admin');
+    await expect(activityList).toContainText('Suspended reported seller');
+    await expect(activityList).toContainText(`@a_${suffix}`);
+    await page.getByRole('link',{name:'Open reports queue'}).click();
+    await expect(page).toHaveURL(/\/en\/admin\/reports$/);
     await page.goto('/en/account');await page.getByRole('button',{name:'Sign out',exact:true}).click();
     await login(page,email);await page.goto('/en/admin');
     await expect(page.getByLabel('Authenticator code')).toBeVisible();
