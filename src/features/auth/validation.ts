@@ -22,10 +22,16 @@ export type ParsedResetPasswordInput =
 
 export type CallbackTokenParams = {
   tokenHash: string;
-  type: 'signup' | 'email' | 'recovery';
+  type: 'signup' | 'recovery';
 };
 
+export type SessionAmrClass = 'primary' | 'otp_signup_candidate' | 'recovery' | 'restricted';
+
 const MAX_AUTH_PARAM_LENGTH = 2048;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PRIMARY_AMR_METHODS = new Set(['password', 'oauth', 'sso/saml', 'webauthn']);
+const RESTRICTED_AMR_METHODS = new Set(['otp', 'recovery', 'magiclink', 'invite']);
+const HARD_RESTRICTED_AMR_METHODS = new Set(['recovery', 'magiclink', 'invite']);
 
 export function parseAuthCredentials(mode: AuthMode, form: FormData): ParsedAuthCredentials {
   const email = String(form.get('email') ?? '').trim();
@@ -136,18 +142,62 @@ export function parseCallbackTokenParams(
   const tokenHash = searchParams.get('token_hash')?.trim() ?? '';
   const type = searchParams.get('type')?.trim() ?? '';
   if (!tokenHash || tokenHash.length >= MAX_AUTH_PARAM_LENGTH) return null;
-  if (type !== 'signup' && type !== 'email' && type !== 'recovery') return null;
+  // Never accept `type=email`: GoTrue accepts recovery token hashes under `type=email`.
+  if (type !== 'signup' && type !== 'recovery') return null;
   return { tokenHash, type };
+}
+
+export function classifySessionAmr(
+  methods: ReadonlyArray<string | { method?: string; timestamp?: number }> | null | undefined,
+): SessionAmrClass {
+  if (!methods || methods.length === 0) return 'restricted';
+
+  let hasPrimary = false;
+  let hasRestricted = false;
+  let hasHardRestricted = false;
+  let hasOtp = false;
+  let hasRecovery = false;
+  let hasOtherRestricted = false;
+
+  for (const entry of methods) {
+    const method = (typeof entry === 'string' ? entry : entry?.method)?.trim();
+    if (!method) continue;
+    if (PRIMARY_AMR_METHODS.has(method)) hasPrimary = true;
+    if (RESTRICTED_AMR_METHODS.has(method)) hasRestricted = true;
+    if (HARD_RESTRICTED_AMR_METHODS.has(method)) hasHardRestricted = true;
+    if (method === 'otp') hasOtp = true;
+    if (method === 'recovery') hasRecovery = true;
+    if (method === 'magiclink' || method === 'invite') hasOtherRestricted = true;
+  }
+
+  if (hasPrimary && !hasRestricted) return 'primary';
+  if (!hasPrimary && hasOtp && !hasHardRestricted) return 'otp_signup_candidate';
+  if (!hasPrimary && hasRecovery && !hasOtherRestricted) return 'recovery';
+  return 'restricted';
 }
 
 export function hasRecoveryAmr(
   methods: ReadonlyArray<string | { method?: string; timestamp?: number }> | null | undefined,
 ): boolean {
-  if (!methods || methods.length === 0) return false;
-  return methods.some((entry) => {
-    const method = typeof entry === 'string' ? entry : entry?.method;
-    return method === 'otp' || method === 'recovery';
-  });
+  const kind = classifySessionAmr(methods);
+  return kind === 'otp_signup_candidate' || kind === 'recovery';
+}
+
+export function extractJwtSessionId(accessToken: string | null | undefined): string | null {
+  if (!accessToken) return null;
+  const parts = accessToken.split('.');
+  if (parts.length !== 3 || !parts[1]) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as {
+      session_id?: unknown;
+    };
+    if (typeof payload.session_id !== 'string' || !UUID_RE.test(payload.session_id)) {
+      return null;
+    }
+    return payload.session_id.toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 export function isTrustedOAuthRedirectUrl(

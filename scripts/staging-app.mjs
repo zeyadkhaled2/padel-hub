@@ -835,19 +835,74 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       }
     }
   } else if (mode === 'smoke-phase2b') {
-    // Non-destructive Phase 2B verification on hosted staging:
-    // - Password recovery UI, anti-enumeration, token_hash flow, mid-recovery isolation, reuse rejection, old vs new password, seller profile preservation (EN desktop & AR 390px mobile)
-    // - Continue with Google button, OAuth cancellation/error sanitization, open-redirect blocks, PKCE initiation check
-    // - Synthetic admin MFA recovery verification (password recovery never bypasses MFA, operator deleteFactor invalidates sessions & enables fresh re-enrollment)
+    // Non-destructive Phase 2B security & recovery-isolation verification on hosted staging:
+    // - Initial signup-confirmation session allowlist (/auth/callback?type=signup)
+    // - Cross-type token rejection (/auth/callback?type=email and ?type=signup with recovery hash)
+    // - Recovery-session isolation across account pages, photo delivery/upload APIs, owner mutations, and direct Supabase RPCs
+    // - Cookie removal/expiry + Supabase token refresh during recovery
+    // - Invalid subsequent /auth/recovery request invalidating an existing recovery session
+    // - End-to-end password recovery (EN desktop & AR 390px mobile), reuse rejection, profile/draft preservation
+    // - MFA-enrolled admin recovery isolation at BOTH aal1 and aal2 (pages, admin photo delivery, direct admin RPCs, cookie removal, invalid retry), plus operator deleteFactor + re-enrollment
     const adminState = loadSmokeAdminState(adminStatePath);
     const tag = randomBytes(4).toString('hex');
     const appOrigin = cfg.appOrigin;
     const results = [];
     const disposableUserIds = [];
+    let pendingListingId = null;
+    let sellerCleanupClient = null;
+    let currentSellerEmail = null;
+    let currentSellerPassword = null;
     const pass = (name) => {
       results.push({ name, ok: true });
       console.log(`PASS: ${name}`);
     };
+
+    function readSbAuthSession(cookies) {
+      const sbCookies = cookies
+        .filter((c) => /^sb-.*-auth-token(?:\.\d+)?$/.test(c.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      if (sbCookies.length === 0) return null;
+      const joined = sbCookies.map((c) => c.value).join('');
+      const raw = joined.startsWith('base64-')
+        ? Buffer.from(joined.slice('base64-'.length), 'base64url').toString('utf8')
+        : joined;
+      return { sbCookies, session: JSON.parse(raw) };
+    }
+
+    async function expireCookiesAndForceRefresh(context) {
+      const parsed = readSbAuthSession(await context.cookies());
+      assert(parsed && parsed.session?.access_token, 'Expected active sb-*-auth-token cookies');
+      const { sbCookies, session } = parsed;
+      // Clear ALL cookies (removing any auxiliary cookies) and re-inject ONLY expired sb-*-auth-token
+      // to simulate >15min cookie expiry/removal + Supabase access-token refresh.
+      await context.clearCookies();
+      session.expires_at = 1;
+      const encoded = `base64-${Buffer.from(JSON.stringify(session)).toString('base64url')}`;
+      const baseName = sbCookies[0].name.replace(/\.\d+$/, '');
+      const chunks = encoded.match(/.{1,3000}/g) ?? [];
+      await context.addCookies(
+        chunks.map((value, index) => ({
+          ...sbCookies[0],
+          name: chunks.length === 1 ? baseName : `${baseName}.${index}`,
+          value,
+        })),
+      );
+    }
+
+    function directClientWithJwt(accessToken) {
+      return createClient(cfg.supabaseUrl, cfg.publishableKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      });
+    }
+
+    async function assertDirectRpcDenied(client, fnName, args, label) {
+      const res = args ? await client.rpc(fnName, args) : await client.rpc(fnName);
+      assert(
+        res.error && res.error.code === '42501',
+        `${label} must fail with 42501 (got data=${JSON.stringify(res.data)}, error=${JSON.stringify(res.error)})`,
+      );
+    }
 
     let browser = null;
     try {
@@ -860,7 +915,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       const googleEnabled = settings.external?.google === true;
       pass(`Auth settings checked (email confirmation enforced, google_enabled=${googleEnabled})`);
 
-      // 1. OAuth error/cancellation & recovery callback open-redirect / XSS sanitization checks
+      // 1. OAuth error/cancellation, cross-type callback rejection, & open-redirect sanitization
       const cancelRes = await fetch(
         `${appOrigin}/en/auth/callback?error=access_denied&error_description=InjectedPayload&next=https://evil.example`,
         { redirect: 'manual' },
@@ -904,7 +959,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       browser = await chromium.launch({ channel: 'chrome', headless: true });
 
-      // 2. EN/AR, light/dark, 390px mobile UI + Google button & graceful disabled/PKCE check
+      // 2. EN/AR, light/dark, 390px mobile UI + Google button & graceful disabled check
       const mobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
       const mobilePage = await mobileCtx.newPage();
       for (const locale of ['en', 'ar']) {
@@ -934,18 +989,21 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await mobileCtx.close();
       pass('Auth pages (signin/signup/forgot/reset) verified across EN/AR, light/dark, and 390px mobile with zero overflow');
 
-      // 3. Forgot-password anti-enumeration + end-to-end password recovery with seller profile preservation
+      // 3. First-time signup confirmation flow (/en/auth/callback?type=signup) + seller profile & private draft photo setup
       const sellerEmail = `staging_rec_${tag}@example.test`;
       const oldPassword = `RecOld!${randomBytes(6).toString('hex')}`;
       const newPassword = `RecNew!${randomBytes(6).toString('hex')}`;
       const arPassword = `RecAr!${randomBytes(6).toString('hex')}`;
-      const created = await serviceClient.auth.admin.createUser({
+      currentSellerEmail = sellerEmail;
+      currentSellerPassword = oldPassword;
+      const signupLink = await serviceClient.auth.admin.generateLink({
+        type: 'signup',
         email: sellerEmail,
         password: oldPassword,
-        email_confirm: true,
+        options: { redirectTo: `${appOrigin}/en/auth/callback` },
       });
-      assert(!created.error && created.data.user, `Create recovery test user failed: ${created.error?.message}`);
-      disposableUserIds.push(created.data.user.id);
+      assert(!signupLink.error && signupLink.data.user && signupLink.data.properties.hashed_token, `generateLink(signup) failed: ${signupLink.error?.message}`);
+      disposableUserIds.push(signupLink.data.user.id);
 
       const userCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
       const userPage = await userCtx.newPage();
@@ -956,13 +1014,13 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await userPage.getByRole('button', { name: 'Send reset link', exact: true }).click();
       await userPage.getByRole('status').filter({ hasText: 'If an account exists' }).waitFor({ timeout: 15_000 });
 
-      // Sign in, create a private seller profile, verify normal session CANNOT use /en/auth/reset-password
-      await userPage.goto(`${appOrigin}/en/auth/signin`);
-      await userPage.getByLabel('Email address').fill(sellerEmail);
-      await userPage.getByLabel('Password', { exact: true }).fill(oldPassword);
-      await userPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+      // Genuine first-time signup confirmation registers the single allowed OTP confirmation session.
+      await userPage.goto(
+        `${appOrigin}/en/auth/callback?token_hash=${encodeURIComponent(signupLink.data.properties.hashed_token)}&type=signup`,
+      );
       await userPage.waitForURL('**/en/account', { timeout: 25_000 });
 
+      // Approved initial signup session can create seller profile, but CANNOT enter /en/auth/reset-password.
       await userPage.getByLabel('Username', { exact: true }).fill(`rec_${tag}`);
       await userPage.getByLabel('Display name').fill('Recovery Seller Preserved');
       await userPage.getByLabel('Governorate').selectOption('cairo');
@@ -970,30 +1028,239 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await userPage.getByRole('heading', { name: 'Profile details' }).waitFor({ timeout: 20_000 });
 
       await userPage.goto(`${appOrigin}/en/auth/reset-password`);
-      assert((await userPage.locator('input[type="password"]').count()) === 0, 'Normal logged-in session must NOT bypass recovery gate');
+      assert((await userPage.locator('input[type="password"]').count()) === 0, 'Approved signup session must NOT enter reset-password');
+      pass('Initial signup confirmation session allowlisted once, creates profile, and cannot open reset-password');
+
+      // Re-sign-in with password so we also exercise password session, create a private draft + private photo,
+      // and prepare a pending listing with 3 photos for MFA admin review photo tests.
       await userPage.goto(`${appOrigin}/en/account`);
       await userPage.getByRole('button', { name: 'Sign out', exact: true }).click();
       await userPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
 
-      // Generate genuine hosted recovery token_hash (sends zero external emails)
-      const recLink1 = await serviceClient.auth.admin.generateLink({
+      await userPage.getByLabel('Email address').fill(sellerEmail);
+      await userPage.getByLabel('Password', { exact: true }).fill(oldPassword);
+      await userPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await userPage.waitForURL('**/en/account', { timeout: 25_000 });
+
+      await userPage.goto(`${appOrigin}/en/auth/reset-password`);
+      assert((await userPage.locator('input[type="password"]').count()) === 0, 'Normal password session must NOT bypass recovery gate');
+
+      // Enable public profile + WhatsApp consent (for pending listing submission used in admin review photo test)
+      await userPage.goto(`${appOrigin}/en/account`);
+      await userPage.getByLabel('Allow my seller profile to be public').check();
+      await userPage.getByRole('button', { name: 'Save profile details', exact: true }).click();
+      await userPage.getByRole('status').filter({ hasText: 'Saved successfully' }).waitFor({ timeout: 15_000 });
+      await userPage.getByLabel('WhatsApp number (optional)').fill('+201000000099');
+      await userPage.getByLabel(/I agree to let buyers/).check();
+      await userPage.getByRole('button', { name: 'Save contact preferences', exact: true }).click();
+      await userPage.getByRole('status').filter({ hasText: 'Saved successfully' }).waitFor({ timeout: 15_000 });
+
+      // Create private draft listing + upload 1 private draft photo
+      const img1 = await makeSyntheticImage(36, 91, 56, true);
+      const img2 = await makeSyntheticImage(180, 140, 48, false);
+      const img3 = await makeSyntheticImage(45, 78, 128, false);
+
+      await userPage.goto(`${appOrigin}/en/account/photos`);
+      await userPage.getByRole('button', { name: 'Create photo draft', exact: true }).click();
+      await userPage.waitForURL(/listing=[0-9a-f-]+/, { timeout: 20_000 });
+      const draftId = new URL(userPage.url()).searchParams.get('listing');
+      assert(draftId, 'Expected draft listing ID');
+
+      const uploadDraftRes = await userCtx.request.post(`${appOrigin}/api/listings/${draftId}/photos`, {
+        headers: { Origin: appOrigin, 'X-Listing-Version': '1' },
+        data: img1.bytes,
+      });
+      assert(uploadDraftRes.status() === 201, `Draft photo upload failed (${uploadDraftRes.status()})`);
+      const draftPhoto = await uploadDraftRes.json();
+      const privatePhotoId = draftPhoto.id;
+      const draftVersionAfterPhoto = draftPhoto.version;
+
+      // Owner can read private draft photo; anonymous gets 404.
+      assert((await userCtx.request.get(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status() === 200, 'Owner must read own private draft photo');
+      assert((await fetch(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status === 404, 'Anonymous must get 404 for private draft photo');
+
+      // Also create a submitted pending listing with 3 photos for the admin MFA recovery review-photo test.
+      const sellerPassClient = createClient(cfg.supabaseUrl, cfg.publishableKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const signInSeller = await sellerPassClient.auth.signInWithPassword({ email: sellerEmail, password: oldPassword });
+      assert(!signInSeller.error, `Seller direct password sign-in failed: ${signInSeller.error?.message}`);
+      sellerCleanupClient = sellerPassClient;
+
+      const createdPending = await sellerPassClient.rpc('create_listing_draft', { p_category: 'rackets' });
+      assert(!createdPending.error && createdPending.data?.id, `Create pending draft failed: ${createdPending.error?.message}`);
+      pendingListingId = createdPending.data.id;
+      let pendingVersion = createdPending.data.version;
+      let pendingPhotoId = null;
+      for (const sample of [img1, img2, img3]) {
+        const upRes = await userCtx.request.post(`${appOrigin}/api/listings/${pendingListingId}/photos`, {
+          headers: { Origin: appOrigin, 'X-Listing-Version': String(pendingVersion) },
+          data: sample.bytes,
+        });
+        assert(upRes.status() === 201, `Pending listing photo upload failed (${upRes.status()})`);
+        const body = await upRes.json();
+        if (!pendingPhotoId) pendingPhotoId = body.id;
+        pendingVersion = body.version;
+      }
+      const patchPending = await sellerPassClient.rpc('update_listing_draft', {
+        p_listing_id: pendingListingId,
+        p_expected_version: pendingVersion,
+        p_patch: {
+          title: `Recovery Review Target ${tag}`,
+          brand_slug: 'head',
+          model: 'Speed Pro',
+          description: 'Synthetic pending listing for Phase 2B recovery-isolation verification.',
+          governorate_slug: 'cairo',
+          condition: 'used',
+          condition_disclosure: 'Synthetic test condition',
+          racket_damage_repair_disclosure: 'No repairs',
+          offer_type: 'sale',
+          price_egp: 3500,
+        },
+      });
+      assert(!patchPending.error, `Patch pending listing failed: ${patchPending.error?.message}`);
+      const subPending = await sellerPassClient.rpc('submit_listing', {
+        p_listing_id: pendingListingId,
+        p_expected_version: patchPending.data.version,
+      });
+      assert(!subPending.error, `Submit pending listing failed: ${subPending.error?.message}`);
+
+      await userPage.goto(`${appOrigin}/en/account`);
+      await userPage.getByRole('button', { name: 'Sign out', exact: true }).click();
+      await userPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+
+      // 4. Cross-type callback attack: sending a recovery token_hash to /en/auth/callback with type=email or type=signup MUST fail!
+      const crossTypeLink = await serviceClient.auth.admin.generateLink({
         type: 'recovery',
         email: sellerEmail,
         options: { redirectTo: `${appOrigin}/en/auth/recovery` },
       });
-      assert(!recLink1.error && recLink1.data.properties.hashed_token, `generateLink failed: ${recLink1.error?.message}`);
-      const tokenHash1 = recLink1.data.properties.hashed_token;
+      assert(!crossTypeLink.error && crossTypeLink.data.properties.hashed_token, 'Cross-type generateLink failed');
+      const crossCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const crossPage = await crossCtx.newPage();
+      await crossPage.goto(
+        `${appOrigin}/en/auth/callback?token_hash=${encodeURIComponent(crossTypeLink.data.properties.hashed_token)}&type=email`,
+      );
+      await crossPage.waitForURL('**/en/auth/signin?error=confirmation', { timeout: 20_000 });
+      await crossPage.goto(`${appOrigin}/en/account`);
+      await crossPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      await crossPage.goto(
+        `${appOrigin}/en/auth/callback?token_hash=${encodeURIComponent(crossTypeLink.data.properties.hashed_token)}&type=signup`,
+      );
+      await crossPage.waitForURL('**/en/auth/signin?error=confirmation', { timeout: 20_000 });
+      assert((await crossCtx.request.get(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status() === 404, 'Cross-type callback must not unlock private photo');
+      await crossCtx.close();
+      pass('Cross-type recovery token replay via /auth/callback?type=email and ?type=signup rejected cleanly');
+
+      // 5. Valid recovery session isolation: pages, private photos, photo uploads, owner mutations, direct RPCs, cookie removal/expiry, AND invalid-token retry!
+      const recLinkIso = await serviceClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: sellerEmail,
+        options: { redirectTo: `${appOrigin}/en/auth/recovery` },
+      });
+      assert(!recLinkIso.error && recLinkIso.data.properties.hashed_token, `generateLink(recovery) failed: ${recLinkIso.error?.message}`);
+      const isoTokenHash = recLinkIso.data.properties.hashed_token;
 
       await userPage.goto(
-        `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(tokenHash1)}&type=recovery&next=https://evil.example`,
+        `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(isoTokenHash)}&type=recovery&next=https://evil.example`,
       );
       await userPage.waitForURL('**/en/auth/reset-password', { timeout: 20_000 });
-      assert(!userPage.url().includes(tokenHash1), 'Recovery redirect must strip token_hash from URL');
+      assert(!userPage.url().includes(isoTokenHash), 'Recovery redirect must strip token_hash from URL');
 
-      // Mid-recovery session cannot inspect /en/account
+      const recCookieInfo = readSbAuthSession(await userCtx.cookies());
+      assert(recCookieInfo?.session?.access_token, 'Expected active recovery JWT in sb-*-auth-token cookie');
+      const capturedRecoveryJwt = recCookieInfo.session.access_token;
+      const directRecClient = directClientWithJwt(capturedRecoveryJwt);
+
+      // 5a. Account pages blocked
+      for (const path of ['/en/account', '/en/account/listings', '/en/account/photos', '/en/admin']) {
+        await userPage.goto(`${appOrigin}${path}`);
+        await userPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      }
+      // 5b. Protected photo delivery and upload APIs blocked
+      assert(
+        (await userCtx.request.get(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status() === 404,
+        'Recovery session must NOT read private draft photo',
+      );
+      assert(
+        (
+          await userCtx.request.post(`${appOrigin}/api/listings/${draftId}/photos`, {
+            headers: { Origin: appOrigin, 'X-Listing-Version': String(draftVersionAfterPhoto) },
+            data: img2.bytes,
+          })
+        ).status() === 401,
+        'Recovery session must NOT upload listing photos',
+      );
+      // 5c. Direct Supabase RPCs (reads & owner mutations) blocked at Postgres boundary
+      const activeFlag = await directRecClient.rpc('is_my_account_session_active');
+      assert(!activeFlag.error && activeFlag.data === false, `is_my_account_session_active must be false for recovery JWT (got ${JSON.stringify(activeFlag)})`);
+      await assertDirectRpcDenied(directRecClient, 'get_my_profile_bundle', null, 'Recovery JWT get_my_profile_bundle');
+      await assertDirectRpcDenied(directRecClient, 'update_seller_profile', { p_expected_version: 2, p_patch: { bio: 'tampered' } }, 'Recovery JWT update_seller_profile');
+      await assertDirectRpcDenied(directRecClient, 'create_listing_draft', { p_category: 'rackets' }, 'Recovery JWT create_listing_draft');
+      await assertDirectRpcDenied(directRecClient, 'update_listing_draft', { p_listing_id: draftId, p_expected_version: draftVersionAfterPhoto, p_patch: { title: 'tampered' } }, 'Recovery JWT update_listing_draft');
+      await assertDirectRpcDenied(directRecClient, 'get_my_listings', null, 'Recovery JWT get_my_listings');
+      await assertDirectRpcDenied(directRecClient, 'get_my_photo_drafts', null, 'Recovery JWT get_my_photo_drafts');
+      await assertDirectRpcDenied(directRecClient, 'get_listing_metrics', { p_admin: false }, 'Recovery JWT get_listing_metrics');
+      pass('Recovery session blocked across account pages, private photo delivery (404), photo uploads (401), owner mutations, and direct Supabase RPCs (42501)');
+
+      // 5d. Cookie expiry / removal + forced Supabase session refresh keeps boundary intact
+      await expireCookiesAndForceRefresh(userCtx);
       await userPage.goto(`${appOrigin}/en/account`);
       await userPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      assert(
+        (await userCtx.request.get(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status() === 404,
+        'Refreshed recovery session after cookie removal/expiry must NOT read private photo',
+      );
+      assert(
+        (
+          await userCtx.request.post(`${appOrigin}/api/listings/${draftId}/photos`, {
+            headers: { Origin: appOrigin, 'X-Listing-Version': String(draftVersionAfterPhoto) },
+            data: img2.bytes,
+          })
+        ).status() === 401,
+        'Refreshed recovery session after cookie removal/expiry must NOT upload photos',
+      );
+      const refreshedRecCookie = readSbAuthSession(await userCtx.cookies());
+      assert(refreshedRecCookie?.session?.access_token, 'Expected refreshed recovery session');
+      const directRefreshedRecClient = directClientWithJwt(refreshedRecCookie.session.access_token);
+      await assertDirectRpcDenied(directRefreshedRecClient, 'get_my_profile_bundle', null, 'Refreshed recovery JWT get_my_profile_bundle');
+      await assertDirectRpcDenied(directRefreshedRecClient, 'update_seller_profile', { p_expected_version: 2, p_patch: { bio: 'tampered2' } }, 'Refreshed recovery JWT update_seller_profile');
+      pass('Recovery boundary holds across cookie removal, >15m expiry simulation, and Supabase session refresh');
+
+      // 5e. Invalid subsequent /auth/recovery request while holding an active recovery session MUST invalidate it!
+      await userPage.goto(`${appOrigin}/en/auth/recovery?token_hash=invalid_retry_after_valid&type=recovery`);
+      await userPage.waitForURL('**/en/auth/reset-password?error=invalid', { timeout: 20_000 });
+      assert((await userPage.locator('input[type="password"]').count()) === 0, 'Invalid retry must not render reset form');
+      assert(readSbAuthSession(await userCtx.cookies()) === null, 'Invalid subsequent /auth/recovery must clear active recovery Supabase cookies');
+      await userPage.goto(`${appOrigin}/en/account`);
+      await userPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      assert((await userCtx.request.get(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status() === 404, 'Invalid recovery retry must keep private photo 404');
+      assert(
+        (
+          await userCtx.request.post(`${appOrigin}/api/listings/${draftId}/photos`, {
+            headers: { Origin: appOrigin, 'X-Listing-Version': String(draftVersionAfterPhoto) },
+            data: img2.bytes,
+          })
+        ).status() === 401,
+        'Invalid recovery retry must keep photo upload 401',
+      );
       await userPage.goto(`${appOrigin}/en/auth/reset-password`);
+      assert((await userPage.locator('input[type="password"]').count()) === 0, 'Reset page must stay closed after invalid-token retry');
+      // Even replaying the previously captured recovery JWT directly against Postgres stays denied.
+      await assertDirectRpcDenied(directRecClient, 'get_my_profile_bundle', null, 'Captured pre-retry recovery JWT get_my_profile_bundle');
+      pass('Invalid subsequent /auth/recovery invalidates active recovery session and keeps pages, photos, APIs, and RPCs denied');
+
+      // 6. Complete full password recovery on a fresh link, reuse rejection, old vs new password, profile & draft intact
+      const recLinkComplete = await serviceClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: sellerEmail,
+        options: { redirectTo: `${appOrigin}/en/auth/recovery` },
+      });
+      assert(!recLinkComplete.error && recLinkComplete.data.properties.hashed_token, 'Fresh recovery generateLink failed');
+      const tokenHashComplete = recLinkComplete.data.properties.hashed_token;
+
+      await userPage.goto(`${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(tokenHashComplete)}&type=recovery`);
+      await userPage.waitForURL('**/en/auth/reset-password', { timeout: 20_000 });
 
       // Password mismatch rejected cleanly
       await userPage.getByLabel('New password', { exact: true }).fill(newPassword);
@@ -1006,14 +1273,15 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await userPage.getByLabel('Confirm new password', { exact: true }).fill(newPassword);
       await userPage.getByRole('button', { name: 'Update password', exact: true }).click();
       await userPage.waitForURL('**/en/auth/signin?reset=1', { timeout: 20_000 });
+      currentSellerPassword = newPassword;
       await userPage.getByRole('status').filter({ hasText: 'Your password has been updated' }).waitFor({ timeout: 10_000 });
 
       // Reused token fails closed
-      await userPage.goto(`${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(tokenHash1)}&type=recovery`);
+      await userPage.goto(`${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(tokenHashComplete)}&type=recovery`);
       await userPage.waitForURL('**/en/auth/reset-password?error=invalid', { timeout: 20_000 });
       assert((await userPage.locator('input[type="password"]').count()) === 0, 'Reused recovery link must not unlock reset form');
 
-      // Old password fails; new password works and preserves seller profile
+      // Old password fails; new password works and preserves seller profile, draft version, and private photo
       await userPage.goto(`${appOrigin}/en/auth/signin`);
       await userPage.getByLabel('Email address').fill(sellerEmail);
       await userPage.getByLabel('Password', { exact: true }).fill(oldPassword);
@@ -1024,7 +1292,11 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await userPage.getByRole('button', { name: 'Sign in', exact: true }).click();
       await userPage.waitForURL('**/en/account', { timeout: 25_000 });
       assert((await userPage.getByLabel('Display name').inputValue()) === 'Recovery Seller Preserved', 'Seller profile preserved after reset');
+      assert((await userCtx.request.get(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status() === 200, 'Owner photo accessible again after normal password login');
       await userCtx.close();
+
+      // Re-authenticate cleanup client with new password (since reset signed out globally)
+      await sellerPassClient.auth.signInWithPassword({ email: sellerEmail, password: newPassword });
 
       // Arabic 390px mobile recovery round-trip
       const recLinkAr = await serviceClient.auth.admin.generateLink({
@@ -1043,10 +1315,12 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await arPage.locator('input[name="confirmPassword"]').fill(arPassword);
       await arPage.locator('form.account-form button.primary').click();
       await arPage.waitForURL('**/ar/auth/signin?reset=1', { timeout: 20_000 });
+      currentSellerPassword = arPassword;
       await arCtx.close();
-      pass('End-to-end password recovery (EN desktop & AR mobile), mid-recovery isolation, reuse rejection, old/new password check, and profile preservation verified');
+      await sellerPassClient.auth.signInWithPassword({ email: sellerEmail, password: arPassword });
+      pass('End-to-end password recovery (EN desktop & AR mobile), reuse rejection, old/new password check, and profile/photo preservation verified');
 
-      // 4. Synthetic Admin MFA Recovery Verification (Task 2B-4)
+      // 7. MFA-enrolled Admin Recovery Isolation (aal1 AND aal2!) + Operator MFA Recovery (Task 2B-4)
       const adminCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
       const adminPage = await adminCtx.newPage();
 
@@ -1056,7 +1330,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.getByRole('button', { name: 'Sign in', exact: true }).click();
       await adminPage.waitForURL('**/en/account', { timeout: 25_000 });
 
-      // Enroll TOTP on /en/admin
+      // Enroll TOTP on /en/admin and confirm normal aal2 access (including admin review photo delivery!)
       const adminGateRes = await adminPage.goto(`${appOrigin}/en/admin`);
       assert(
         adminGateRes?.status() === 200,
@@ -1070,31 +1344,42 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.locator('input[name="code"]').fill(totp(initialSecret));
       await adminPage.locator('button[name="intent"][value="verify"]').click();
       await adminPage.getByRole('heading', { name: 'Review listings', exact: true }).waitFor({ timeout: 20_000 });
-      pass('Synthetic admin enrolled TOTP MFA and verified normal aal2 admin access');
+      assert(
+        (await adminCtx.request.get(`${appOrigin}/api/admin/listings/${pendingListingId}/photos/${pendingPhotoId}?variant=card`)).status() === 200,
+        'Normal aal2 admin must read pending review photo',
+      );
+      pass('Synthetic admin enrolled TOTP MFA and verified normal aal2 admin queue + review photo access');
 
-      // Trigger password recovery on the MFA-enrolled admin in a fresh browser context -> MUST require TOTP before password change AND MUST NOT bypass /en/admin!
-      const adminRecLink = await serviceClient.auth.admin.generateLink({
+      // 7a. Admin recovery session at aal1 AND after TOTP step-up to aal2!
+      const adminRecLink1 = await serviceClient.auth.admin.generateLink({
         type: 'recovery',
         email: adminState.email,
         options: { redirectTo: `${appOrigin}/en/auth/recovery` },
       });
-      assert(!adminRecLink.error && adminRecLink.data.properties.hashed_token, 'Admin recovery generateLink succeeded');
+      assert(!adminRecLink1.error && adminRecLink1.data.properties.hashed_token, 'Admin recovery generateLink 1 succeeded');
 
       const adminRecCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
       const adminRecPage = await adminRecCtx.newPage();
       await adminRecPage.goto(
-        `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(adminRecLink.data.properties.hashed_token)}&type=recovery`,
+        `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(adminRecLink1.data.properties.hashed_token)}&type=recovery`,
       );
       await adminRecPage.waitForURL('**/en/auth/reset-password', { timeout: 20_000 });
-      // Must show TOTP verification form (NOT password inputs) because user has verified MFA!
       assert((await adminRecPage.locator('input[name="code"]').count()) === 1, 'MFA-enrolled recovery must require 6-digit TOTP step');
       assert((await adminRecPage.locator('input[name="password"]').count()) === 0, 'MFA-enrolled recovery must NOT show password input at aal1');
-      // Recovery session cannot access /en/admin either
+
+      // Blocked at aal1 recovery: /en/admin, admin review photo, and direct admin RPCs
       await adminRecPage.goto(`${appOrigin}/en/admin`);
       await adminRecPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
-      await adminRecPage.goto(`${appOrigin}/en/auth/reset-password`);
+      assert(
+        (await adminRecCtx.request.get(`${appOrigin}/api/admin/listings/${pendingListingId}/photos/${pendingPhotoId}?variant=card`)).status() === 404,
+        'aal1 admin recovery session must NOT read admin review photo',
+      );
+      const adminAal1Jwt = readSbAuthSession(await adminRecCtx.cookies())?.session?.access_token;
+      assert(adminAal1Jwt, 'Expected admin aal1 recovery JWT');
+      await assertDirectRpcDenied(directClientWithJwt(adminAal1Jwt), 'get_my_admin_access', null, 'aal1 admin recovery get_my_admin_access');
 
-      // Invalid TOTP code rejected
+      // Invalid TOTP rejected cleanly
+      await adminRecPage.goto(`${appOrigin}/en/auth/reset-password`);
       await adminRecPage.locator('input[name="code"]').fill('000000');
       await adminRecPage.locator('form.account-form button.primary').click();
       await adminRecPage
@@ -1103,16 +1388,67 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         .filter({ hasText: /six-digit code/i })
         .waitFor({ timeout: 15_000 });
 
-      // Valid TOTP code unlocks password reset, updates password, signs out globally, and MFA factor remains intact!
-      const adminPass2 = `AdminPass2!${randomBytes(6).toString('hex')}`;
+      // Elevate recovery session to aal2 via valid TOTP — BEFORE submitting new password, verify admin access is STILL 100% blocked!
       await adminRecPage.locator('input[name="code"]').fill(totp(initialSecret));
       await adminRecPage.locator('form.account-form button.primary').click();
       await adminRecPage.locator('input[name="password"]').waitFor({ timeout: 20_000 });
-      await adminRecPage.locator('input[name="password"]').fill(adminPass2);
-      await adminRecPage.locator('input[name="confirmPassword"]').fill(adminPass2);
-      await adminRecPage.locator('form.account-form button.primary').click();
-      await adminRecPage.waitForURL('**/en/auth/signin?reset=1', { timeout: 20_000 });
+
+      const adminAal2Jwt = readSbAuthSession(await adminRecCtx.cookies())?.session?.access_token;
+      assert(adminAal2Jwt, 'Expected admin aal2 recovery JWT');
+      const directAdminRecAal2 = directClientWithJwt(adminAal2Jwt);
+
+      await adminRecPage.goto(`${appOrigin}/en/admin`);
+      await adminRecPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      await adminRecPage.goto(`${appOrigin}/en/account`);
+      await adminRecPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      assert(
+        (await adminRecCtx.request.get(`${appOrigin}/api/admin/listings/${pendingListingId}/photos/${pendingPhotoId}?variant=card`)).status() === 404,
+        'aal2 admin recovery session must STILL NOT read admin review photo',
+      );
+      const adminActiveFlag = await directAdminRecAal2.rpc('is_my_account_session_active');
+      assert(!adminActiveFlag.error && adminActiveFlag.data === false, 'aal2 admin recovery is_my_account_session_active must be false');
+      await assertDirectRpcDenied(directAdminRecAal2, 'get_my_admin_access', null, 'aal2 admin recovery get_my_admin_access');
+      await assertDirectRpcDenied(directAdminRecAal2, 'admin_pending_listings', { p_page: 1 }, 'aal2 admin recovery admin_pending_listings');
+      await assertDirectRpcDenied(directAdminRecAal2, 'admin_get_listing_review', { p_listing_id: pendingListingId }, 'aal2 admin recovery admin_get_listing_review');
+      await assertDirectRpcDenied(directAdminRecAal2, 'admin_photo_delivery', { p_listing: pendingListingId, p_asset: pendingPhotoId }, 'aal2 admin recovery admin_photo_delivery');
+      await assertDirectRpcDenied(directAdminRecAal2, 'get_listing_metrics', { p_admin: true }, 'aal2 admin recovery admin metrics');
+
+      // Cookie removal/expiry + refresh at aal2 recovery STILL blocks admin access; invalid /auth/recovery invalidates the aal2 recovery session!
+      await expireCookiesAndForceRefresh(adminRecCtx);
+      await adminRecPage.goto(`${appOrigin}/en/admin`);
+      await adminRecPage.waitForURL('**/en/auth/signin', { timeout: 20_000 });
+      assert(
+        (await adminRecCtx.request.get(`${appOrigin}/api/admin/listings/${pendingListingId}/photos/${pendingPhotoId}?variant=card`)).status() === 404,
+        'Refreshed aal2 admin recovery session must NOT read admin review photo',
+      );
+      await adminRecPage.goto(`${appOrigin}/en/auth/recovery?token_hash=invalid_admin_retry&type=recovery`);
+      await adminRecPage.waitForURL('**/en/auth/reset-password?error=invalid', { timeout: 20_000 });
+      assert(readSbAuthSession(await adminRecCtx.cookies()) === null, 'Invalid /auth/recovery retry must revoke aal2 recovery session');
       await adminRecCtx.close();
+      pass('MFA-enrolled admin recovery blocked at BOTH aal1 and aal2 across /admin, admin review photos (404), direct admin RPCs (42501), cookie refresh, and invalid retry');
+
+      // 7b. Complete fresh admin recovery with TOTP -> update password -> verify MFA factor preserved!
+      const adminRecLink2 = await serviceClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: adminState.email,
+        options: { redirectTo: `${appOrigin}/en/auth/recovery` },
+      });
+      assert(!adminRecLink2.error && adminRecLink2.data.properties.hashed_token, 'Admin recovery generateLink 2 succeeded');
+      const adminRecCtx2 = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const adminRecPage2 = await adminRecCtx2.newPage();
+      await adminRecPage2.goto(
+        `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(adminRecLink2.data.properties.hashed_token)}&type=recovery`,
+      );
+      await adminRecPage2.waitForURL('**/en/auth/reset-password', { timeout: 20_000 });
+      const adminPass2 = `AdminPass2!${randomBytes(6).toString('hex')}`;
+      await adminRecPage2.locator('input[name="code"]').fill(totp(initialSecret));
+      await adminRecPage2.locator('form.account-form button.primary').click();
+      await adminRecPage2.locator('input[name="password"]').waitFor({ timeout: 20_000 });
+      await adminRecPage2.locator('input[name="password"]').fill(adminPass2);
+      await adminRecPage2.locator('input[name="confirmPassword"]').fill(adminPass2);
+      await adminRecPage2.locator('form.account-form button.primary').click();
+      await adminRecPage2.waitForURL('**/en/auth/signin?reset=1', { timeout: 20_000 });
+      await adminRecCtx2.close();
 
       // Confirm MFA factor is STILL verified after password reset (never auto-removed)
       const factorsAfterReset = await serviceClient.auth.admin.mfa.listFactors({ userId: adminState.userId });
@@ -1121,7 +1457,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
           factorsAfterReset.data.factors.some((f) => f.id === initialFactorId && f.status === 'verified'),
         'Password reset must NEVER remove or disable an admin TOTP MFA factor',
       );
-      pass('Password recovery on MFA-enrolled admin enforces TOTP, blocks /admin bypass, and preserves verified MFA factor');
+      pass('Password recovery on MFA-enrolled admin completes cleanly with TOTP and preserves verified MFA factor');
 
       // Operator lost-authenticator recovery: delete lost factor via service-role Admin MFA API -> verify fresh re-enrollment works!
       const deletedFactor = await serviceClient.auth.admin.mfa.deleteFactor({
@@ -1135,7 +1471,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         'Operator deleteFactor must remove lost verified factor',
       );
 
-      // Re-login with new password -> /en/admin prompts fresh TOTP enrollment (cannot access queue without re-enrolling!)
+      // Re-login with new password -> /en/admin prompts fresh TOTP enrollment
       const reEnrollCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
       const reEnrollPage = await reEnrollCtx.newPage();
       await reEnrollPage.goto(`${appOrigin}/en/auth/signin`);
@@ -1169,6 +1505,32 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       console.log(`\nALL PHASE 2B STAGING SMOKE CHECKS PASSED (${results.length} passed, 0 failed).`);
     } finally {
       if (browser) await browser.close().catch(() => {});
+      if (sellerCleanupClient && currentSellerEmail && currentSellerPassword) {
+        try {
+          await sellerCleanupClient.auth.signInWithPassword({
+            email: currentSellerEmail,
+            password: currentSellerPassword,
+          });
+          if (pendingListingId) {
+            const cur = await sellerCleanupClient.rpc('get_my_listing', { p_listing_id: pendingListingId });
+            if (cur.data && ['pending', 'active'].includes(cur.data.status)) {
+              await sellerCleanupClient.rpc('withdraw_listing', {
+                p_listing_id: pendingListingId,
+                p_expected_version: cur.data.version,
+              });
+            }
+          }
+          const prof = await sellerCleanupClient.rpc('get_my_profile_bundle');
+          if (prof.data?.profile?.is_public) {
+            await sellerCleanupClient.rpc('update_seller_profile', {
+              p_expected_version: prof.data.profile.version,
+              p_patch: { is_public: false },
+            });
+          }
+        } catch {
+          // Best-effort cleanup of synthetic test seller & pending listing
+        }
+      }
       for (const uid of disposableUserIds) {
         try {
           await serviceClient.auth.admin.deleteUser(uid);

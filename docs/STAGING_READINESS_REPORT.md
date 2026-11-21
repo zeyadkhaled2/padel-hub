@@ -66,8 +66,34 @@ Documented in full in [STAGING_SETUP.md](STAGING_SETUP.md), including fresh host
 
 ## 8. Readiness for Phase 2B
 
-**Phase 2B application code, password recovery, OAuth integration, email templates, and admin MFA recovery procedures are implemented and verified against `padelhub-staging`; external provider credentials remain owner-blocked:**
-- Verified live on `padelhub-staging` (`smoke-phase2b` + `smoke` + `verify-revoked-admin`): forgot-password anti-enumeration, EN/AR desktop & 390px mobile recovery, mid-recovery `/account` & `/admin` isolation, reuse rejection, old/new password check, seller profile preservation, OAuth cancellation/error sanitization & open-redirect blocks, MFA-enrolled recovery TOTP gate (`insufficient_aal` protection), and operator `auth.admin.mfa.deleteFactor` lost-factor recovery + fresh re-enrollment + immediate revocation.
-- **Blocked pending owner external service configuration** (see [AUTH_DEPLOYMENT_RUNBOOK.md](AUTH_DEPLOYMENT_RUNBOOK.md)):
-  1. **Resend custom SMTP & DNS**: requires verified sending domain (SPF/DKIM/DMARC), disabling link/open tracking, configuring SMTP credentials in Supabase Dashboard, and executing a real external inbox delivery + confirmation/recovery test.
-  2. **Google Cloud OAuth & staging Redirect URLs**: requires Google Cloud Web OAuth Client ID & Secret (minimal `openid email profile` scopes), enabling Google in Supabase Auth Providers, adding `/en/auth/recovery` & `/ar/auth/recovery` to staging Redirect URLs, and executing live Google OAuth sign-in tests (new user, existing verified email/password user, repeat user, and admin MFA check).
+**Phase 2B application code, password recovery, OAuth integration, email templates, and admin MFA recovery procedures are implemented and verified against `padelhub-staging`; external provider credentials remain owner-blocked.**
+
+### 8.1 Recovery-session isolation fix (PR #4 review, 2026-11-21)
+
+**Finding (High, fixed before merge):** The original recovery gate depended on an auxiliary `padelhub_recovery_uid` cookie. A valid recovery link created a fully authenticated Supabase session, so (a) an invalid follow-up `/auth/recovery` request cleared the cookie without revoking the session, (b) the cookie expired after 15 minutes while the session stayed valid, (c) protected photo handlers called `auth.getUser()` directly without the guard, and (d) the recovery JWT could call owner/admin RPCs directly through PostgREST. A recovery `token_hash` was also accepted by `/auth/callback?type=email` (empirically verified: GoTrue accepts recovery hashes as `type=email`).
+
+**Fix — server-side boundary independent of cookies:**
+- **PostgreSQL** (migrations `20261121002000_recovery_session_isolation.sql`, `20261121002100_force_rls_confirmed_signup_sessions.sql`): `private.verified_auth_caller()`, used by every owner/admin RPC, now also requires `private.is_active_account_session()`. It accepts signed JWT `amr` containing a primary method (`password`/`oauth`/`sso/saml`/`webauthn`) and no OTP/recovery method. OTP-only sessions (recovery, including MFA-elevated `aal2` `[otp, totp]`) are denied by default. The only exception is one genuine first-time signup-confirmation session per user, recorded server-side in `private.confirmed_signup_sessions` (`ENABLE` + `FORCE RLS`, no grants) via a `service_role`-only RPC. That RPC refuses accounts with `recovery_sent_at` set and stops working as soon as the `auth.sessions` row is gone.
+- **Next.js:** `verifiedUserClient()` classifies the verified session's `amr` and fails closed. Photo upload, owner photo delivery and admin review-photo delivery now go through `verifiedUserClient()`. The `padelhub_recovery_uid` cookie has been removed completely.
+- **Callbacks:** `/auth/callback` rejects `type=email` and signs out any OTP session it cannot allowlist. An invalid, expired or reused `/auth/recovery` request now signs out any existing restricted session.
+
+### 8.2 Verification (rerun 2026-11-21)
+- `npm run test:db`: **607/607 SQL assertions** across 16 files, including the new `recovery-isolation.test.sql` (33 assertions: privileges, password/OAuth allowed, OTP/recovery/magiclink/mixed/empty-amr denied for reads and owner mutations, MFA `aal2` recovery denied admin RPCs, single-use signup allowlist, session-deletion revocation), plus all 14 concurrency races.
+- `npm run test:unit`: 38/38 passed (adds `classifySessionAmr`, `extractJwtSessionId`, `type=email` rejection).
+- `npm run lint`, `npm run typecheck`, `npm run build` (27/27 routes): passed.
+- Hosted `node scripts/staging-app.mjs smoke-phase2b`: **13/13 passed** on `padelhub-staging`, covering:
+  - first-time signup allowlist
+  - cross-type `type=email`/`type=signup` replay rejected
+  - recovery session denied on account pages, private photo delivery (`404`), photo upload (`401`), owner mutations and direct RPCs (`42501`)
+  - the boundary still holds after cookie removal, expiry simulation and Supabase token refresh
+  - an invalid-token retry revokes the active recovery session
+  - full EN desktop and AR mobile recovery with profile and photo preserved
+  - an MFA-enrolled admin is denied at **both `aal1` and `aal2`** on `/admin`, admin review photos and admin RPCs, including after refresh and invalid retry
+  - factor preserved after reset
+  - operator `deleteFactor` followed by fresh re-enrollment
+- `verify-revoked-admin`: 1/1 passed.
+
+### 8.3 Still blocked pending owner external service configuration
+See [AUTH_DEPLOYMENT_RUNBOOK.md](AUTH_DEPLOYMENT_RUNBOOK.md):
+1. **Resend custom SMTP and DNS:** **BLOCKED / not verified.** Needs a verified sending domain (SPF/DKIM/DMARC), link/open tracking disabled, SMTP credentials in the Supabase Dashboard, and a real external inbox confirmation and recovery test.
+2. **Google Cloud OAuth and staging Redirect URLs:** **BLOCKED / not verified.** Needs a Google Cloud Web OAuth Client (`openid email profile`), Google enabled in Supabase, `/en/auth/recovery` and `/ar/auth/recovery` allowlisted, and live Google sign-in tests (new user, linked verified user, repeat user, admin MFA check). Note: Google sessions carry `amr = oauth` and are accepted as primary sessions by the new boundary. This is covered by SQL tests but not yet by a live Google login.

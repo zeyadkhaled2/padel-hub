@@ -1,19 +1,17 @@
 import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { authConfig } from '@/server/supabase/config';
-import { RECOVERY_UID_COOKIE, serverClient } from '@/server/supabase/server';
+import { serverClient } from '@/server/supabase/server';
 import { localeValue } from './types';
 import {
+  classifySessionAmr,
   hasRecoveryAmr,
   parseCallbackCode,
   parseCallbackTokenParams,
 } from './validation';
-
-const RECOVERY_COOKIE_MAX_AGE_SECONDS = 900;
 
 const authProviderSettingsSchema = z.object({
   mailer_autoconfirm: z.boolean(),
@@ -51,50 +49,15 @@ export async function readAuthProviderSettings(
   }
 }
 
-export function recoveryCookieOptions(origin: string) {
-  return {
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: origin.startsWith('https:'),
-    path: '/',
-    maxAge: RECOVERY_COOKIE_MAX_AGE_SECONDS,
-  };
-}
-
-export async function clearRecoveryCookie(origin?: string) {
-  try {
-    const store = await cookies();
-    store.set(RECOVERY_UID_COOKIE, '', {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: origin ? origin.startsWith('https:') : false,
-      path: '/',
-      maxAge: 0,
-    });
-  } catch {
-    // Ignore when called from read-only Server Component render.
-  }
-}
-
 export type RecoverySessionCheck =
   | { status: 'unavailable' }
   | { status: 'missing' }
   | { status: 'mfa_required'; client: SupabaseClient; factorId: string }
   | { status: 'ready'; client: SupabaseClient };
 
-export async function getRecoverySessionState(): Promise<RecoverySessionCheck> {
-  const config = authConfig();
-  if (!config) return { status: 'unavailable' };
-
-  const store = await cookies();
-  const recoveryUid = store.get(RECOVERY_UID_COOKIE)?.value?.trim();
-  if (!recoveryUid) return { status: 'missing' };
-
-  const client = await serverClient();
-  if (!client) return { status: 'unavailable' };
-
+async function inspectRecoverySession(client: SupabaseClient): Promise<RecoverySessionCheck> {
   const { data: userData, error: userError } = await client.auth.getUser();
-  if (userError || !userData.user?.email_confirmed_at || userData.user.id !== recoveryUid) {
+  if (userError || !userData.user?.email_confirmed_at) {
     return { status: 'missing' };
   }
 
@@ -103,16 +66,63 @@ export async function getRecoverySessionState(): Promise<RecoverySessionCheck> {
     return { status: 'missing' };
   }
 
-  if (aalData.nextLevel === 'aal2' && aalData.currentLevel !== 'aal2') {
-    const factors = await client.auth.mfa.listFactors();
-    const verifiedTotp = factors.error
-      ? null
-      : factors.data.totp.find((factor) => factor.status === 'verified') ?? factors.data.totp[0];
-    if (!verifiedTotp) return { status: 'missing' };
-    return { status: 'mfa_required', client, factorId: verifiedTotp.id };
+  // Only isolated recovery sessions (never approved initial signup sessions) may reset passwords.
+  const active = await client.rpc('is_my_account_session_active');
+  if (active.error) return { status: 'unavailable' };
+  if (active.data === true) return { status: 'missing' };
+
+  const verifiedTotpFromUser = (userData.user.factors ?? []).find(
+    (factor) => factor.factor_type === 'totp' && factor.status === 'verified',
+  );
+  const needsMfa =
+    (aalData.nextLevel === 'aal2' || Boolean(verifiedTotpFromUser)) &&
+    aalData.currentLevel !== 'aal2';
+
+  if (needsMfa) {
+    let factorId = verifiedTotpFromUser?.id ?? null;
+    if (!factorId) {
+      const factors = await client.auth.mfa.listFactors();
+      const verifiedTotp = factors.error
+        ? null
+        : factors.data.totp.find((factor) => factor.status === 'verified') ?? factors.data.totp[0];
+      factorId = verifiedTotp?.id ?? null;
+    }
+    if (!factorId) return { status: 'missing' };
+    return { status: 'mfa_required', client, factorId };
   }
 
   return { status: 'ready', client };
+}
+
+async function revokeRestrictedSessionIfPresent(client: SupabaseClient): Promise<void> {
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (userError || !userData.user) return;
+
+  const { data: aalData, error: aalError } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aalError || !aalData) {
+    await client.auth.signOut({ scope: 'local' });
+    return;
+  }
+
+  const amrClass = classifySessionAmr(aalData.currentAuthenticationMethods);
+  if (amrClass === 'primary') return;
+
+  if (amrClass === 'otp_signup_candidate') {
+    const active = await client.rpc('is_my_account_session_active');
+    if (!active.error && active.data === true) return;
+  }
+
+  await client.auth.signOut({ scope: 'local' });
+}
+
+export async function getRecoverySessionState(): Promise<RecoverySessionCheck> {
+  const config = authConfig();
+  if (!config) return { status: 'unavailable' };
+
+  const client = await serverClient();
+  if (!client) return { status: 'unavailable' };
+
+  return inspectRecoverySession(client);
 }
 
 export async function handleRecoveryVerification(
@@ -123,7 +133,7 @@ export async function handleRecoveryVerification(
   const config = authConfig();
   const origin = config?.origin ?? request.nextUrl.origin;
 
-  let verifiedUserId: string | null = null;
+  let verified = false;
 
   if (config) {
     const tokenParams = parseCallbackTokenParams(request.nextUrl.searchParams);
@@ -144,37 +154,22 @@ export async function handleRecoveryVerification(
       }
 
       if (exchanged) {
-        const [{ data: userData }, { data: aalData }] = await Promise.all([
-          client.auth.getUser(),
-          client.auth.mfa.getAuthenticatorAssuranceLevel(),
-        ]);
-        if (
-          userData.user?.email_confirmed_at &&
-          hasRecoveryAmr(aalData?.currentAuthenticationMethods)
-        ) {
-          verifiedUserId = userData.user.id;
+        const state = await inspectRecoverySession(client);
+        if (state.status === 'ready' || state.status === 'mfa_required') {
+          verified = true;
         } else {
           await client.auth.signOut({ scope: 'local' });
         }
+      } else {
+        // An invalid/expired/reused recovery link must invalidate any existing
+        // unfinished recovery session instead of leaving it active in the browser.
+        await revokeRestrictedSessionIfPresent(client);
       }
     }
   }
 
   // Fixed destination only: never trust next, redirect_to, or request Host.
-  const store = await cookies();
-  if (verifiedUserId && config) {
-    store.set(RECOVERY_UID_COOKIE, verifiedUserId, recoveryCookieOptions(config.origin));
-  } else {
-    store.set(RECOVERY_UID_COOKIE, '', {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: origin.startsWith('https:'),
-      path: '/',
-      maxAge: 0,
-    });
-  }
-
-  const destination = verifiedUserId
+  const destination = verified
     ? `/${locale}/auth/reset-password`
     : `/${locale}/auth/reset-password?error=invalid`;
   const response = NextResponse.redirect(new URL(destination, origin));

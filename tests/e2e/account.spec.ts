@@ -488,9 +488,50 @@ test.describe('local verified accounts', () => {
     await page.goto(recoveryLink);
     await expect(page).toHaveURL(/\/en\/auth\/reset-password$/);
 
-    // Mid-recovery session cannot view protected /en/account data before completing password reset.
+    // Mid-recovery session cannot access account pages, private photos, or photo upload APIs.
     await page.goto('/en/account');
     await expect(page).toHaveURL(/\/en\/auth\/signin$/);
+    await page.goto('/en/account/listings');
+    await expect(page).toHaveURL(/\/en\/auth\/signin$/);
+    expect((await page.request.get(imageUrl)).status()).toBe(404);
+    expect(
+      (
+        await page.request.post(`/api/listings/${listingId}/photos`, {
+          headers: { Origin: 'http://127.0.0.1:3100', 'X-Listing-Version': '1' },
+          data: source,
+        })
+      ).status(),
+    ).toBe(401);
+
+    // Simulating cookie expiry/removal and token refresh keeps the recovery boundary intact.
+    const recCookies = (await context.cookies()).filter((c) => /^sb-.*-auth-token(?:\.\d+)?$/.test(c.name));
+    await context.clearCookies();
+    if (recCookies.length > 0) {
+      const recSerialized = recCookies.sort((a, b) => a.name.localeCompare(b.name)).map((c) => c.value).join('');
+      const recSession = JSON.parse(Buffer.from(recSerialized.replace(/^base64-/, ''), 'base64url').toString());
+      recSession.expires_at = 1;
+      const recExpired = `base64-${Buffer.from(JSON.stringify(recSession)).toString('base64url')}`;
+      const recBaseName = recCookies[0].name.replace(/\.\d+$/, '');
+      const recChunks = recExpired.match(/.{1,3000}/g)!;
+      await context.addCookies(
+        recChunks.map((value, index) => ({
+          ...recCookies[0],
+          name: recChunks.length === 1 ? recBaseName : `${recBaseName}.${index}`,
+          value,
+        })),
+      );
+    }
+    await page.goto('/en/account');
+    await expect(page).toHaveURL(/\/en\/auth\/signin$/);
+    expect((await page.request.get(imageUrl)).status()).toBe(404);
+    expect(
+      (
+        await page.request.post(`/api/listings/${listingId}/photos`, {
+          headers: { Origin: 'http://127.0.0.1:3100', 'X-Listing-Version': '1' },
+          data: source,
+        })
+      ).status(),
+    ).toBe(401);
     await page.goto('/en/auth/reset-password');
 
     // Mismatched password confirmation is rejected safely.

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { serverClient, RECOVERY_UID_COOKIE } from '@/server/supabase/server';
+import { serviceClient } from '@/server/supabase/clients';
+import { serverClient } from '@/server/supabase/server';
 import { authConfig } from '@/server/supabase/config';
 import { handleRecoveryVerification } from '@/features/auth/server';
 import { localeValue } from '@/features/auth/types';
 import {
+  classifySessionAmr,
+  extractJwtSessionId,
   mapOAuthCallbackErrorParam,
   parseCallbackCode,
   parseCallbackTokenParams,
@@ -43,31 +45,51 @@ export async function GET(
     const client = await serverClient();
     if (client) {
       let exchanged = false;
-      if (tokenParams) {
-        const { error } = await client.auth.verifyOtp({
-          type: tokenParams.type,
+      let accessToken: string | null = null;
+      if (tokenParams && tokenParams.type === 'signup') {
+        const { data, error } = await client.auth.verifyOtp({
+          type: 'signup',
           token_hash: tokenParams.tokenHash,
         });
         exchanged = !error;
-      } else if (code) {
-        const { error } = await client.auth.exchangeCodeForSession(code);
+        accessToken = data.session?.access_token ?? null;
+      } else if (!tokenParams && code) {
+        const { data, error } = await client.auth.exchangeCodeForSession(code);
         exchanged = !error;
+        accessToken = data.session?.access_token ?? null;
       }
 
       if (exchanged) {
-        const { data } = await client.auth.getUser();
-        success = !!data.user?.email_confirmed_at;
+        const { data: userData, error: userError } = await client.auth.getUser();
+        const user = !userError ? userData.user : null;
+
+        if (user?.email_confirmed_at) {
+          const { data: aalData, error: aalError } =
+            await client.auth.mfa.getAuthenticatorAssuranceLevel();
+          const amrClass =
+            !aalError && aalData
+              ? classifySessionAmr(aalData.currentAuthenticationMethods)
+              : 'restricted';
+
+          if (amrClass === 'primary') {
+            success = true;
+          } else if (amrClass === 'otp_signup_candidate') {
+            // Only approve a genuine first-time email-confirmation OTP session
+            // (never a replayed PKCE recovery code or previously recovered account).
+            const sessionId = extractJwtSessionId(accessToken);
+            const adminClient = serviceClient();
+            if (sessionId && adminClient) {
+              const approved = await adminClient.rpc('approve_signup_confirmation_session', {
+                p_session_id: sessionId,
+                p_user_id: user.id,
+              });
+              success = !approved.error && approved.data === true;
+            }
+          }
+        }
+
         if (!success) {
           await client.auth.signOut({ scope: 'local' });
-        } else {
-          const store = await cookies();
-          store.set(RECOVERY_UID_COOKIE, '', {
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: config.origin.startsWith('https:'),
-            path: '/',
-            maxAge: 0,
-          });
         }
       }
     }

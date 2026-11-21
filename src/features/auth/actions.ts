@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation';
 import { authConfig } from '@/server/supabase/config';
 import { serverClient } from '@/server/supabase/server';
 import {
-  clearRecoveryCookie,
   getRecoverySessionState,
   readAuthProviderSettings,
 } from './server';
@@ -66,7 +65,6 @@ export async function authenticate(
     return { email, message: 'confirmFirst' };
   }
 
-  await clearRecoveryCookie(config.origin);
   redirect(`/${localeValue(locale)}/account`);
 }
 
@@ -79,7 +77,6 @@ export async function continueWithGoogle(locale: string): Promise<GoogleAuthStat
   if (!settings) return { message: 'unavailable' };
   if (!settings.googleEnabled) return { message: 'googleUnavailable' };
 
-  await clearRecoveryCookie(config.origin);
   const safeLocale = localeValue(locale);
   const { data, error } = await client.auth.signInWithOAuth({
     provider: 'google',
@@ -175,24 +172,18 @@ export async function updateRecoveredPassword(
     return { message: mapResetPasswordError(error) };
   }
 
-  const config = authConfig();
-  await clearRecoveryCookie(config?.origin);
   await recovery.client.auth.signOut({ scope: 'global' });
   redirect(`/${localeValue(locale)}/auth/signin?reset=1`);
 }
 
 export async function cancelRecovery(locale: string) {
-  const config = authConfig();
   const client = await serverClient();
-  await clearRecoveryCookie(config?.origin);
   if (client) await client.auth.signOut({ scope: 'local' });
   redirect(`/${localeValue(locale)}/auth/signin`);
 }
 
 export async function signOut(locale: string) {
-  const config = authConfig();
   const client = await serverClient();
-  await clearRecoveryCookie(config?.origin);
   if (client) await client.auth.signOut({ scope: 'local' });
   redirect(`/${localeValue(locale)}/auth/signin`);
 }

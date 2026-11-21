@@ -6,6 +6,8 @@ import {
   parseProfileMutation,
 } from '@/features/profile/validation';
 import {
+  classifySessionAmr,
+  extractJwtSessionId,
   hasRecoveryAmr,
   isTrustedOAuthRedirectUrl,
   mapAuthSignInError,
@@ -263,6 +265,10 @@ test('password recovery and OAuth callback validators enforce bounds, allowlists
     { tokenHash: 'tok_123', type: 'signup' },
   );
   assert.equal(
+    parseCallbackTokenParams(new URLSearchParams('token_hash=tok_123&type=email')),
+    null,
+  );
+  assert.equal(
     parseCallbackTokenParams(new URLSearchParams('token_hash=tok_123&type=invite')),
     null,
   );
@@ -271,13 +277,58 @@ test('password recovery and OAuth callback validators enforce bounds, allowlists
     null,
   );
 
-  // Recovery AMR detection accepts otp/recovery (string or object form) and rejects password/oauth.
+  // AMR session classification enforces strict primary vs OTP/recovery boundaries.
+  assert.equal(classifySessionAmr([{ method: 'password', timestamp: 1 }]), 'primary');
+  assert.equal(
+    classifySessionAmr([{ method: 'password', timestamp: 1 }, { method: 'totp', timestamp: 2 }]),
+    'primary',
+  );
+  assert.equal(classifySessionAmr([{ method: 'oauth', timestamp: 1 }]), 'primary');
+  assert.equal(classifySessionAmr([{ method: 'otp', timestamp: 1 }]), 'otp_signup_candidate');
+  assert.equal(
+    classifySessionAmr([{ method: 'otp', timestamp: 1 }, { method: 'totp', timestamp: 2 }]),
+    'otp_signup_candidate',
+  );
+  assert.equal(classifySessionAmr(['recovery']), 'recovery');
+  assert.equal(
+    classifySessionAmr([{ method: 'recovery', timestamp: 1 }, { method: 'totp', timestamp: 2 }]),
+    'recovery',
+  );
+  assert.equal(classifySessionAmr([{ method: 'magiclink', timestamp: 1 }]), 'restricted');
+  assert.equal(classifySessionAmr([{ method: 'invite', timestamp: 1 }]), 'restricted');
+  assert.equal(
+    classifySessionAmr([{ method: 'password', timestamp: 1 }, { method: 'otp', timestamp: 2 }]),
+    'restricted',
+  );
+  assert.equal(classifySessionAmr([{ method: 'totp', timestamp: 1 }]), 'restricted');
+  assert.equal(classifySessionAmr([]), 'restricted');
+  assert.equal(classifySessionAmr(null), 'restricted');
+
+  // Recovery AMR detection accepts otp/recovery only (never primary, mixed, or magiclink).
   assert.equal(hasRecoveryAmr([{ method: 'otp', timestamp: 1 }]), true);
   assert.equal(hasRecoveryAmr([{ method: 'totp', timestamp: 2 }, { method: 'otp', timestamp: 1 }]), true);
   assert.equal(hasRecoveryAmr(['recovery']), true);
   assert.equal(hasRecoveryAmr([{ method: 'password', timestamp: 1 }]), false);
   assert.equal(hasRecoveryAmr([{ method: 'oauth', timestamp: 1 }]), false);
+  assert.equal(hasRecoveryAmr([{ method: 'password', timestamp: 1 }, { method: 'otp', timestamp: 2 }]), false);
+  assert.equal(hasRecoveryAmr([{ method: 'magiclink', timestamp: 1 }]), false);
   assert.equal(hasRecoveryAmr([]), false);
+
+  // JWT session_id extraction validates strict UUIDs and fails closed on malformed tokens.
+  const validJwt = [
+    Buffer.from(JSON.stringify({ alg: 'HS256' })).toString('base64url'),
+    Buffer.from(JSON.stringify({ session_id: 'A0000000-0000-4000-8000-00000000000A' })).toString('base64url'),
+    'sig',
+  ].join('.');
+  assert.equal(extractJwtSessionId(validJwt), 'a0000000-0000-4000-8000-00000000000a');
+  const badSidJwt = [
+    Buffer.from('{}').toString('base64url'),
+    Buffer.from(JSON.stringify({ session_id: 'not-a-uuid' })).toString('base64url'),
+    'sig',
+  ].join('.');
+  assert.equal(extractJwtSessionId(badSidJwt), null);
+  assert.equal(extractJwtSessionId('malformed'), null);
+  assert.equal(extractJwtSessionId(null), null);
 
   // OAuth redirect target must match the configured Supabase Auth origin and /auth/v1/authorize path.
   assert.equal(
