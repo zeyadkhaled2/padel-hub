@@ -16,6 +16,87 @@ export type AdminAccess = {
   mfa_verified: boolean;
 };
 
+export type AdminNavSectionId =
+  | 'overview'
+  | 'listings'
+  | 'sellers'
+  | 'reports'
+  | 'analytics'
+  | 'audit'
+  | 'settings'
+  | 'operations';
+
+export type AdminOverviewKpis = {
+  sellers_total: number;
+  sellers_active: number;
+  sellers_suspended: number;
+  sellers_hidden: number;
+  listings_total: number;
+  listings_active: number;
+  listings_pending: number;
+  listings_rejected: number;
+  listings_draft: number;
+  listings_sold: number;
+  listings_traded: number;
+  listings_archived: number;
+  listings_removed: number;
+  open_reports: number;
+  views_30d: number;
+  contacts_30d: number;
+  views_7d: number;
+  contacts_7d: number;
+};
+
+export type AdminNeedsAttention = {
+  pending_listings: number;
+  oldest_pending_submitted_at: string | null;
+  open_reports: number;
+  oldest_open_report_at: string | null;
+  suspended_sellers: number;
+};
+
+export type AdminTrendPeriod = {
+  views: number;
+  contacts: number;
+  new_sellers: number;
+  new_listings: number;
+  submitted_listings: number;
+  new_reports: number;
+};
+
+export type AdminDailyEngagementPoint = {
+  day: string;
+  views: number;
+  contacts: number;
+};
+
+export type AdminOverviewTrends = {
+  period_7d: AdminTrendPeriod;
+  period_30d: AdminTrendPeriod;
+  daily_engagement: AdminDailyEngagementPoint[];
+};
+
+export type AdminActivityItem = {
+  id: number;
+  actor_role: 'admin' | 'moderator' | 'owner';
+  action: string;
+  target_type: 'listing' | 'profile';
+  target_id: string;
+  target_label: string | null;
+  target_status: string | null;
+  reason: string | null;
+  created_at: string;
+};
+
+export type AdminDashboardOverview = {
+  generated_at: string;
+  window_end_utc: string;
+  kpis: AdminOverviewKpis;
+  needs_attention: AdminNeedsAttention;
+  trends: AdminOverviewTrends;
+  recent_activity: AdminActivityItem[];
+};
+
 export type PendingListingSummary = {
   id: string;
   title: string | null;

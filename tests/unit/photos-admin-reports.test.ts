@@ -8,8 +8,11 @@ import {
   validateSourceImageMetadata,
 } from '@/features/photos/validation';
 import {
+  buildRecentEngagementSeries,
+  getActivityActionTranslationKey,
   getReviewListingDisplayRows,
   mapAdminDecisionRpcError,
+  parseAdminDashboardOverview,
   parsePendingListingsPage,
   parseReviewDecision,
   parseReviewSnapshot,
@@ -372,4 +375,150 @@ test('getReviewListingDisplayRows omits null fields while keeping false booleans
     }),
     null,
   );
+});
+
+test('admin overview parser, activity action mapping and daily engagement series enforce bounds', () => {
+  const validOverview = {
+    generated_at: '2026-11-21T12:00:00Z',
+    window_end_utc: '2026-11-21',
+    kpis: {
+      sellers_total: '10',
+      sellers_active: 8,
+      sellers_suspended: 1,
+      sellers_hidden: 1,
+      listings_total: 25,
+      listings_active: 12,
+      listings_pending: 3,
+      listings_rejected: 2,
+      listings_draft: 4,
+      listings_sold: 2,
+      listings_traded: 1,
+      listings_archived: 1,
+      listings_removed: 0,
+      open_reports: 2,
+      views_30d: '140',
+      contacts_30d: 18,
+      views_7d: 45,
+      contacts_7d: 6,
+    },
+    needs_attention: {
+      pending_listings: 3,
+      oldest_pending_submitted_at: '2026-11-20T09:00:00Z',
+      open_reports: 2,
+      oldest_open_report_at: '2026-11-21T08:00:00Z',
+      suspended_sellers: 1,
+    },
+    trends: {
+      period_7d: {
+        views: 45,
+        contacts: 6,
+        new_sellers: 2,
+        new_listings: 5,
+        submitted_listings: 4,
+        new_reports: 2,
+      },
+      period_30d: {
+        views: 140,
+        contacts: 18,
+        new_sellers: 7,
+        new_listings: 19,
+        submitted_listings: 14,
+        new_reports: 5,
+      },
+      daily_engagement: [
+        { day: '2026-11-19', views: 10, contacts: 2 },
+        { day: '2026-11-21', views: 35, contacts: 4 },
+      ],
+    },
+    recent_activity: [
+      {
+        id: '99',
+        actor_role: 'admin',
+        action: 'listing.approved',
+        target_type: 'listing',
+        target_id: LISTING_ID,
+        target_label: 'Bullpadel Vertex 04',
+        target_status: 'active',
+        reason: null,
+        created_at: '2026-11-21T11:55:00Z',
+      },
+      {
+        id: 98,
+        actor_role: 'moderator',
+        action: 'report.suspend',
+        target_type: 'profile',
+        target_id: SELLER_ID,
+        target_label: '@seller_one',
+        target_status: 'suspended',
+        reason: 'Repeated spam',
+        created_at: '2026-11-21T11:30:00Z',
+      },
+    ],
+  };
+
+  const parsed = parseAdminDashboardOverview(validOverview);
+  assert.ok(parsed);
+  assert.equal(parsed.kpis.sellers_total, 10);
+  assert.equal(parsed.kpis.views_30d, 140);
+  assert.equal(parsed.recent_activity[0].id, 99);
+
+  // Negative counts, invalid UTC dates, unknown actor roles, and oversized lists fail closed.
+  assert.equal(
+    parseAdminDashboardOverview({
+      ...validOverview,
+      kpis: { ...validOverview.kpis, sellers_total: -1 },
+    }),
+    null,
+  );
+  assert.equal(
+    parseAdminDashboardOverview({ ...validOverview, window_end_utc: '2026/11/21' }),
+    null,
+  );
+  assert.equal(
+    parseAdminDashboardOverview({
+      ...validOverview,
+      recent_activity: [
+        { ...validOverview.recent_activity[0], actor_role: 'service_role' },
+      ],
+    }),
+    null,
+  );
+  assert.equal(
+    parseAdminDashboardOverview({
+      ...validOverview,
+      recent_activity: Array.from({ length: 13 }, (_, index) => ({
+        ...validOverview.recent_activity[0],
+        id: index + 1,
+      })),
+    }),
+    null,
+  );
+
+  // Known action keys match exact Postgres audit_logs action codes; unknown action falls back safely.
+  assert.equal(getActivityActionTranslationKey('listing.create'), 'listingCreated');
+  assert.equal(getActivityActionTranslationKey('listing.edit'), 'listingUpdated');
+  assert.equal(getActivityActionTranslationKey('listing.submit'), 'listingSubmitted');
+  assert.equal(getActivityActionTranslationKey('listing.withdraw'), 'listingWithdrawn');
+  assert.equal(getActivityActionTranslationKey('listing.archive'), 'listingArchived');
+  assert.equal(getActivityActionTranslationKey('listing.approved'), 'listingApproved');
+  assert.equal(getActivityActionTranslationKey('report.suspend'), 'reportSuspended');
+  assert.equal(getActivityActionTranslationKey('future.unknown_event'), 'other');
+
+  // 7-day engagement series fills empty days honestly and computes bounds.
+  const series = buildRecentEngagementSeries(parsed.trends.daily_engagement, '2026-11-21', 7);
+  assert.equal(series.points.length, 7);
+  assert.equal(series.points[0].day, '2026-11-15');
+  assert.equal(series.points[6].day, '2026-11-21');
+  assert.equal(series.points[4].views, 10);
+  assert.equal(series.points[5].views, 0);
+  assert.equal(series.maxViews, 35);
+  assert.equal(series.maxContacts, 4);
+  assert.equal(series.hasActivity, true);
+
+  const emptySeries = buildRecentEngagementSeries([], '2026-11-21', 7);
+  assert.equal(emptySeries.points.length, 7);
+  assert.equal(emptySeries.hasActivity, false);
+
+  const invalidSeries = buildRecentEngagementSeries([], 'not-a-date', 7);
+  assert.deepEqual(invalidSeries, { points: [], maxViews: 0, maxContacts: 0, hasActivity: false });
 });

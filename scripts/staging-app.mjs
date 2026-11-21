@@ -702,6 +702,48 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.locator(`a[href*="/admin/listings/${createdListingId}"]`).waitFor({ timeout: 25_000 });
       pass('Admin TOTP MFA enrollment and aal2 elevation verified on hosted staging');
 
+      // Verify Admin A overview dashboard sections, 11 live DB KPIs, sidebar nav & privacy on hosted staging
+      for (const headingName of [
+        'Admin overview',
+        'Needs attention',
+        'Marketplace overview',
+        'Marketplace trends',
+        'Review listings',
+        'Recent activity',
+      ]) {
+        await adminPage.getByRole('heading', { name: headingName }).waitFor({ timeout: 15_000 });
+      }
+      const adminOverviewHtml = await adminPage.content();
+      assert(
+        !adminOverviewHtml.includes('Overview metrics could not be loaded'),
+        'Admin overview RPC failed to render live metrics on hosted staging',
+      );
+      assert(!adminOverviewHtml.includes('+201000000051'), 'Admin overview must never leak seller WhatsApp numbers');
+      assert(
+        !adminOverviewHtml.includes(`processed/${activePhotoId}/`),
+        'Admin overview must never leak private storage keys',
+      );
+      for (const kpiLabel of [
+        'Total seller profiles',
+        'Active sellers',
+        'Suspended sellers',
+        'Total listings',
+        'Active listings',
+        'Pending listings',
+        'Rejected listings',
+        'Sold or traded (seller-reported)',
+        'Open reports',
+        'Approximate views',
+        'WhatsApp clicks',
+      ]) {
+        await adminPage.locator('.admin-kpi-card .admin-kpi-label', { hasText: kpiLabel }).first().waitFor({ timeout: 10_000 });
+      }
+      const adminNav = adminPage.getByRole('navigation', { name: 'Admin navigation' });
+      const plannedCount = await adminNav.locator('.admin-nav-planned').count();
+      const plannedLinks = await adminNav.locator('.admin-nav-planned a').count();
+      assert(plannedCount === 5 && plannedLinks === 0, `Expected 5 non-link planned nav items, got ${plannedCount} (${plannedLinks} links)`);
+      pass('Admin A overview dashboard KPIs, Needs Attention, Trends, Recent Activity, nav shell and privacy verified on hosted staging (EN)');
+
       // Persist aal2 storage state & TOTP secret ONLY inside gitignored .cache for immediate-revocation verification
       adminState.factorId = factorId;
       adminState.totpSecret = totpSecret;
@@ -782,6 +824,24 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await reportSection.locator('button[name="intent"][value="dismiss"]').click();
       await adminPage.waitForURL('**/en/admin/reports?done=1', { timeout: 25_000 });
       pass('Abuse report submission and MFA-admin dismissal verified on hosted staging');
+
+      // Verify Admin A overview in Arabic RTL mobile (390px) with live post-moderation audit entries & zero overflow
+      await adminPage.setViewportSize({ width: 390, height: 844 });
+      await adminPage.goto(`${appOrigin}/ar/admin`);
+      await adminPage.getByRole('heading', { name: 'نظرة عامة على الإدارة' }).waitFor({ timeout: 15_000 });
+      const arActivityText = await adminPage.getByRole('region', { name: 'النشاط الأخير' }).getByRole('list').innerText();
+      assert(
+        arActivityText.includes('رفض البلاغ') || arActivityText.includes('وافق على الإعلان'),
+        `Arabic recent activity feed did not show live moderation entries: ${arActivityText.slice(0, 120)}`,
+      );
+      const adminArDir = await adminPage.evaluate(() => document.documentElement.dir);
+      const adminArOverflow = await adminPage.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      assert(adminArDir === 'rtl', `Expected Arabic admin dir="rtl", got "${adminArDir}"`);
+      assert(adminArOverflow <= 1, `Arabic mobile 390px /ar/admin horizontal overflow detected: ${adminArOverflow}px`);
+      await adminPage.setViewportSize({ width: 1280, height: 800 });
+      pass('Admin A Arabic RTL 390px mobile overview and live moderation activity feed verified on hosted staging');
 
       // Withdraw listing -> verify revoked public listing immediately blocks detail, contact, and photo
       const latest = await seller1SessionClient.rpc('get_my_listing', { p_listing_id: createdListingId });
