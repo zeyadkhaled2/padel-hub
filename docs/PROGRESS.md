@@ -1,8 +1,9 @@
 # PadelHub progress
 
-Updated: 2026-11-21. Verified locally; hosted backend is not configured. Main-branch pushes are authorized and may trigger Vercel frontend deployment.
+Updated: 2026-11-21. Isolated hosted Supabase staging (`padelhub-staging`, `eu-central-1`, Free plan) is provisioned and verified; hosted production backend and external SMTP (Phase 2B) remain unconfigured. Main-branch pushes are authorized and may trigger Vercel frontend preview deployment.
 
 ## Completed locally
+- Hosted Supabase staging foundation (Phase 2A): isolated project `padelhub-staging` (`sxghreukdkxclymysryp`, `eu-central-1`, Free plan, \$0/mo), forward-only hosted Auth-claim helpers (`migration 019`), private `media-private` bucket, fail-closed server-only env parsing (`src/server/supabase/env.ts`), `.env.example`, non-destructive staging verification scripts (`scripts/staging-app.mjs`), and runbook/readiness docs (`docs/STAGING_SETUP.md`, `docs/STAGING_READINESS_REPORT.md`).
 - Optional racket specifications: model year (2010–2035), weight in grams (300–420 g), and racket shape (`round`, `teardrop`, `diamond`, `hybrid`) in racket listing drafts, public detail pages, and MFA-admin review, with EN/AR localization, blank-to-null clearing, stale-edit preservation, and non-racket exclusion. Reuses existing database schema/RPCs without new migrations.
 - Exact EU shoe-size filter (20–55, half sizes), preserved in shared URLs/pagination/language changes. Non-shoe category shortcuts clear it. Migration 018 applied locally.
 - Basic analytics: owner totals and MFA-admin marketplace totals for the last 30 UTC calendar days; owners see approximate listing views only; WhatsApp clicks are MFA-admin-only. Private daily counters, no visitor identifiers. Migration 016 applied locally.
@@ -111,3 +112,42 @@ Updated: 2026-11-21. Verified locally; hosted backend is not configured. Main-br
   - Visually inspected `.cache/racket-specs-ar-dark.png` (390px Arabic dark RTL mobile racket specs section): clean alignment, labels, contrast, and zero overflow.
   - `git diff --check`: passed.
 - Limitations & next: hosted backend remains unconfigured; no hosted migrations or deployments performed; PR opened into `main` without merging; next functional milestone is production readiness (recovery, external email, security/abuse checks).
+
+## Hosted Supabase staging (Phase 2A) — 2026-11-21
+- Branch: `chore/hosted-supabase-staging` (branched cleanly from `origin/main` at `f498f7a`, after PR #2 was squash-merged). Existing local Supabase (`padelhub-local`), `main`, `v2`, reference worktree (`C:\Users\COMPUMARTS\.codex\worktrees\backend-reports\padelHub`), and existing Vercel preview (`padel-hub-beta.vercel.app`) were left untouched. No production Supabase project exists or was altered.
+- Provisioned & configured (owner-authorized, \$0/month):
+  - Created isolated Supabase project `padelhub-staging` (`sxghreukdkxclymysryp`, `eu-central-1` / Frankfurt, `Ziad's org`, Free plan, PostgreSQL 17.12).
+  - Verified Auth (`mailer_autoconfirm = false`, `anonymous_users = false`, `email = true`, free App Authenticator TOTP MFA enabled, `Site URL` = `http://127.0.0.1:3100`, exact EN/AR callback Redirect URLs configured).
+  - Provisioned private `media-private` Storage bucket (`public = false`, `8 MiB`, `['image/webp']`, zero public/anon/authenticated Storage policies).
+- Code, migrations & runbooks:
+  - Added forward-only migration `20261121001900_hosted_auth_claim_helpers.sql` (`019`) removing runtime dependency of the three `NOLOGIN NOINHERIT NOBYPASSRLS` writer roles on direct `USAGE ON SCHEMA auth` (which `postgres` cannot delegate on hosted Supabase where `supabase_admin` owns `auth`) via parameterless, `postgres`-owned `SECURITY DEFINER` helpers in `private` (`auth_uid`, `auth_jwt`, `verified_auth_caller`) revoked from `public`/`anon`/`authenticated`/`service_role`, updating all 32 `public.*`/`private.*` policies without rewriting historical migrations `001`–`018`.
+  - Applied migrations `001`–`005` to `padelhub-staging`, confirmed expected hosted `006` failure (`SQLSTATE P0001`), marked `20261117000600` superseded via `supabase migration repair --status applied`, and applied `007`–`019` cleanly via Supabase CLI (`19/19` migrations present; all 20 domain tables have `FORCE ROW LEVEL SECURITY`; 0 direct `anon`/`authenticated` table grants; 0 `ERROR`-level Supabase Security Advisors).
+  - Hardened server-only env config (`src/server/supabase/env.ts`, `config.ts`, `clients.ts`, `src/features/photos/server.ts`) with strict origin normalization, HTTPS enforcement for remote Supabase URLs, fail-closed swapped/duplicate key rejection, and zero fallback to `NEXT_PUBLIC_*`/`SUPABASE_*`; added `.env.example`, `tests/unit/supabase-config.test.ts`, `supabase/tests/hosted-auth-helpers.test.sql`, non-destructive staging runner (`scripts/staging-env.mjs`, `scripts/staging-app.mjs`), `docs/STAGING_SETUP.md`, and `docs/STAGING_READINESS_REPORT.md`.
+- Verification:
+  - Hosted staging non-destructive smoke & security suite (`node scripts/staging-app.mjs smoke` + `verify-revoked-admin` against local production Next.js connected to `padelhub-staging`): **19/19 smoke checks + 1/1 immediate admin revocation check passed (0 failed, 0 skipped)** — covering Auth confirmation enforcement, unverified rejection, verified login/cookies/refresh/logout, open-redirect protection, direct DB/Storage denial, private photo upload/EXIF stripping/race `[201, 409]`/oversize `413`/replacement/hash-verified delivery, real hosted TOTP MFA (`aal2`) + EN/AR admin review/reject/approve, EN desktop & AR 390px mobile public detail, WhatsApp redirect, abuse reports, listing withdrawal media revocation, and immediate role revocation. Temporary test admins revoked; all synthetic listings withdrawn to `draft`.
+  - `npm ci`: passed (438 packages).
+  - `npm run check` (`lint`, `typecheck`, `build` 23/23 routes): passed.
+  - `npm run test:unit`: **30/30 passed**.
+  - `npm run test:db`: **574/574 SQL assertions** (15 files, including 20 hosted-mode assertions with zero writer `auth` schema USAGE) + **14 concurrency/lock/isolation races** passed; scratch DB removed; local Studio DB unchanged.
+  - Local authenticated Playwright suite (`node scripts/local-app.mjs test --workers=1` against `node scripts/local-app.mjs serve`): **18/18 passed (0 failed, 0 skipped)** across desktop & mobile.
+  - `git diff --check`: passed; full diff audited for zero secret leakage.
+- Limitations & next: External transactional SMTP (Resend) is not yet configured (Free-tier built-in auth email ~2/hr is not claimed as external delivery); Vercel Hobby 4.5 MB serverless body cap vs. 8 MiB photo limit documented; hosted staging web preview left on local-connected verification per owner preference so Vercel `main` preview remains untouched; backups/restore drill belongs to Phase 2D. Next milestone: **Phase 2B (External transactional email & auth recovery)**.
+
+## PR #3 review fixes — 2026-11-21
+- Branch: `chore/hosted-supabase-staging` (PR #3 remains open and unmerged). No SQL migrations or schema changes.
+- Addressed all three PR #3 review findings plus operational staging safeguards:
+  1. **Pinned approved staging project ref & DB URL validation**: Independently pinned `APPROVED_STAGING_PROJECT_REF = 'sxghreukdkxclymysryp'` in `scripts/staging-env.mjs` (plus `scripts/staging-env.d.mts`), enforced it in `requireHostedStagingConfig` (including optional `PADELHUB_STAGING_PROJECT_REF`) and `validateStagingDbUrl`, and invoked `validateStagingDbUrl(cfg.dbUrl, APPROVED_STAGING_PROJECT_REF)` before `migrate`, `migrate-dry-run`, and `repair-006` in `scripts/staging-app.mjs` so mismatched or unapproved Supabase project refs fail fast without echoing credentials.
+  2. **Explicit confirmation for migration-history repairs**: Added `requireMigrationRepairConfirmation` in `scripts/staging-env.mjs` so `repair-006` refuses to mutate `supabase_migrations.schema_migrations` unless `--confirm-repair=sxghreukdkxclymysryp:20261117000600` is explicitly passed.
+  3. **Reject non-HTTPS hosted application origins**: Enforced `{ requireHttpsForRemote: true }` on `PADELHUB_APP_ORIGIN` in `src/server/supabase/env.ts` (`parseAuthEnv` / `parseServiceEnv`) and `validateHostedAppOrigin` in `scripts/staging-env.mjs`, allowing `http://` only for loopback hosts (`127.0.0.1`, `localhost`, `[::1]`).
+  4. **Fail full staging smoke if admin MFA is skipped**: Added `requireSmokeAdminState` / `loadSmokeAdminState` in `scripts/staging-env.mjs`, removed the silent `SKIP:` branch in `scripts/staging-app.mjs` (`smoke` now fails fast with exit code 1 if `.cache/staging-admin-smoke.json` is missing/malformed, verifies `/en/admin` returns HTTP 200, and asserts `adminMfaVerified === true`), and hardened `verify-revoked-admin` to require complete MFA/browser state.
+- Regression tests & verification:
+  - Added regression coverage in `tests/unit/supabase-config.test.ts` and `tests/unit/staging-scripts.test.ts` (unit helper checks + isolated CLI subprocess tests for pinned project ref, DB URL mismatch, explicit `repair-006` confirmation, HTTPS hosted origin, `smoke`, and `verify-revoked-admin`).
+  - `npm run test:unit`: **37/37 passed**.
+  - `npm run check`: `eslint .`, `next typegen && tsc --noEmit`, and `next build --webpack` (23/23 routes) passed.
+  - Hosted staging CLI & smoke rerun against `padelhub-staging` (`sxghreukdkxclymysryp`):
+    - `node scripts/staging-app.mjs repair-006` without `--confirm-repair=sxghreukdkxclymysryp:20261117000600`: failed immediately with exit code 1.
+    - `node scripts/staging-app.mjs smoke` without `.cache/staging-admin-smoke.json`: failed immediately with exit code 1 (no `SKIP:`).
+    - `node scripts/staging-app.mjs migrate-dry-run`: passed pinned-ref and DB URL validation and confirmed `Remote database is up to date`.
+    - Full hosted staging smoke (`prepare-smoke-admin` → `private.admin_roles` grant → `serve` → `smoke` → revoke → `verify-revoked-admin`): **19/19 smoke checks + 1/1 immediate revocation check passed (0 failed, 0 skipped)**; verified `active_admins = 0` and `visible_or_pending_listings = 0` on `padelhub-staging`.
+  - Local Docker-dependent checks (`npm run test:db` and `node scripts/local-app.mjs test`) were not rerun in this follow-up because Docker Desktop daemon is currently stopped (`dockerDesktopLinuxEngine` unavailable); no SQL, migrations, or local database logic changed since the passing 574-assertion / 18-E2E run on this branch.
+  - `git diff --check`: passed; full diff audited for zero secret leakage.

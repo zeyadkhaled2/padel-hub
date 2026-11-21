@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { authConfig } from './config';
+import { authConfig, serviceConfig } from './config';
 
 function createStatelessClient(url: string, key: string, timeoutMs: number): SupabaseClient {
   return createClient(url, key, {
@@ -19,8 +19,7 @@ export function anonClient(timeoutMs = 10_000): SupabaseClient | null {
 }
 
 export function serviceClient(timeoutMs = 10_000): SupabaseClient | null {
-  const config = authConfig();
-  const key = process.env.PADELHUB_SUPABASE_SERVICE_ROLE_KEY;
-  if (!config || !key) return null;
-  return createStatelessClient(config.url, key, timeoutMs);
+  const config = serviceConfig();
+  if (!config) return null;
+  return createStatelessClient(config.url, config.key, timeoutMs);
 }

@@ -29,15 +29,18 @@ Updated 2026-11-21. Earlier day estimates were not measured and are withdrawn. T
 
 - Optional racket specifications: model year (2010–2035), weight in grams (300–420 g), and shape (`round`, `teardrop`, `diamond`, `hybrid`) in racket forms, approved public detail pages, and MFA-admin review (EN/AR), reusing existing schema/RPCs.
 
+- **Phase 2A — Isolated hosted Supabase staging:** provisioned `padelhub-staging` (`eu-central-1`, Free plan, \$0/mo), added forward-only migration `019` (`hosted_auth_claim_helpers`), verified all 19 migrations, email-confirmation enforcement, TOTP MFA (`aal2`) + immediate revocation, private Storage/EXIF/hash-verified delivery, RLS isolation, EN/AR desktop & mobile smoke checks, fail-closed server env hardening, `.env.example`, and deployment/rollback runbooks (`docs/STAGING_SETUP.md`, `docs/STAGING_READINESS_REPORT.md`).
+
 ## Remaining, in order
-1. **Production readiness:** recovery, Google login, external email, deletion flows, abuse protections, backups/restore, monitoring and final accessibility/privacy/security checks. Configurable-limit screens remain optional for launch.
-2. **Hosted pilot:** user-approved hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness; recruit 5–10 willing sellers with permissioned inventory.
+1. **Phase 2B — External transactional email & auth recovery:** Resend custom SMTP on staging, verified external email delivery, password recovery UI, and Google login.
+2. **Phase 2C/2D — Production readiness:** account deletion flows, MFA recovery procedures, rate-limiting/abuse review, automated DB + separate private media backups, restore drill, monitoring, and final accessibility/privacy/security checks. Configurable-limit screens remain optional for launch.
+3. **Hosted pilot:** user-approved production hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness; recruit 5–10 willing sellers with permissioned inventory.
 
 **Frontend on hold:** Ziad is working on `v2`. Review/integration and admin visual refinement wait until he explicitly says it is ready. This does not block independent functional work.
 
 No new specialist orchestration or handoff reports. Keep one dependent feature in progress. No checkout, payments, automatic expiry or automatic deletion of saved photos. Seller-reported deal counts still require a product decision.
 
-Current next functional milestone: production readiness (recovery, external email, security/abuse checks); frontend review/merge waits for Ziad. Detailed progress/checks: PROGRESS.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
+Current next functional milestone: Phase 2B (external transactional email via custom SMTP & auth recovery on hosted staging); frontend review/merge waits for Ziad. Detailed progress/checks: PROGRESS.md. Staging setup/rollback: STAGING_SETUP.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
 
 ## After MVP
 - Reservation and available-again controls (deferred by Ziad on 2026-11-18).
