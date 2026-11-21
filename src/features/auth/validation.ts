@@ -25,12 +25,17 @@ export type CallbackTokenParams = {
   type: 'signup' | 'recovery';
 };
 
-export type SessionAmrClass = 'primary' | 'otp_signup_candidate' | 'recovery' | 'restricted';
+export type SessionAmrClass =
+  | 'primary'
+  | 'signup_candidate'
+  | 'otp_signup_candidate'
+  | 'recovery'
+  | 'restricted';
 
 const MAX_AUTH_PARAM_LENGTH = 2048;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PRIMARY_AMR_METHODS = new Set(['password', 'oauth', 'sso/saml', 'webauthn']);
-const RESTRICTED_AMR_METHODS = new Set(['otp', 'recovery', 'magiclink', 'invite']);
+const RESTRICTED_AMR_METHODS = new Set(['otp', 'email/signup', 'recovery', 'magiclink', 'invite']);
 const HARD_RESTRICTED_AMR_METHODS = new Set(['recovery', 'magiclink', 'invite']);
 
 export function parseAuthCredentials(mode: AuthMode, form: FormData): ParsedAuthCredentials {
@@ -156,6 +161,7 @@ export function classifySessionAmr(
   let hasRestricted = false;
   let hasHardRestricted = false;
   let hasOtp = false;
+  let hasEmailSignup = false;
   let hasRecovery = false;
   let hasOtherRestricted = false;
 
@@ -166,14 +172,22 @@ export function classifySessionAmr(
     if (RESTRICTED_AMR_METHODS.has(method)) hasRestricted = true;
     if (HARD_RESTRICTED_AMR_METHODS.has(method)) hasHardRestricted = true;
     if (method === 'otp') hasOtp = true;
+    if (method === 'email/signup') hasEmailSignup = true;
     if (method === 'recovery') hasRecovery = true;
     if (method === 'magiclink' || method === 'invite') hasOtherRestricted = true;
   }
 
   if (hasPrimary && !hasRestricted) return 'primary';
-  if (!hasPrimary && hasOtp && !hasHardRestricted) return 'otp_signup_candidate';
-  if (!hasPrimary && hasRecovery && !hasOtherRestricted) return 'recovery';
+  if (!hasPrimary && hasEmailSignup && !hasOtp && !hasHardRestricted) return 'signup_candidate';
+  if (!hasPrimary && hasOtp && !hasEmailSignup && !hasHardRestricted) return 'otp_signup_candidate';
+  if (!hasPrimary && hasRecovery && !hasOtp && !hasEmailSignup && !hasOtherRestricted) {
+    return 'recovery';
+  }
   return 'restricted';
+}
+
+export function isSignupSessionCandidate(amrClass: SessionAmrClass): boolean {
+  return amrClass === 'signup_candidate' || amrClass === 'otp_signup_candidate';
 }
 
 export function hasRecoveryAmr(

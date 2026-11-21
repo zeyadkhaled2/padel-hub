@@ -210,3 +210,23 @@ Updated: 2026-11-21. Isolated hosted Supabase staging (`padelhub-staging`, `eu-c
   - Historical daily snapshots of past total listing/seller counts are not stored in the schema and are honestly omitted; daily bars cover stored daily views/clicks counters only.
   - Sections for Sellers, full Listing Explorer, Analytics, Audit Log, Settings, and Operations remain labeled `Planned` until Phases Admin B–F.
   - Stop after PR #5 merge and hosted staging verification; do not start Phase Admin B until requested.
+
+## Post-merge fix: GoTrue PKCE `email/signup` confirmation AMR — 2026-11-22
+- Branch: `fix/pkce-signup-amr-confirmation` (branched cleanly from `main` @ `be8b946`; production and `v2` untouched).
+- Root cause: Local (and modern hosted) Supabase GoTrue PKCE email-signup links (`/auth/v1/verify?token=pkce_...&type=signup` → `/[locale]/auth/callback?code=...`) emit JWT `amr = [{"method": "email/signup"}]`, whereas `classifySessionAmr` and migration `022` only recognized `'otp'` (emitted by `verifyOtp(token_hash)`) as an allowlistable signup-confirmation candidate.
+- Completed:
+  - **PostgreSQL (`supabase/migrations/20261122002400_allowlist_pkce_email_signup_amr.sql`, `supabase/tests/recovery-isolation.test.sql`)**: Updated `private.is_active_account_session(uuid)` so `'email/signup'` is accepted *only* through the existing single-use, server-approved `private.confirmed_signup_sessions` allowlist (requiring `recovery_sent_at is null`, matching confirmation window, and active `auth.sessions` row) while continuing to fail closed on unapproved `email/signup` (including `aal2` `[email/signup, totp]`), mixed claims (`password + email/signup`, `email/signup + otp`, `email/signup + recovery`), and all recovery sessions.
+  - **TypeScript (`src/features/auth/validation.ts`, `src/app/[locale]/auth/callback/route.ts`, `src/server/supabase/server.ts`, `src/features/auth/server.ts`)**: Added dedicated `'signup_candidate'` AMR class for `'email/signup'` and `isSignupSessionCandidate(amrClass)` shared across callback approval, `verifiedUserClient()`, and `revokeRestrictedSessionIfPresent()`. Explicitly kept `hasRecoveryAmr()` returning `false` for `'email/signup'` so signup confirmation sessions can never open `/auth/reset-password` or `/auth/recovery`.
+  - **Tests (`tests/unit/profile-and-auth.test.ts`, `supabase/tests/recovery-isolation.test.sql`, `tests/e2e/account.spec.ts`, `tests/e2e/admin.spec.ts`)**: Added unit and 11 new pgTAP regression assertions for PKCE `email/signup`, and eliminated three E2E test-assertion races (waiting for `Sign out` redirect before testing `/auth/callback?code=invalid`, allowing GoTrue's `#error=...` fragment after `?error=invalid` on reused recovery links, and scoping `WhatsApp clicks` to `main`).
+- Verification:
+  - `npm run check` (`eslint .`, `next typegen && tsc --noEmit`, `next build --webpack` 27/27 routes): **PASSED**.
+  - `npm run test:unit`: **39/39 PASSED**.
+  - `npm run test:db` (`001`–`024`): **659/659 SQL assertions** across 17 files (`recovery-isolation.test.sql` **45/45**, `admin-overview.test.sql` **40/40**) + **14 concurrency/lock races PASSED** in a disposable scratch DB.
+  - Local Playwright E2E (`node scripts/local-app.mjs test` against `local-app.mjs serve` after applying additive migration `024` to local Docker DB): **20/20 PASSED (0 failed, 0 skipped)** across desktop & mobile — including BOTH `account.spec.ts` PKCE email-signup & recovery tests and BOTH `admin.spec.ts` TOTP MFA & Admin A tests.
+  - Hosted staging (`padelhub-staging`, `sxghreukdkxclymysryp`):
+    - Applied `20261122002400_allowlist_pkce_email_signup_amr.sql` (`024`) via `node scripts/staging-app.mjs migrate` (`24/24` migrations; `0` `ERROR`-level Security Advisors).
+    - `node scripts/staging-app.mjs smoke-phase2b` + `verify-revoked-admin`: **13/13 Phase 2B MFA/recovery-isolation checks + 1/1 revocation check PASSED**.
+    - `node scripts/staging-app.mjs smoke` + `verify-revoked-admin`: **21/21 full staging + Admin A checks + 1/1 revocation check PASSED**.
+    - Verified clean post-test staging state: `active_admins = 0`, `visible_or_pending_listings = 0`.
+  - `git diff --check`: **PASSED**.
+- Next: Review and merge the fix PR into `main` (not auto-merged); real Resend custom SMTP and live Google OAuth remain owner-blocked until external credentials/DNS are configured.

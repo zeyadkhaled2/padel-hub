@@ -9,6 +9,7 @@ import {
   classifySessionAmr,
   extractJwtSessionId,
   hasRecoveryAmr,
+  isSignupSessionCandidate,
   isTrustedOAuthRedirectUrl,
   mapAuthSignInError,
   mapAuthSignUpError,
@@ -284,6 +285,11 @@ test('password recovery and OAuth callback validators enforce bounds, allowlists
     'primary',
   );
   assert.equal(classifySessionAmr([{ method: 'oauth', timestamp: 1 }]), 'primary');
+  assert.equal(classifySessionAmr([{ method: 'email/signup', timestamp: 1 }]), 'signup_candidate');
+  assert.equal(
+    classifySessionAmr([{ method: 'email/signup', timestamp: 1 }, { method: 'totp', timestamp: 2 }]),
+    'signup_candidate',
+  );
   assert.equal(classifySessionAmr([{ method: 'otp', timestamp: 1 }]), 'otp_signup_candidate');
   assert.equal(
     classifySessionAmr([{ method: 'otp', timestamp: 1 }, { method: 'totp', timestamp: 2 }]),
@@ -300,14 +306,34 @@ test('password recovery and OAuth callback validators enforce bounds, allowlists
     classifySessionAmr([{ method: 'password', timestamp: 1 }, { method: 'otp', timestamp: 2 }]),
     'restricted',
   );
+  assert.equal(
+    classifySessionAmr([{ method: 'password', timestamp: 1 }, { method: 'email/signup', timestamp: 2 }]),
+    'restricted',
+  );
+  assert.equal(
+    classifySessionAmr([{ method: 'email/signup', timestamp: 1 }, { method: 'recovery', timestamp: 2 }]),
+    'restricted',
+  );
+  assert.equal(
+    classifySessionAmr([{ method: 'email/signup', timestamp: 1 }, { method: 'otp', timestamp: 2 }]),
+    'restricted',
+  );
   assert.equal(classifySessionAmr([{ method: 'totp', timestamp: 1 }]), 'restricted');
   assert.equal(classifySessionAmr([]), 'restricted');
   assert.equal(classifySessionAmr(null), 'restricted');
 
-  // Recovery AMR detection accepts otp/recovery only (never primary, mixed, or magiclink).
+  // Signup candidate helper admits only server-allowlistable signup confirmation classes.
+  assert.equal(isSignupSessionCandidate('signup_candidate'), true);
+  assert.equal(isSignupSessionCandidate('otp_signup_candidate'), true);
+  assert.equal(isSignupSessionCandidate('primary'), false);
+  assert.equal(isSignupSessionCandidate('recovery'), false);
+  assert.equal(isSignupSessionCandidate('restricted'), false);
+
+  // Recovery AMR detection accepts otp/recovery only (never email/signup, primary, mixed, or magiclink).
   assert.equal(hasRecoveryAmr([{ method: 'otp', timestamp: 1 }]), true);
   assert.equal(hasRecoveryAmr([{ method: 'totp', timestamp: 2 }, { method: 'otp', timestamp: 1 }]), true);
   assert.equal(hasRecoveryAmr(['recovery']), true);
+  assert.equal(hasRecoveryAmr([{ method: 'email/signup', timestamp: 1 }]), false);
   assert.equal(hasRecoveryAmr([{ method: 'password', timestamp: 1 }]), false);
   assert.equal(hasRecoveryAmr([{ method: 'oauth', timestamp: 1 }]), false);
   assert.equal(hasRecoveryAmr([{ method: 'password', timestamp: 1 }, { method: 'otp', timestamp: 2 }]), false);

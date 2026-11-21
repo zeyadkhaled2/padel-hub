@@ -7,6 +7,7 @@ import { localeValue } from '@/features/auth/types';
 import {
   classifySessionAmr,
   extractJwtSessionId,
+  isSignupSessionCandidate,
   mapOAuthCallbackErrorParam,
   parseCallbackCode,
   parseCallbackTokenParams,
@@ -73,9 +74,9 @@ export async function GET(
 
           if (amrClass === 'primary') {
             success = true;
-          } else if (amrClass === 'otp_signup_candidate') {
-            // Only approve a genuine first-time email-confirmation OTP session
-            // (never a replayed PKCE recovery code or previously recovered account).
+          } else if (isSignupSessionCandidate(amrClass)) {
+            // Only approve a genuine first-time email-confirmation session (PKCE email/signup or token_hash otp;
+            // never a replayed PKCE recovery code or previously recovered account).
             const sessionId = extractJwtSessionId(accessToken);
             const adminClient = serviceClient();
             if (sessionId && adminClient) {

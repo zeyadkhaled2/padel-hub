@@ -9,6 +9,7 @@ import { localeValue } from './types';
 import {
   classifySessionAmr,
   hasRecoveryAmr,
+  isSignupSessionCandidate,
   parseCallbackCode,
   parseCallbackTokenParams,
 } from './validation';
@@ -107,7 +108,7 @@ async function revokeRestrictedSessionIfPresent(client: SupabaseClient): Promise
   const amrClass = classifySessionAmr(aalData.currentAuthenticationMethods);
   if (amrClass === 'primary') return;
 
-  if (amrClass === 'otp_signup_candidate') {
+  if (isSignupSessionCandidate(amrClass)) {
     const active = await client.rpc('is_my_account_session_active');
     if (!active.error && active.data === true) return;
   }
