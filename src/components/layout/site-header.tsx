@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { Brand } from './brand';
+import { BrandLogo } from './brand-logo';
 import { Preferences } from './preferences';
 
 export async function SiteHeader() {
@@ -10,8 +10,8 @@ export async function SiteHeader() {
   return (
     <header className="site-header">
       <div className="container header-inner">
-        <Link className="brand-link" href="/" aria-label="PadelHub">
-          <Brand decorative />
+        <Link className="brand-link" href="/" aria-label={t('brandName')}>
+          <BrandLogo decorative />
         </Link>
 
         <nav className="site-nav" aria-label={t('navigation')}>

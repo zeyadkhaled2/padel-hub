@@ -29,7 +29,7 @@ async function enrollAdminTotpFactor(client: SupabaseClient): Promise<MfaState> 
 
   const enrolled = await client.auth.mfa.enroll({
     factorType: 'totp',
-    friendlyName: 'PadelHub admin',
+    friendlyName: 'Raketna admin',
   });
   if (enrolled.error) return { message: 'unavailable' };
 

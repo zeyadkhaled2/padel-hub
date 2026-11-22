@@ -23,11 +23,11 @@
 :root {
   color-scheme: light;
   --sticky-header-offset: 92px;
-  --canvas: #f7f7f5;
+  --canvas: #faf9f6;
   --surface: #ffffff;
   --surface-soft: #eef2ef;
   --surface-elevated: #ffffff;
-  --text: #121816;
+  --text: #111617;
   --muted: #525e58;
   --border: #dfe3de;
   --border-strong: #c8d0ca;
@@ -36,11 +36,11 @@
   --accent-soft: #e6efe9;
   --accent-text: #ffffff;
   --brand-ink: #111617;
-  --header: rgba(255, 255, 255, 0.94);
-  --header-text: #121816;
+  --header: rgba(250, 249, 246, 0.94);
+  --header-text: #111617;
   --focus: #c85a32;
   --hero: #103b2a;
-  --hero-ink: #f4f7f5;
+  --hero-ink: #faf9f6;
   --mint: #14533c;
   --status-new-bg: #e4f2eb;
   --status-new-text: #114a35;
@@ -50,35 +50,35 @@
   --status-warn-text: #6e480a;
   --status-danger-bg: #fbe9e7;
   --status-danger-text: #8b261d;
-  --shadow-subtle: 0 1px 2px rgba(18, 24, 22, 0.04);
-  --shadow-card-hover: 0 10px 24px -8px rgba(18, 24, 22, 0.08);
+  --shadow-subtle: 0 1px 2px rgba(17, 22, 23, 0.04);
+  --shadow-card-hover: 0 10px 24px -8px rgba(17, 22, 23, 0.08);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #0c100f;
-  --surface: #131917;
-  --surface-soft: #1a2320;
-  --surface-elevated: #18211e;
-  --text: #eef2f0;
-  --muted: #9aa7a0;
-  --border: #25302c;
-  --border-strong: #34443e;
+  --canvas: #111617;
+  --surface: #181f20;
+  --surface-soft: #20292a;
+  --surface-elevated: #1d2526;
+  --text: #faf9f6;
+  --muted: #a1aca9;
+  --border: #2a3435;
+  --border-strong: #394748;
   --accent: #4ec99b;
   --accent-hover: #6ad5ad;
   --accent-soft: rgba(78, 201, 155, 0.14);
   --accent-text: #081c14;
-  --brand-ink: #eef2f0;
-  --header: rgba(19, 25, 23, 0.94);
-  --header-text: #eef2f0;
+  --brand-ink: #faf9f6;
+  --header: rgba(17, 22, 23, 0.94);
+  --header-text: #faf9f6;
   --focus: #f08c69;
   --hero: #14221d;
-  --hero-ink: #eef2f0;
+  --hero-ink: #faf9f6;
   --mint: #4ec99b;
   --status-new-bg: rgba(78, 201, 155, 0.16);
   --status-new-text: #7ee0ba;
-  --status-used-bg: #1e2724;
-  --status-used-text: #c2ccc7;
+  --status-used-bg: #20292a;
+  --status-used-text: #c7d0cd;
   --status-warn-bg: rgba(235, 180, 76, 0.16);
   --status-warn-text: #f3c979;
   --status-danger-bg: rgba(235, 106, 94, 0.16);
@@ -293,12 +293,54 @@ h3 {
   flex-shrink: 0;
 }
 
+.brand-logo-icon {
+  height: 32px;
+  width: 32px;
+}
+
+.brand-logo-sm {
+  height: 24px;
+}
+
+.brand-logo-icon.brand-logo-sm {
+  width: 24px;
+}
+
+.brand-logo-md {
+  height: 30px;
+}
+
+.brand-logo-icon.brand-logo-md {
+  width: 30px;
+}
+
+.brand-logo-lg {
+  height: 38px;
+}
+
+.brand-logo-icon.brand-logo-lg {
+  width: 38px;
+}
+
 .brand-monogram {
   fill: var(--accent);
 }
 
 .brand-wordmark {
   fill: var(--brand-ink);
+}
+
+.brand-logo-tone-dark .brand-monogram {
+  fill: #14533c;
+}
+
+.brand-logo-tone-dark .brand-wordmark {
+  fill: #111617;
+}
+
+.brand-logo-tone-light .brand-monogram,
+.brand-logo-tone-light .brand-wordmark {
+  fill: #faf9f6;
 }
 
 .site-nav,
@@ -1251,7 +1293,7 @@ nav a:hover,
 }
 
 /* ==========================================================================
-   Editorial Features Split (Why PadelHub)
+   Editorial Features Split (Why Raketna)
    ========================================================================== */
 
 .features-section {
@@ -1984,6 +2026,22 @@ nav a:hover,
 /* Account tasks inherit the marketplace's semantic themes and native controls. */
 .account-page { max-width: 760px; padding-block: 40px 64px; }
 .auth-page { max-width: 540px; }
+.auth-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-block-end: 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-subtle);
+}
+.auth-brand-badge .brand-logo-icon {
+  height: 26px;
+  width: 26px;
+}
 .account-page h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); }
 .account-page h2 { font-size: 1.35rem; margin-block: 0 12px; }
 .account-intro { color: var(--muted); margin-block: 12px 24px; }

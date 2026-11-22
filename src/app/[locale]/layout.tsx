@@ -9,12 +9,39 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import '../globals.css';
 
-export const metadata: Metadata = {
-  title: 'PadelHub — Find your next game',
-  description:
-    'PadelHub local design preview. Demo equipment, not live inventory.',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const resolvedLocale = hasLocale(routing.locales, locale)
+    ? locale
+    : routing.defaultLocale;
+  const t = await getTranslations({ locale: resolvedLocale, namespace: 'shell' });
+  const title = t('metaTitle');
+  const description = t('metaDescription');
+  const brandName = t('brandName');
+
+  return {
+    title,
+    description,
+    applicationName: brandName,
+    openGraph: {
+      title,
+      description,
+      siteName: brandName,
+      type: 'website',
+      locale: resolvedLocale === 'ar' ? 'ar_EG' : 'en_EG',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
+    robots: { index: false, follow: false },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
