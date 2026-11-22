@@ -116,7 +116,7 @@ export function ShareProfile({ username, publicId }: { username: string; publicI
             <a
               className="button primary profile-qr-download"
               href={qr}
-              download={`padelhub-${username}-qr.png`}
+              download={`raketna-${username}-qr.png`}
             >
               <Download size={16} aria-hidden />
               <span>{t('downloadQr')}</span>

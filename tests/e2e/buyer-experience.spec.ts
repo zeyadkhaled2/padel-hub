@@ -524,7 +524,7 @@ test.describe('live buyer experience (UI-B)', () => {
       const downloadPromise = page.waitForEvent('download');
       await page.getByRole('link', { name: 'Download QR code', exact: true }).click();
       const download = await downloadPromise;
-      expect(download.suggestedFilename()).toBe(`padelhub-${sellerUsername}-qr.png`);
+      expect(download.suggestedFilename()).toBe(`raketna-${sellerUsername}-qr.png`);
       const pngBytes = await readFile((await download.path())!);
       const decoded = await sharp(pngBytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
       const qrCode = jsQR(

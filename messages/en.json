@@ -1,5 +1,8 @@
 {
   "shell": {
+    "brandName": "Raketna",
+    "metaTitle": "Raketna — Egypt's Padel Equipment Marketplace",
+    "metaDescription": "Browse secondhand padel rackets, balls, shoes, and bags across Egypt. Structured condition disclosures, manual review, and direct WhatsApp contact.",
     "theme": "Color theme",
     "system": "System",
     "light": "Light",
@@ -7,7 +10,7 @@
     "skip": "Skip to content",
     "navigation": "Main navigation",
     "explore": "Explore equipment",
-    "why": "Why PadelHub",
+    "why": "Why Raketna",
     "how": "How it works",
     "faq": "FAQ",
     "demo": "Design preview · All sellers, equipment and prices are demo content.",
@@ -56,7 +59,7 @@
     "reset": "Clear filters",
     "tipTitle": "A good match starts with a conversation.",
     "tip": "Ask about the condition, check the details, and arrange a meetup directly with the seller.",
-    "learn": "Get to know PadelHub",
+    "learn": "Get to know Raketna",
     "back": "Back to equipment",
     "disclosure": "Condition & disclosures",
     "usedDisclosure": "Surface scuffs on the frame. The demo seller reports no cracks or repairs. Inspect equipment before agreeing to buy.",
@@ -66,13 +69,13 @@
     "individual": "Individual seller",
     "bio": "Weekend player in Maadi. Making room for my next racket.",
     "aboutTitle": "More play. Less sitting on the shelf.",
-    "aboutIntro": "PadelHub will help players in Egypt find equipment and connect directly with sellers.",
+    "aboutIntro": "Raketna helps players in Egypt find equipment and connect directly with sellers.",
     "step1": "Find your fit",
     "step1Body": "Browse rackets and balls, check disclosures and get to know the seller.",
     "step2": "Have a conversation",
     "step2Body": "Contact the seller on WhatsApp without an account. Confirm availability before arranging a meetup.",
     "step3": "Make your own arrangements",
-    "step3Body": "Agree payment and pickup directly. PadelHub does not process payments or deliver equipment.",
+    "step3Body": "Agree payment and pickup directly. Raketna does not process payments or deliver equipment.",
     "status": "Browse approved listings and contact sellers directly. Public profile pages and QR sharing are coming later.",
     "courtCaption": "Made for more court time.",
     "specShape": "Shape & balance",
@@ -91,7 +94,7 @@
     "inspection": {
       "eyebrow": "Built for padel equipment, not generic classifieds",
       "title": "Every listing requires structured court-ready disclosures.",
-      "subtitle": "Buying a used racket shouldn't mean guessing from one blurry photo. PadelHub prompts sellers to declare exact frame, face, and packaging details before manual review.",
+      "subtitle": "Buying a used racket shouldn't mean guessing from one blurry photo. Raketna prompts sellers to declare exact frame, face, and packaging details before manual review.",
       "tabFace": "Carbon face & sweet spot",
       "tabFaceTitle": "Face texture & core response",
       "tabFaceBody": "Sellers disclose surface roughness, paint chips, and EVA core firmness so you know how the racket plays before meeting at the club.",
@@ -106,7 +109,7 @@
       "tabBallsMeta": "Whole-offer pricing in EGP"
     },
     "features": {
-      "eyebrow": "Why players choose PadelHub",
+      "eyebrow": "Why players choose Raketna",
       "title": "Designed around how Egypt's padel community actually trades.",
       "subtitle": "No middleman markups, no forced escrow, and no noisy social group threads where listings disappear in hours.",
       "card1Badge": "Manual moderation",
@@ -122,13 +125,13 @@
     "workflow": {
       "eyebrow": "Simple 3-step journey",
       "title": "From browsing to courtside handover.",
-      "subtitle": "PadelHub acts as a clean, trustworthy bridge between players—keeping the transaction in your hands."
+      "subtitle": "Raketna acts as a clean, trustworthy bridge between players—keeping the transaction in your hands."
     },
     "faq": {
       "eyebrow": "Common questions",
       "title": "Everything you need to know about the marketplace.",
-      "q1": "Does PadelHub charge commissions or handle checkout?",
-      "a1": "No. PadelHub is a free connection bridge. Buyers and sellers arrange inspection, payment, and pickup directly with one another in EGP.",
+      "q1": "Does Raketna charge commissions or handle checkout?",
+      "a1": "No. Raketna is a free connection bridge. Buyers and sellers arrange inspection, payment, and pickup directly with one another in EGP.",
       "q2": "Can I swap a racket instead of selling it?",
       "a2": "Yes. Racket listings support sale, swap, or both, allowing you to specify the exact model or weight class you are looking to trade for. Padel balls are sale-only.",
       "q3": "Do I need an account just to browse or message a seller?",
@@ -172,7 +175,7 @@
     "resetEmailSent": "If an account exists for this email address, you will receive a password reset link. Check your inbox and open the link to set a new password.",
     "backToSignIn": "Back to sign in",
     "resetPassword": "Reset password",
-    "resetPasswordIntro": "Choose a new password for your PadelHub account.",
+    "resetPasswordIntro": "Choose a new password for your Raketna account.",
     "newPassword": "New password",
     "confirmPassword": "Confirm new password",
     "passwordMismatch": "Passwords do not match.",

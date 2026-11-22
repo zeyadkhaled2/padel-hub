@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
+import { BrandLogo } from '@/components/layout/brand-logo';
 import { authConfig } from '@/server/supabase/config';
 import { verifiedClient } from '@/server/supabase/server';
 import { ForgotPasswordForm } from './forgot-password-form';
@@ -11,6 +12,9 @@ export async function ForgotPasswordPage({ locale }: { locale: string }) {
 
   return (
     <main id="main" className="container account-page auth-page">
+      <div className="auth-brand-badge" aria-hidden="true">
+        <BrandLogo variant="icon" decorative />
+      </div>
       <h1>{t('forgotPassword')}</h1>
       <p className="account-intro">{t('forgotPasswordIntro')}</p>
       {authConfig() ? (

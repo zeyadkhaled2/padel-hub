@@ -287,3 +287,28 @@ Updated: 2026-11-21. Isolated hosted Supabase staging (`padelhub-staging`, `eu-c
   - Post-PR #8 review polish: suppressed availability confirmation timestamp (`last_confirmed_available_at`) and active-inquiry meetup tips on inactive (`sold`/`traded`/`reserved`) detail pages, with explicit Playwright regression coverage when `last_confirmed_available_at` is populated.
 - Next:
   - Visually verify the updated Vercel preview, confirm green CI/preview checks on PR #8, and merge PR #8 into `main` (stop before UI-C or Admin B–F).
+
+## Brand Identity Update — PadelHub → Raketna (راكتنا) — 2026-11-22
+- Branch: `feat/rebrand-raketna` (branched cleanly from merged `main` @ `262dfea` after PR #8 merged). Implemented and verified locally only; not pushed or deployed to production.
+- **Approved Logo Source of Truth**: Canva design `DAHbnOJciG0` (*"Raketna — Approved Rounded R Logo (Original PadelHub Font)"*). Extracted exact vector geometry for the rounded deep forest green (`#14533C`) uppercase `R` monogram and exact lowercase `raketna.` (`#111617`, `GreycliffCF-Bold`) wordmark from the Canva vector PDF export without redesigning strokes, fonts, or spacing.
+- **Completed**:
+  - **Production logo & browser icon assets (original `public/brand/padelhub-*.svg` files retained untouched for rollback)**:
+    - `public/brand/raketna-logo.svg`: Primary horizontal SVG (`viewBox="0 0 154 39"`, `#14533C` R + `#111617` `raketna.`, transparent background).
+    - `public/brand/raketna-logo-light.svg`: Off-white (`#FAF9F6`) horizontal SVG (`viewBox="0 0 154 39"`, transparent background) for dark and brand-green backgrounds.
+    - `public/brand/raketna-icon.svg`: Standalone rounded `R` monogram SVG (`viewBox="0 0 64 64"`, `#14533C`, optically centered).
+    - `src/app/icon.svg` and `src/app/favicon.ico`: Crisp multi-size (`16x16`, `32x32`, `48x48`) and vector favicons (`#FAF9F6` rounded `R` on `#14533C` rounded-square badge, verified legible at `16px` and `32px`).
+    - `src/app/apple-icon.png` and `public/apple-touch-icon.png`: `180x180` Apple touch icon (`#FAF9F6` rounded `R` on full-bleed `#14533C`).
+  - **Reusable `BrandLogo` component & website branding surfaces**:
+    - Added `src/components/layout/brand-logo.tsx` supporting `variant="horizontal" | "icon"`, `tone="auto" | "dark" | "light"`, optional `size="sm" | "md" | "lg"`, accessible `decorative`/`label` props, and locked `direction: ltr` visual order across EN and AR. Updated `src/components/layout/brand.tsx` to wrap/re-export `BrandLogo`.
+    - Updated `SiteHeader`, `SiteFooter`, and auth screens (`AuthPage`, `ForgotPasswordPage`, `ResetPasswordPage`, adding a restrained rounded `R` emblem badge above auth headings).
+    - Aligned semantic brand tokens in `src/app/globals.css` with the approved palette: Light `--canvas: #faf9f6`, `--text` / `--brand-ink: #111617`, `--accent: #14533c`; Dark `--canvas: #111617`, `--surface: #181f20`, `--surface-soft: #20292a`, `--text` / `--brand-ink: #faf9f6`, `--accent: #4ec99b` (preserving WCAG AA/AAA contrast and functional status/focus tokens).
+    - Updated localized SEO/Open Graph metadata in `src/app/[locale]/layout.tsx` and `src/features/auth/metadata.ts` (keeping `robots: { index: false, follow: false }` intact), all visible EN/AR brand copy in `messages/en.json` and `messages/ar.json` (`Raketna` / `راكتنا`), QR download filename (`raketna-{username}-qr.png` in `src/features/profile/share-profile.tsx`), admin TOTP issuer label (`Raketna admin` in `src/features/admin/actions.ts`), section anchor `#why-raketna`, static HTML email templates in `supabase/templates/`, and `docs/DESIGN_SPEC.md`.
+    - No Supabase schemas, migrations, RLS policies, auth/authorization logic, listing/search/dashboard logic, `PADELHUB_*` env vars, routes, package/repo names, or production domain were changed.
+- **Verification**:
+  - `npm run check`: `eslint .`, `next typegen && tsc --noEmit`, and `next build --webpack` (**29/29 routes** including `/icon.svg` and `/apple-icon.png`) **PASSED**.
+  - `npm run test:unit`: **39/39 PASSED**.
+  - `npm run test:db`: **659/659 SQL assertions** + **14 concurrency/lock races PASSED**.
+  - Local Playwright E2E (`node scripts/local-app.mjs test` against `node scripts/local-app.mjs serve`): **26/26 PASSED (0 failed, 0 skipped)** across desktop (`1280x720`) and mobile (`Pixel 7`).
+  - Verified HTTP `200` on all 7 new Raketna assets + all 3 preserved PadelHub rollback assets, verified `<head>` icon links and localized Open Graph/title metadata with `0` visible `PadelHub` strings across 9 routes, verified exact `#FAF9F6` / `#111617` computed colors and `0px` horizontal overflow across `1440px`, `390px`, and `320px` (EN LTR & AR RTL, Light & Dark), and visually inspected all captured desktop/mobile/auth/footer/asset screenshots.
+- **Next**:
+  - Review the local Raketna branding walkthrough and approve before creating a PR, deploying to staging/production, updating Supabase Cloud auth email templates, or changing domain/infrastructure identifiers.

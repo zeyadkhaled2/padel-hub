@@ -51,7 +51,7 @@ test.describe('local verified accounts', () => {
     const anonymous = await page.goto('/en/account');
     expect(anonymous?.headers()['cache-control']).toContain('no-store');
     await expect(page).toHaveURL(/\/en\/auth\/signin$/);
-    await expect(page).toHaveTitle('Sign in — PadelHub');
+    await expect(page).toHaveTitle('Sign in — Raketna');
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
     const signupLocale = info.project.name === 'mobile' ? 'ar' : 'en';
     await signup(page, email, password, signupLocale);
@@ -139,7 +139,7 @@ test.describe('local verified accounts', () => {
     expect(privateResponse?.headers()['cache-control']).toContain('no-store');
     await page.getByRole('link', { name: 'العربية' }).click();
     await expect(page).toHaveURL(/\/ar\/account$/);
-    await expect(page).toHaveTitle('ملفي الشخصي — PadelHub');
+    await expect(page).toHaveTitle('ملفي الشخصي — راكتنا');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByLabel('الاسم الظاهر')).toHaveValue('Latest saved player');
     await page.getByRole('button', { name: 'تسجيل الخروج' }).click();
@@ -328,7 +328,7 @@ test.describe('local verified accounts', () => {
     const downloadEvent = buyerPage.waitForEvent('download');
     await buyerPage.getByRole('link', { name: 'Download QR code', exact: true }).click();
     const download = await downloadEvent;
-    expect(download.suggestedFilename()).toBe(`padelhub-${username}-qr.png`);
+    expect(download.suggestedFilename()).toBe(`raketna-${username}-qr.png`);
     const png = await readFile((await download.path())!);
     const decodedImage = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     const code = jsQR(new Uint8ClampedArray(decodedImage.data), decodedImage.info.width, decodedImage.info.height);

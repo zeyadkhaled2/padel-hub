@@ -30,7 +30,7 @@ export async function FeaturesSection() {
 
   return (
     <section
-      id="why-padelhub"
+      id="why-raketna"
       className="features-section"
       aria-labelledby="features-heading"
     >

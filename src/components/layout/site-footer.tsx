@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { Brand } from './brand';
+import { BrandLogo } from './brand-logo';
 
 export async function SiteFooter() {
   const t = await getTranslations('shell');
@@ -9,7 +9,7 @@ export async function SiteFooter() {
     <footer className="site-footer">
       <div className="container footer-inner">
         <div className="footer-brand-block">
-          <Brand />
+          <BrandLogo label={t('brandName')} />
           <p className="footer-tagline">{t('footerTagline')}</p>
           <p className="footer-trust-pill">{t('footerSafetyNote')}</p>
         </div>

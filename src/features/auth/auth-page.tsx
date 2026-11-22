@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
+import { BrandLogo } from '@/components/layout/brand-logo';
 import { authConfig } from '@/server/supabase/config';
 import { verifiedClient } from '@/server/supabase/server';
 import { AuthForm } from './auth-form';
@@ -18,6 +19,9 @@ export async function AuthPage({
   if (await verifiedClient()) redirect(`/${localeValue(locale)}/account`);
   return (
     <main id="main" className="container account-page auth-page">
+      <div className="auth-brand-badge" aria-hidden="true">
+        <BrandLogo variant="icon" decorative />
+      </div>
       <h1>{t(mode)}</h1>
       <p className="account-intro">{t('authIntro')}</p>
       {authConfig() ? (

@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { BrandLogo } from '@/components/layout/brand-logo';
 import { Link } from '@/i18n/navigation';
 import { RecoveryMfaForm, ResetPasswordForm } from './reset-password-form';
 import { getRecoverySessionState } from './server';
@@ -13,6 +14,9 @@ export async function ResetPasswordPage({
 
   return (
     <main id="main" className="container account-page auth-page">
+      <div className="auth-brand-badge" aria-hidden="true">
+        <BrandLogo variant="icon" decorative />
+      </div>
       <h1>{t('resetPassword')}</h1>
       <p className="account-intro">{t('resetPasswordIntro')}</p>
 
