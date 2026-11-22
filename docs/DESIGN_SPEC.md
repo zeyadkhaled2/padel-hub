@@ -34,7 +34,16 @@ The rejected `v2` visual direction (3D/2.5D floating racket stage, StockX/GOAT g
 - **Font stack**: Zero-network local system sans-serif stack with Arabic-capable fallbacks (`ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif`).
 - **Hierarchy & numeric clarity**: Body 16px, line height 1.6; secondary metadata 12px–14px. Headings use sentence case, fluid `clamp()` sizing, tight tracking (`-0.024em` to `-0.03em`) in LTR, and zero letter-spacing with `1.38`–`1.45` line height in Arabic RTL (`[dir="rtl"]`). No forced uppercase on Arabic copy.
 - **Tabular figures**: All prices (`.price`), result counts (`.result-count`), active filter badges (`.filters-count-pill`), specification chips (`.card-spec-chip`), and step badges (`.step-number`) use `font-variant-numeric: tabular-nums`.
-- **Container & geometry**: Desktop content sits within a `1240px` container (`--radius-sm: 8px`, `--radius-control: 10px`, `--radius-md: 12px`, `--radius-lg: 16px`).
+- **Container, Soft Minimal / Premium Rounded geometry & sticky-header offset**:
+  - Desktop content sits within a `1240px` container.
+  - Semantic radius hierarchy (inspired by modern iOS interfaces, with proportional nested radii):
+    - `--radius-sm: 8px` — Small labels, condition/category/spec chips, and compact controls.
+    - `--radius-control: 12px` — Standard buttons (`.button`), search input wrapper, filter selects/inputs, header navigation links, theme selector, language toggle, and step/feature icon badges.
+    - `--radius-card: 18px` — Product cards (`.listing-card`), step cards (`.step-card`), FAQ cards (`.faq-item`), and nested media stages inside `24px` containers (`.hero-equipment`, `.inspection-stage`).
+    - `--radius-panel: 20px` (`--radius-md: 20px`) — Larger content cards and panels (`.search-panel`, `.features-list`, `.community-banner`, `.empty-state`, `.disclosure`, and mobile hero/inspection containers).
+    - `--radius-lg: 24px` — Homepage hero (`.hero`), interactive inspection showcase (`.inspection-section`), and major containers.
+    - `--radius-pill: 999px` — Category shortcut pills (`.category-link`) and small capsule badges (`.hero-badge`, `.result-count`, `.filters-count-pill`, `.card-negotiable-tag`).
+  - Sticky-header anchor offset: `--sticky-header-offset: 96px` on desktop (`> 900px`) and `132px` on tablet/mobile (`<= 900px`, accounting for the 2-row mobile sticky header), applied via `scroll-padding-top` on `html` and `scroll-margin-top` on `#equipment-heading`, `#main-content`, and `[id]`.
 
 ## Responsive global shell and marketplace layout (Phase UI-A)
 1. **Header (`SiteHeader`)**: Sticky blurred surface bar (`backdrop-filter: blur(12px)`) with custom deep-green perforated-racket & gold-ball SVG emblem (`public/brand/padelhub-mark.svg`), `padelhub.` wordmark (`Brand`), primary links (`Explore`, `How it works`, `My profile`), a desktop `"Sell equipment"` primary CTA (`/account/listings`), and `Preferences` (theme selector + `العربية` / `English` locale switcher preserving URL query parameters).

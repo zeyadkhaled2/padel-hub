@@ -182,3 +182,58 @@ test('auth recovery and OAuth callback routes fail closed and fit EN/AR narrow t
     }
   }
 });
+
+test('sticky header clears #equipment-heading anchor in LTR and RTL and preserves skip-link keyboard focus', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  for (const locale of ['en', 'ar'] as const) {
+    await page.goto(`/${locale}/demo`);
+
+    // Verify skip-link keyboard focus is visible above the sticky header.
+    const skipLink = page.locator('.skip-link');
+    await skipLink.focus();
+    await expect(skipLink).toBeFocused();
+    const skipBox = await skipLink.boundingBox();
+    expect(skipBox).not.toBeNull();
+    expect(skipBox!.y).toBeGreaterThanOrEqual(0);
+
+    // Click the Hero Browse CTA (#equipment-heading) and verify #equipment-heading lands below sticky header.
+    const browseCta = page.locator('.hero-actions a[href="#equipment-heading"]');
+    await browseCta.click();
+    await expect(page).toHaveURL(new RegExp(`/${locale}/demo#equipment-heading$`));
+
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const header = document.querySelector('.site-header');
+          const heading = document.getElementById('equipment-heading');
+          if (!header || !heading) return false;
+          const headerRect = header.getBoundingClientRect();
+          const headingRect = heading.getBoundingClientRect();
+          return window.scrollY > 0 && headingRect.top >= headerRect.bottom;
+        }),
+      )
+      .toBe(true);
+
+    // Click a category shortcut pill (#equipment-heading) and verify #equipment-heading still clears sticky header.
+    await page.locator('.category-links a[href*="category=balls"]').click();
+    await expect(page).toHaveURL(
+      new RegExp(`/${locale}/demo\\?.*category=balls.*#equipment-heading$`),
+    );
+
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const header = document.querySelector('.site-header');
+          const heading = document.getElementById('equipment-heading');
+          if (!header || !heading) return false;
+          const headerRect = header.getBoundingClientRect();
+          const headingRect = heading.getBoundingClientRect();
+          return headingRect.top >= headerRect.bottom;
+        }),
+      )
+      .toBe(true);
+  }
+});
