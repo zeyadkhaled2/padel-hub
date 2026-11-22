@@ -481,11 +481,25 @@ test.describe('live buyer experience (UI-B)', () => {
       ).toBeVisible();
       await expect(page.getByRole('link', { name: 'Contact on WhatsApp' })).toBeVisible();
 
-      // --- D. Sold Listing State (Disabled Contact) ---
+      // --- D. Sold Listing State (Disabled Contact & No Availability Confirmation Prompt) ---
+      // Populate a historical last_confirmed_available_at on the sold fixture to verify inactive
+      // listings never display "Availability last confirmed" or "Ask the seller to confirm...".
+      execFileSync(
+        'docker',
+        ['exec', '-i', 'supabase_db_padelhub-local', 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', 'postgres'],
+        {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          input: `update public.listings set last_confirmed_available_at = now() where id = '${soldRacket.id}';`,
+        },
+      );
       await page.goto(`/en/equipment/${soldRacket.id}`);
       await expect(page.locator('.condition')).toContainText('Sold');
       await expect(page.getByText('This equipment has been marked as sold.')).toBeVisible();
       await expect(page.getByText('Inquiries are unavailable for this listing.')).toBeVisible();
+      await expect(page.locator('.detail-availability-note')).toHaveCount(0);
+      await expect(page.getByText(/Availability last confirmed/i)).toHaveCount(0);
+      await expect(page.getByText('Ask the seller to confirm availability and condition.')).toHaveCount(0);
+      await expect(page.getByText('Ask the seller to confirm actual condition and current availability.')).toHaveCount(0);
       await expect(page.getByRole('link', { name: 'Contact on WhatsApp' })).toHaveCount(0);
       expect(
         (await page.request.get(`/api/contact/${soldRacket.id}`, { maxRedirects: 0 })).status(),
@@ -719,6 +733,8 @@ test.describe('live buyer experience (UI-B)', () => {
       await page.goto(`/en/equipment/${swapRacket.id}`);
       await expect(page.locator('.condition')).toContainText('Traded');
       await expect(page.getByText('This equipment has been marked as traded.')).toBeVisible();
+      await expect(page.locator('.detail-availability-note')).toHaveCount(0);
+      await expect(page.getByText(/Availability last confirmed/i)).toHaveCount(0);
       await expect(page.getByRole('link', { name: 'Contact on WhatsApp' })).toHaveCount(0);
       expect(
         (await page.request.get(`/api/contact/${swapRacket.id}`, { maxRedirects: 0 })).status(),

@@ -3446,6 +3446,12 @@ nav a:hover,
   line-height: 1.6;
 }
 
+.detail-safety-disclaimer.is-standalone {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .detail-report-box {
   display: flex;
   align-items: center;

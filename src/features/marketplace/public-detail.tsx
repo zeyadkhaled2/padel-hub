@@ -72,14 +72,16 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
         ? 'statusTradedTitle'
         : 'statusReservedTitle';
 
-  const confirmedText = listing.last_confirmed_available_at
-    ? t('confirmed', {
-        date: new Intl.DateTimeFormat(locale, {
-          dateStyle: 'medium',
-          timeZone: 'Africa/Cairo',
-        }).format(new Date(listing.last_confirmed_available_at)),
-      })
-    : t('confirmHint');
+  const confirmedText = isActive
+    ? listing.last_confirmed_available_at
+      ? t('confirmed', {
+          date: new Intl.DateTimeFormat(locale, {
+            dateStyle: 'medium',
+            timeZone: 'Africa/Cairo',
+          }).format(new Date(listing.last_confirmed_available_at)),
+        })
+      : t('confirmHint')
+    : null;
 
   return (
     <main
@@ -173,7 +175,7 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
               <p className="detail-price-note">{t('wholeOfferHint')}</p>
             )}
 
-            {isActive ? (
+            {isActive && (
               <div id="detail-primary-cta" className="detail-cta-wrap">
                 <a
                   className="button primary detail-whatsapp-cta"
@@ -183,17 +185,14 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
                   <MessageCircle size={18} aria-hidden />
                   <span>{t('whatsapp')}</span>
                 </a>
-                <p className="detail-availability-note">
-                  <CalendarCheck size={15} aria-hidden />
-                  <span>{confirmedText}</span>
-                </p>
+                {confirmedText && (
+                  <p className="detail-availability-note">
+                    <CalendarCheck size={15} aria-hidden />
+                    <span>{confirmedText}</span>
+                  </p>
+                )}
               </div>
-            ) : listing.last_confirmed_available_at ? (
-              <p className="detail-availability-note">
-                <CalendarCheck size={15} aria-hidden />
-                <span>{confirmedText}</span>
-              </p>
-            ) : null}
+            )}
           </div>
 
           <div className="detail-seller-card">
@@ -384,21 +383,25 @@ export async function PublicDetail({ params }: { params: Promise<{ id: string }>
               </span>
               <h2 id="safety-heading">{t('safetyHeading')}</h2>
             </div>
-            <ul className="detail-safety-list">
-              <li>
-                <CheckCircle2 size={15} aria-hidden />
-                <span>{t('safetyTip1')}</span>
-              </li>
-              <li>
-                <CheckCircle2 size={15} aria-hidden />
-                <span>{t('safetyTip2')}</span>
-              </li>
-              <li>
-                <CheckCircle2 size={15} aria-hidden />
-                <span>{t('safetyTip3')}</span>
-              </li>
-            </ul>
-            <p className="detail-safety-disclaimer">{t('safety')}</p>
+            {isActive && (
+              <ul className="detail-safety-list">
+                <li>
+                  <CheckCircle2 size={15} aria-hidden />
+                  <span>{t('safetyTip1')}</span>
+                </li>
+                <li>
+                  <CheckCircle2 size={15} aria-hidden />
+                  <span>{t('safetyTip2')}</span>
+                </li>
+                <li>
+                  <CheckCircle2 size={15} aria-hidden />
+                  <span>{t('safetyTip3')}</span>
+                </li>
+              </ul>
+            )}
+            <p className={`detail-safety-disclaimer${isActive ? '' : ' is-standalone'}`}>
+              {t('safety')}
+            </p>
           </section>
 
           <div className="detail-report-box">
