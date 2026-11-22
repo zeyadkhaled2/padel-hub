@@ -22,7 +22,7 @@
 
 :root {
   color-scheme: light;
-  --sticky-header-offset: 96px;
+  --sticky-header-offset: 92px;
   --canvas: #f7f7f5;
   --surface: #ffffff;
   --surface-soft: #eef2ef;
@@ -97,12 +97,15 @@ html {
   scrollbar-color: var(--border-strong) var(--canvas);
   scrollbar-width: thin;
   scroll-behavior: smooth;
-  scroll-padding-top: var(--sticky-header-offset);
 }
 
 #equipment-heading,
 #main-content,
-[id] {
+#pending-queue,
+#inspection-heading,
+#features-heading,
+#how-it-works-heading,
+#faq-heading {
   scroll-margin-top: var(--sticky-header-offset);
 }
 
@@ -1670,10 +1673,6 @@ nav a:hover,
 }
 
 @media (max-width: 900px) {
-  :root {
-    --sticky-header-offset: 132px;
-  }
-
   .community-banner {
     flex-wrap: wrap;
   }
@@ -1684,6 +1683,10 @@ nav a:hover,
 
   .header-inner {
     gap: 12px;
+  }
+
+  .header-sell-link.button {
+    display: none;
   }
 
   .site-nav,
@@ -1697,6 +1700,10 @@ nav a:hover,
 }
 
 @media (max-width: 700px) {
+  :root {
+    --sticky-header-offset: 128px;
+  }
+
   .container {
     width: calc(100% - 28px);
   }
@@ -1944,6 +1951,46 @@ nav a:hover,
 
   .footer-links {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 380px) {
+  .container {
+    width: calc(100% - 20px);
+  }
+
+  .wordmark {
+    font-size: 18px;
+    gap: 5px;
+  }
+
+  .wordmark img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .preferences {
+    gap: 4px;
+  }
+
+  .preferences select {
+    max-width: 82px;
+    font-size: 12px;
+    padding: 5px 6px;
+  }
+
+  .language {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+
+  .site-nav {
+    gap: 2px 6px;
+  }
+
+  .site-nav a {
+    font-size: 12px;
+    padding: 4px 6px;
   }
 }
 
