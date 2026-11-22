@@ -21,8 +21,13 @@ export async function ListingCard({ listing }: ListingCardProps) {
 
       <div className="listing-content">
         <div className="card-topline">
-          <span className="condition">{t(listing.condition)}</span>
-          <span>{t('sale')}</span>
+          <div className="card-tags">
+            <span className={`condition is-${listing.condition.toLowerCase()}`}>
+              {t(listing.condition)}
+            </span>
+            <span className="card-meta-tag">{t(listing.category)}</span>
+          </div>
+          <span className="card-offer-tag">{t('sale')}</span>
         </div>
 
         <h3>
@@ -31,21 +36,25 @@ export async function ListingCard({ listing }: ListingCardProps) {
           </Link>
         </h3>
 
-        <p className="price">
-          {t('price', { amount: formatAmount(listing.price, locale) })}
-        </p>
+        <div className="card-price-row">
+          <p className="price">
+            {t('price', { amount: formatAmount(listing.price, locale) })}
+          </p>
+        </div>
 
-        <p className="location">
-          <MapPin size={15} aria-hidden />
-          {t('location')}
-        </p>
+        <div className="card-footer">
+          <p className="location">
+            <MapPin size={14} aria-hidden />
+            <span>{t('location')}</span>
+          </p>
 
-        <Link href="/demo/sellers/omar_padel" className="seller-link">
-          <span className="avatar small" aria-hidden>
-            O
-          </span>
-          {t('seller')}
-        </Link>
+          <Link href="/demo/sellers/omar_padel" className="seller-link">
+            <span className="avatar small" aria-hidden>
+              O
+            </span>
+            <span className="seller-name">{t('seller')}</span>
+          </Link>
+        </div>
       </div>
     </article>
   );

@@ -14,7 +14,11 @@
     "made": "بادل أكتر. لعب أكتر.",
     "footerTagline": "حلقة الوصل للاعبي البادل في مصر لبيع وتبديل المضارب والكرات. تصفح بوضوح، راجع حالة المعدات بالتفصيل، وتواصل مباشرة مع البائع.",
     "account": "صفحتي",
-    "demoLink": "معاينة التصميم · إعلانات تجريبية"
+    "demoLink": "معاينة التصميم · إعلانات تجريبية",
+    "sell": "اعرض معداتك",
+    "footerNavHeading": "السوق",
+    "footerAccountHeading": "الحساب",
+    "footerSafetyNote": "مراجعة يدوية للإعلانات · تواصل مباشر عبر واتساب · بدون عمولة منصة"
   },
   "market": {
     "eyebrow": "عشان بنحب اللعبة",
@@ -75,7 +79,13 @@
     "specWeight": "فئة الوزن",
     "specSurface": "فحص السطح",
     "shoes": "أحذية بادل",
-    "bags": "حقائب"
+    "bags": "حقائب",
+    "heroBrowseCta": "تصفح المعدات",
+    "heroSellCta": "اعرض معداتك للبيع",
+    "negotiable": "قابل للتفاوض",
+    "euSizeShort": "مقاس {size} EU",
+    "weightGramsShort": "{weight} جم",
+    "activeFilters": "{count, plural, =0 {الفلاتر} one {فلتر واحد نشط} two {فلتران نشطان} few {# فلاتر نشطة} many {# فلترًا نشطًا} other {# فلتر نشط}}"
   },
   "marketing": {
     "inspection": {

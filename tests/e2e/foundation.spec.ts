@@ -182,3 +182,88 @@ test('auth recovery and OAuth callback routes fail closed and fit EN/AR narrow t
     }
   }
 });
+
+test('sticky header clears #equipment-heading anchor in LTR and RTL and preserves skip-link keyboard focus', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  for (const locale of ['en', 'ar'] as const) {
+    await page.goto(`/${locale}/demo`);
+
+    // Verify scroll-padding-top is not duplicated on html and scroll-margin-top is scoped to intended anchors.
+    const scrollStyles = await page.evaluate(() => {
+      const htmlPaddingTop = getComputedStyle(document.documentElement).scrollPaddingTop;
+      const heading = document.getElementById('equipment-heading');
+      const headingMarginTop = heading ? parseFloat(getComputedStyle(heading).scrollMarginTop) : 0;
+      const tabPanel = document.querySelector('[role="tabpanel"][id]');
+      const tabPanelMarginTop = tabPanel ? parseFloat(getComputedStyle(tabPanel).scrollMarginTop) : 0;
+      return { htmlPaddingTop, headingMarginTop, tabPanelMarginTop };
+    });
+    expect(['auto', '0px']).toContain(scrollStyles.htmlPaddingTop);
+    expect(scrollStyles.headingMarginTop).toBeGreaterThanOrEqual(80);
+    expect(scrollStyles.tabPanelMarginTop).toBe(0);
+
+    // Verify skip-link keyboard focus is visible above the sticky header.
+    const skipLink = page.locator('.skip-link');
+    await skipLink.focus();
+    await expect(skipLink).toBeFocused();
+    const skipBox = await skipLink.boundingBox();
+    expect(skipBox).not.toBeNull();
+    expect(skipBox!.y).toBeGreaterThanOrEqual(0);
+
+    // Click the Hero Browse CTA (#equipment-heading) and verify #equipment-heading lands at a tight 8px-36px distance below sticky header.
+    const browseCta = page.locator('.hero-actions a[href="#equipment-heading"]');
+    await browseCta.click();
+    await expect(page).toHaveURL(new RegExp(`/${locale}/demo#equipment-heading$`));
+
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const header = document.querySelector('.site-header');
+          const heading = document.getElementById('equipment-heading');
+          if (!header || !heading) return -1;
+          const headerRect = header.getBoundingClientRect();
+          const headingRect = heading.getBoundingClientRect();
+          if (window.scrollY <= 0) return -1;
+          return Math.round(headingRect.top - headerRect.bottom);
+        }),
+      )
+      .toBeGreaterThanOrEqual(8);
+
+    const browseGap = await page.evaluate(() => {
+      const header = document.querySelector('.site-header')!;
+      const heading = document.getElementById('equipment-heading')!;
+      return Math.round(heading.getBoundingClientRect().top - header.getBoundingClientRect().bottom);
+    });
+    expect(browseGap).toBeGreaterThanOrEqual(8);
+    expect(browseGap).toBeLessThanOrEqual(36);
+
+    // Click a category shortcut pill (#equipment-heading) and verify #equipment-heading lands at the same tight 8px-36px spacing below sticky header.
+    await page.locator('.category-links a[href*="category=balls"]').click();
+    await expect(page).toHaveURL(
+      new RegExp(`/${locale}/demo\\?.*category=balls.*#equipment-heading$`),
+    );
+
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const header = document.querySelector('.site-header');
+          const heading = document.getElementById('equipment-heading');
+          if (!header || !heading) return -1;
+          const headerRect = header.getBoundingClientRect();
+          const headingRect = heading.getBoundingClientRect();
+          return Math.round(headingRect.top - headerRect.bottom);
+        }),
+      )
+      .toBeGreaterThanOrEqual(8);
+
+    const pillGap = await page.evaluate(() => {
+      const header = document.querySelector('.site-header')!;
+      const heading = document.getElementById('equipment-heading')!;
+      return Math.round(heading.getBoundingClientRect().top - header.getBoundingClientRect().bottom);
+    });
+    expect(pillGap).toBeGreaterThanOrEqual(8);
+    expect(pillGap).toBeLessThanOrEqual(36);
+  }
+});

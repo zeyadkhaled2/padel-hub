@@ -14,7 +14,11 @@
     "made": "A little more padel. A lot more play.",
     "footerTagline": "Egypt's courtside connection bridge for padel rackets and balls. Browse openly, inspect honest condition disclosures, and coordinate directly with sellers.",
     "account": "My profile",
-    "demoLink": "Design demo · sample inventory"
+    "demoLink": "Design demo · sample inventory",
+    "sell": "Sell equipment",
+    "footerNavHeading": "Marketplace",
+    "footerAccountHeading": "Account",
+    "footerSafetyNote": "Manual listing review · Direct WhatsApp coordination · 0% platform commission"
   },
   "market": {
     "eyebrow": "For the love of the game",
@@ -75,7 +79,13 @@
     "specWeight": "Weight class",
     "specSurface": "Surface check",
     "shoes": "Padel shoes",
-    "bags": "Bags"
+    "bags": "Bags",
+    "heroBrowseCta": "Browse equipment",
+    "heroSellCta": "List your gear",
+    "negotiable": "Negotiable",
+    "euSizeShort": "EU {size}",
+    "weightGramsShort": "{weight} g",
+    "activeFilters": "{count, plural, =0 {Filters} one {# active filter} other {# active filters}}"
   },
   "marketing": {
     "inspection": {
