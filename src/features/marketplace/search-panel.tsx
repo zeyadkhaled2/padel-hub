@@ -39,6 +39,18 @@ export async function SearchPanel({
   const e = await getTranslations('listingEditor');
   const a = await getTranslations('account');
 
+  const activeFilterCount = [
+    category,
+    sort,
+    values?.size,
+    values?.governorate,
+    values?.brand,
+    values?.condition,
+    values?.offer,
+    values?.min,
+    values?.max,
+  ].filter(Boolean).length;
+
   return (
     <form
       key={JSON.stringify({ query, category, sort, values })}
@@ -49,7 +61,7 @@ export async function SearchPanel({
         <label className="search-field">
           <span>{t('search')}</span>
           <div>
-            <Search size={21} aria-hidden />
+            <Search size={19} aria-hidden />
             <input
               name="q"
               maxLength={MAX_SEARCH_QUERY_LENGTH}
@@ -66,11 +78,14 @@ export async function SearchPanel({
 
       <details
         className="filters"
-        open={Boolean(category || sort || (values && Object.values(values).some(Boolean)))}
+        open={Boolean(activeFilterCount > 0)}
       >
         <summary>
-          <SlidersHorizontal size={16} aria-hidden />
-          {t('filters')}
+          <SlidersHorizontal size={15} aria-hidden />
+          <span>{t('filters')}</span>
+          {activeFilterCount > 0 ? (
+            <span className="filters-count-pill">{activeFilterCount}</span>
+          ) : null}
         </summary>
 
         <div className="filter-fields">

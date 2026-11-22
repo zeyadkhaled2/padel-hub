@@ -1,5 +1,11 @@
 import { getTranslations } from 'next-intl/server';
-import { CircleDot, Grid2X2 } from 'lucide-react';
+import {
+  Circle,
+  CircleDot,
+  Footprints,
+  Grid2X2,
+  ShoppingBag,
+} from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import {
   EQUIPMENT_CATEGORIES,
@@ -19,6 +25,21 @@ interface CategoryPillsProps {
 
 const PILL_CATEGORIES: readonly ('' | EquipmentCategory)[] = ['', ...EQUIPMENT_CATEGORIES];
 
+function renderCategoryIcon(category: '' | EquipmentCategory) {
+  switch (category) {
+    case '':
+      return <Grid2X2 size={16} aria-hidden />;
+    case 'rackets':
+      return <CircleDot size={16} aria-hidden />;
+    case 'balls':
+      return <Circle size={16} aria-hidden />;
+    case 'shoes':
+      return <Footprints size={16} aria-hidden />;
+    case 'bags':
+      return <ShoppingBag size={16} aria-hidden />;
+  }
+}
+
 export async function CategoryPills({
   query,
   category,
@@ -30,7 +51,7 @@ export async function CategoryPills({
 
   return (
     <div className="category-links" role="group" aria-label={t('category')}>
-      {PILL_CATEGORIES.map((item, index) => {
+      {PILL_CATEGORIES.map((item) => {
         const isSelected = category === item || (!isEquipmentCategory(category) && !item);
 
         return (
@@ -45,12 +66,8 @@ export async function CategoryPills({
             className={`category-link ${isSelected ? 'selected' : ''}`}
             aria-current={category === item ? 'true' : undefined}
           >
-            {index === 0 ? (
-              <Grid2X2 size={18} aria-hidden />
-            ) : (
-              <CircleDot size={18} aria-hidden />
-            )}
-            {t(item || 'all')}
+            {renderCategoryIcon(item)}
+            <span>{t(item || 'all')}</span>
           </Link>
         );
       })}

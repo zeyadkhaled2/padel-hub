@@ -14,15 +14,26 @@ export async function SiteHeader() {
           <Brand />
         </Link>
 
-        <nav aria-label={t('navigation')}>
+        <nav className="site-nav" aria-label={t('navigation')}>
           <Link href="/">{t('explore')}</Link>
           <Link href="/about">{t('how')}</Link>
-          <Link href="/account" prefetch={false}>{t('account')}</Link>
+          <Link href="/account" prefetch={false}>
+            {t('account')}
+          </Link>
         </nav>
 
-        <Suspense>
-          <Preferences />
-        </Suspense>
+        <div className="header-actions">
+          <Link
+            href="/account/listings"
+            prefetch={false}
+            className="button secondary header-sell-link"
+          >
+            {t('sell')}
+          </Link>
+          <Suspense>
+            <Preferences />
+          </Suspense>
+        </div>
       </div>
     </header>
   );

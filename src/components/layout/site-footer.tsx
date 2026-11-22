@@ -6,19 +6,30 @@ export async function SiteFooter() {
   const t = await getTranslations('shell');
 
   return (
-    <footer className="container site-footer">
-      <div className="footer-brand-block">
-        <Brand />
-        <p className="footer-tagline">{t('footerTagline')}</p>
-      </div>
-
-      <div className="footer-meta-block">
-        <div className="footer-links">
-          <Link href="/">{t('explore')}</Link>
-          <Link href="/about">{t('how')}</Link>
+    <footer className="site-footer">
+      <div className="container footer-inner">
+        <div className="footer-brand-block">
+          <Brand />
+          <p className="footer-tagline">{t('footerTagline')}</p>
+          <p className="footer-trust-pill">{t('footerSafetyNote')}</p>
         </div>
-        <Link href="/demo">{t('demoLink')}</Link>
-        <span className="footer-signoff">{t('made')}</span>
+
+        <div className="footer-meta-block">
+          <div className="footer-links">
+            <Link href="/">{t('explore')}</Link>
+            <Link href="/about">{t('how')}</Link>
+            <Link href="/account" prefetch={false}>
+              {t('account')}
+            </Link>
+            <Link href="/account/listings" prefetch={false}>
+              {t('sell')}
+            </Link>
+          </div>
+          <Link href="/demo" className="footer-demo-link">
+            {t('demoLink')}
+          </Link>
+          <span className="footer-signoff">{t('made')}</span>
+        </div>
       </div>
     </footer>
   );
