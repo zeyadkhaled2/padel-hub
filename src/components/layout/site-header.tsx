@@ -11,7 +11,7 @@ export async function SiteHeader() {
     <header className="site-header">
       <div className="container header-inner">
         <Link className="brand-link" href="/" aria-label="PadelHub">
-          <Brand />
+          <Brand decorative />
         </Link>
 
         <nav className="site-nav" aria-label={t('navigation')}>

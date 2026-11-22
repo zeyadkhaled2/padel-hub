@@ -35,6 +35,7 @@
   --accent-hover: #0e3d2c;
   --accent-soft: #e6efe9;
   --accent-text: #ffffff;
+  --brand-ink: #111617;
   --header: rgba(255, 255, 255, 0.94);
   --header-text: #121816;
   --focus: #c85a32;
@@ -67,6 +68,7 @@
   --accent-hover: #6ad5ad;
   --accent-soft: rgba(78, 201, 155, 0.14);
   --accent-text: #081c14;
+  --brand-ink: #eef2f0;
   --header: rgba(19, 25, 23, 0.94);
   --header-text: #eef2f0;
   --focus: #f08c69;
@@ -280,29 +282,23 @@ h3 {
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 23px;
-  font-weight: 780;
-  letter-spacing: -0.04em;
   direction: ltr;
+  line-height: 0;
 }
 
-.wordmark img {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+.brand-logo {
+  display: block;
+  height: 30px;
+  width: auto;
+  flex-shrink: 0;
 }
 
-.wordmark > span {
-  color: var(--text);
+.brand-monogram {
+  fill: var(--accent);
 }
 
-.wordmark .brand-hub {
-  color: var(--accent);
-}
-
-.wordmark .brand-period {
-  color: var(--focus);
+.brand-wordmark {
+  fill: var(--brand-ink);
 }
 
 .site-nav,
@@ -1539,23 +1535,8 @@ nav a:hover,
   color: var(--text);
 }
 
-.site-footer .wordmark {
-  color: var(--text);
-  font-size: 20px;
-}
-
-.site-footer .wordmark span {
-  color: var(--text);
-}
-
-.site-footer .wordmark .brand-hub {
-  color: var(--accent);
-}
-
-.site-footer .wordmark img {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+.site-footer .brand-logo {
+  height: 26px;
 }
 
 /* ==========================================================================
@@ -1714,15 +1695,8 @@ nav a:hover,
     gap: 8px 10px;
   }
 
-  .wordmark {
-    font-size: 20px;
-    gap: 7px;
-  }
-
-  .wordmark img {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+  .brand-logo {
+    height: 25px;
   }
 
   .header-actions {
@@ -1959,14 +1933,8 @@ nav a:hover,
     width: calc(100% - 20px);
   }
 
-  .wordmark {
-    font-size: 18px;
-    gap: 5px;
-  }
-
-  .wordmark img {
-    width: 26px;
-    height: 26px;
+  .brand-logo {
+    height: 22px;
   }
 
   .preferences {
