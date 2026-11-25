@@ -137,6 +137,7 @@ export function ProductGallery({ listingId, title, mediaIds }: ProductGalleryPro
             height={600}
             loading="eager"
             decoding="async"
+            fetchPriority={safeIndex === 0 ? 'high' : 'auto'}
             className="gallery-main-image"
             onError={() => setFailed((prev) => ({ ...prev, [activeKey]: true }))}
           />

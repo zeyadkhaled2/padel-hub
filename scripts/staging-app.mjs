@@ -530,9 +530,9 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
           'x-listing-version': '2',
           'content-type': 'image/png',
         },
-        body: Buffer.alloc(8 * 1024 * 1024 + 1),
+        body: Buffer.alloc(4_000_001),
       });
-      assert(oversizedRes.status === 413, `Oversized >8MiB photo upload must return 413 (got ${oversizedRes.status})`);
+      assert(oversizedRes.status === 413, `Oversized >4MB photo upload must return 413 (got ${oversizedRes.status})`);
 
       let version = 2;
       const uploadedIds = [];
@@ -655,7 +655,8 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       });
       assert(ownerPhotoRes.status === 200, `Owner photo preview failed (${ownerPhotoRes.status})`);
       assert(ownerPhotoRes.headers.get('content-type') === 'image/webp', 'Delivered photo must be image/webp');
-      assert((ownerPhotoRes.headers.get('cache-control') || '').includes('no-store'), 'Photo must be no-store');
+      assert((ownerPhotoRes.headers.get('cache-control') || '').includes('no-store'), 'Private owner photo must be no-store');
+      assert(!ownerPhotoRes.headers.get('etag'), 'Private owner photo must not expose a cacheable ETag');
       const meta = await sharp(Buffer.from(await ownerPhotoRes.arrayBuffer())).metadata();
       assert(meta.format === 'webp' && !meta.exif, 'Processed photo must be WebP with EXIF stripped');
 
@@ -870,6 +871,25 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         publicPhotoRes.status === 200 && publicPhotoRes.headers.get('content-type') === 'image/webp',
         `Approved public photo must return 200 webp (got ${publicPhotoRes.status})`,
       );
+      const publicCacheControl = publicPhotoRes.headers.get('cache-control') || '';
+      const publicEtag = publicPhotoRes.headers.get('etag') || '';
+      assert(
+        publicCacheControl === 'private, no-cache',
+        `Approved public photo must use private, no-cache (got "${publicCacheControl}")`,
+      );
+      assert(/^"[a-f0-9]{64}"$/.test(publicEtag), `Approved public photo must emit SHA-256 ETag (got "${publicEtag}")`);
+
+      const conditionalGet = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`, {
+        headers: { 'if-none-match': publicEtag },
+      });
+      assert(conditionalGet.status === 304, `Matching If-None-Match on approved photo must return 304 (got ${conditionalGet.status})`);
+      assert(conditionalGet.headers.get('etag') === publicEtag, '304 must echo matching ETag');
+
+      const conditionalHead = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`, {
+        method: 'HEAD',
+        headers: { 'if-none-match': publicEtag },
+      });
+      assert(conditionalHead.status === 304, `Matching If-None-Match HEAD must return 304 (got ${conditionalHead.status})`);
 
       const waRes = await fetch(`${appOrigin}/api/contact/${createdListingId}?locale=en`, { redirect: 'manual' });
       assert(waRes.status === 302, `WhatsApp contact must return 302 (got ${waRes.status})`);
@@ -937,6 +957,15 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert(revokedContact.status === 404, `Reopened draft WhatsApp must return 404 (got ${revokedContact.status})`);
       const revokedPhoto = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${withdrawnId}&variant=card`);
       assert(revokedPhoto.status === 404, `Reopened draft public photo must return 404 (got ${revokedPhoto.status})`);
+      const revokedConditionalPhoto = await fetch(
+        `${appOrigin}/api/media/${activePhotoId}?listing=${withdrawnId}&variant=card`,
+        { headers: { 'if-none-match': publicEtag } },
+      );
+      assert(
+        revokedConditionalPhoto.status === 404 &&
+          (revokedConditionalPhoto.headers.get('cache-control') || '').includes('no-store'),
+        `Reopened draft conditional photo with prior ETag must return 404 no-store (got ${revokedConditionalPhoto.status})`,
+      );
       pass('Seller dashboard (EN/AR), sold -> reopen to private draft, photo retention, and immediate public revocation verified on hosted staging');
 
       await anonCtxDesktop.close();

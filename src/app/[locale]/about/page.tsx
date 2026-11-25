@@ -20,6 +20,23 @@ export default async function AboutPage() {
 
       <p className="notice">{t('status')}</p>
 
+      <section
+        id="open-source-notices"
+        aria-labelledby="open-source-notices-heading"
+        className="seller-card"
+      >
+        <h2 id="open-source-notices-heading">{t('openSourceHeading')}</h2>
+        <p className="field-hint">{t('openSourceLibheifBody')}</p>
+        <div className="photo-upload-actions">
+          <a href="/licenses/libheif-js-NOTICE.txt" className="button secondary">
+            {t('openSourceNoticeLink')}
+          </a>
+          <a href="/licenses/libheif-js-LICENSE.txt" className="button secondary">
+            {t('openSourceLicenseLink')}
+          </a>
+        </div>
+      </section>
+
       <Link href="/" className="button primary">
         {t('back')}
       </Link>

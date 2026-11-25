@@ -46,7 +46,19 @@ test('photo upload and delivery validators enforce origin, version, size, varian
   });
   assert.deepEqual(
     parseUploadHeaders(LISTING_ID, validHeaders, 'http://127.0.0.1:3100'),
-    { ok: true, listingId: LISTING_ID, version: 2, replacePhotoId: null },
+    {
+      ok: true,
+      listingId: LISTING_ID,
+      version: 2,
+      replacePhotoId: null,
+      uploadKey: null,
+      clientHints: {
+        originalBytes: null,
+        prepMs: null,
+        heicFallbackUsed: false,
+        sourceFormat: 'unknown',
+      },
+    },
   );
 
   // Wrong origin rejected with 403.
@@ -55,15 +67,26 @@ test('photo upload and delivery validators enforce origin, version, size, varian
     { ok: false, code: 'notAllowed', status: 403 },
   );
 
-  // Oversized content-length rejected with 413.
+  // Oversized content-length (> 4,000,000 bytes) rejected with 413.
   const hugeHeaders = new Headers({
     origin: 'http://127.0.0.1:3100',
     'x-listing-version': '2',
-    'content-length': String(8 * 1024 * 1024 + 1),
+    'content-length': String(4_000_001),
   });
   assert.deepEqual(
     parseUploadHeaders(LISTING_ID, hugeHeaders, 'http://127.0.0.1:3100'),
     { ok: false, code: 'tooLarge', status: 413 },
+  );
+
+  // Invalid upload key UUID rejected with 400.
+  const badKeyHeaders = new Headers({
+    origin: 'http://127.0.0.1:3100',
+    'x-listing-version': '2',
+    'x-upload-key': 'not-a-uuid',
+  });
+  assert.deepEqual(
+    parseUploadHeaders(LISTING_ID, badKeyHeaders, 'http://127.0.0.1:3100'),
+    { ok: false, code: 'invalidFile', status: 400 },
   );
 
   // Slot eligibility checks optimistic version, editable status, and 4-photo cap (0..4 + legacy 5..6).
