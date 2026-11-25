@@ -27,6 +27,7 @@ export async function PublicCard({ listing }: { listing: PublicListing }) {
           width={640}
           height={480}
           loading="lazy"
+          decoding="async"
         />
       </Link>
 

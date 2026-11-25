@@ -1,49 +1,84 @@
 # Equipment photos
 
-Implemented locally: create/select a photo draft, upload JPEG/PNG/WebP with local preview and upload progress, preview saved images in a 3-required / 4-maximum slot grid, and replace existing photos without losing previously saved assets.
+Implemented locally and verified end-to-end: **Option B (client-side image optimization + authoritative server-side Sharp processing)** with a multi-photo sequential seller queue, bounded upload idempotency, HEIC/HEIF mobile compatibility, and anonymous public-first ETag delivery.
 
-## Simple flow
+## Upload lifecycle
 
-1. Verify the session and draft ownership/version.
-2. Read at most 8 MiB; validate real image contents, dimensions and pixel count.
-3. Resize to WebP display variants (320, 800 and 1600 px bounds), removing metadata. Original uploads are processed in memory, not stored.
-4. Store immutable objects in the private `media-private` bucket, then atomically attach them to the draft (enforcing at most 4 attached photos for new additions, while allowing in-place replacement of an existing slot). A stale/conflicting save or failed upload leaves existing photos unchanged.
-5. Serve owner previews, or exact approved/public listing attachments, through `/api/media/{id}`. Check visibility before and after retrieval; use no-store and verify stored bytes against the manifest. No signed/public Storage URLs or shared image optimization.
+1. **Multi-photo selection (up to 4 slots):** Sellers select 1–4 photos at once in `/[locale]/account/photos` (JPEG, PNG, WebP, HEIC, or HEIF). Selection is capped to remaining available listing slots (or 1 photo in replacement mode).
+2. **Client-side preparation (`src/features/photos/client/`):** Processes **one photo at a time** (dedicated Web Worker + `OffscreenCanvas` when supported, with main-thread `createImageBitmap` / `HTMLImageElement` + `<canvas>` fallback):
+   - Validates source file safety bounds (**<= 50 MB**, **64–12,000 px** per side, **<= 65 MP** decoded pixels — supporting 48 MP iPhone `8064×6048` photos without hitting the server upload cap).
+   - Inspects actual magic bytes (JPEG, PNG, WebP, HEIC/HEIF), animation flags (rejecting GIF/APNG/animated WebP), EXIF orientation, alpha channel, and header dimensions.
+   - **Pass-through skip:** Upright, non-animated JPEG/PNG/WebP originals already `<= 2000 px` and `<= 1,000,000` bytes skip client re-encoding completely to avoid generational loss.
+   - **HEIC/HEIF decoding:** Attempts native browser decoding first (iOS Safari / macOS Safari — 0 extra JS downloaded). On browsers without native HEIC decoding (Chrome, Android Chrome, Edge, Firefox), lazily loads `libheif-js/wasm-bundle.js` (~695 KiB gzipped async chunk, 0 bytes on initial load), validates dimensions before pixel allocation, decodes real HEVC/H.265 frames, and frees WASM handles immediately.
+   - **Adaptive compression:** Normalizes EXIF orientation without double rotation, uses decode-time resizing when supported, preserves aspect ratio without enlarging, composites transparent images onto white only when falling back to JPEG, and encodes WebP (or JPEG fallback) starting at **2000 px / quality 0.90**, gently stepping down only if needed to target `<= 1 MB` and guarantee **<= 4,000,000 bytes** (safely below Vercel's standard 4.5 MB request-body limit).
+   - **Local previews & memory cleanup:** Renders previews from optimized blobs, drops original `File` references once prepared, resets canvas dimensions (`0×0`), closes `ImageBitmap`s, revokes `ObjectURL`s, and terminates workers on unmount. Never stores photos in `localStorage`.
+3. **Sequential resilient upload queue (`PhotoForm` + `upload-transport.ts`):**
+   - Sends one prepared photo at a time using the latest confirmed `X-Listing-Version` and a per-item UUID `X-Upload-Key`.
+   - Distinguishes validation errors, HTTP `413` (including non-JSON hosting responses like Vercel `FUNCTION_PAYLOAD_TOO_LARGE`), `429` rate limits (`Retry-After`), `409` optimistic concurrency conflicts, and ambiguous network/timeout/5xx failures.
+   - **Ambiguous-response reconciliation & bounded idempotency (migration `027`):** Before retrying any ambiguous failure (or on `409`), the client queries `GET /api/listings/{id}/photos?uploadKey=...` to reconcile authoritative server listing state and check `private.photo_upload_idempotency`. Already-committed uploads advance cleanly with zero duplicate attachments or repeated replacements. Previously saved photos always remain intact; unsaved local items remain retryable in memory until page reload/close.
+4. **Authoritative server-side Sharp processing (`src/features/photos/processing.ts`, `handlers.ts`, `server.ts`):**
+   - Independently enforces same-origin, verified non-recovery session (`verifiedUserClient()`), listing ownership/version/slot rules, **4,000,000-byte** incoming body cap, **concurrency reservation (`maxConcurrent = 2`) BEFORE consuming the DB upload rate limit** (so saturation `503` never burns seller quota), actual-byte validation, `64–8000 px` / `<= 25 MP` / `pages === 1` checks, and Sharp 10s timeouts. Never trusts client MIME, dimensions, or compression claims.
+   - Single authoritative decode + `.rotate()` + `.toColorspace('srgb')` to the `1600 px` full bound, then bounded-parallel WebP (`quality: 80`, metadata/EXIF stripped) generation for all three variants (`thumb: 320`, `card: 800`, `full: 1600`).
+   - Bounded-parallel immutable upload (`upsert: false`) to private `media-private` Storage, followed by atomic `public.save_listing_photo(..., p_upload_key)` attachment. Raw originals are never permanently stored; saved or historical assets are never automatically deleted.
 
-No processing queue, worker claims, leases or automatic retries. The pre-existing media_jobs table remains unused. Replacement does not delete previously saved images. Private objects left by interrupted or conflicting uploads are retained for manual review; no automatic cleanup claims. Already downloaded bytes cannot be revoked.
+## Delivery & ETag revalidation (`/api/media/[mediaId]` and `/api/admin/listings/[id]/photos/[media]`)
+
+1. **Approved public photos (`?listing=<uuid>`):**
+   - Checks anonymous public eligibility FIRST via `get_photo_delivery(asset, null, listing)` — performing **zero** user authentication calls (`verifiedUserClient`, `auth.getUser`, or MFA).
+   - Fails closed (`503 private, no-store`) on DB/service errors without falling back to authenticated access.
+   - Uses the selected variant's SHA-256 hash as a strong `ETag: "<sha256>"` with **`Cache-Control: private, no-cache`** (browser revalidation required on every reuse; **no** shared CDN caching, no `public`, no `s-maxage`, no `stale-while-revalidate`).
+   - Matching `If-None-Match` on `GET`/`HEAD` returns **`304 Not Modified`** after fresh DB eligibility verification without downloading Storage bytes.
+   - Full `200` responses download and SHA-256-verify Storage bytes and re-check anonymous public eligibility + manifest identity after download.
+   - Once a listing becomes ineligible (withdrawn, archived, suspended, private, rejected, or edited), subsequent requests — including conditional requests with a prior `ETag` — return **`404` with `Cache-Control: private, no-store`** (never `304`). Previously downloaded copies cannot be retroactively revoked.
+2. **Private owner previews & MFA-admin review photos:**
+   - Require `verifiedUserClient()` (blocking unfinished recovery sessions; admin review additionally enforces active role + `aal2` MFA in Postgres).
+   - Always return **`Cache-Control: private, no-store`** with **no `ETag`** and **never `304`**.
 
 ## Bounds
 
-- **Per-listing photo count (all categories: rackets, balls, shoes, and bags):** **Minimum 3 photos** required before submission/approval; **maximum 4 photos** attached per listing.
-  - Drafts may be saved with fewer than 3 photos (0, 1, or 2) so sellers can work incrementally.
-  - Submitting a listing for review requires 3 to 4 attached photos across every equipment category.
-  - Attempting to attach a 5th photo is rejected (`409` / `PT409`).
-  - Replacing an existing photo preserves its slot without consuming an additional photo slot; failed replacements never destroy or detach the existing photo.
-- **Safe photo detachment without Storage deletion (migration `20261125002600_photo_detach_and_legacy_relist.sql`):**
-  - Owners can detach any photo from an editable (`draft` or `rejected`) listing via **Remove from draft** (`public.detach_listing_photo`), compacting remaining `sort_order` cleanly to `0..N-1` while preserving the underlying `media_assets` record and `media-private` Storage objects untouched (never auto-deleted; remains privately accessible to the owner and `404` publicly).
-- **Legacy 5–6 photo & <3 photo relist compatibility (migrations `025`–`026`):**
-  - Existing uploaded photos are never deleted or detached automatically, and `listing_media.sort_order` retains `0..5` compatibility for historical rows.
-  - Already-published (`active`, `reserved`, `sold`, `traded`) listings that historically carried 5–6 photos continue displaying and serving all attached photos publicly and can transition cleanly through lifecycle actions (`sold`, `traded`, `archived`, `withdrawn`).
-  - Pre-existing 5–6 photo drafts retain all attached photos across text edits and in-place replacements (including slots 4–5), reject adding further photos, and can use **Remove from draft** in Photo Manager to trim down to 3–4 photos before submitting without deleting saved Storage objects.
-  - Older `sold`, `traded`, or `archived` listings whose photo count falls outside 3–4 (either legacy 1–2 photos or legacy 5–6 photos) can use **Return to draft to edit** (`change_listing_status(..., 'reopen')`) to move back to private `draft` status, add or detach photos, and then submit cleanly for fresh manual admin approval.
-- **File & abuse bounds:** 8 MiB input, 25 megapixels, dimensions 64–8000 px. Reject animations/unsupported formats. Extreme aspect ratios that resize below 64 px are rejected. Each server process handles at most two uploads concurrently; each user gets 20 attempts per ten minutes. A conservative 256 MiB retained processed-photo allowance per account prevents unbounded growth; review it against actual usage before launch. These are technical limits, not a paid plan or separate retailer entitlement.
+- **Per-listing photo count (all categories):** **Minimum 3 photos** required before submission/approval; **maximum 4 photos** attached per listing. Drafts may save with 0–2 photos. Legacy 5–6 photo listings remain preserved safely without automatic deletion; **Remove from draft** (`detach_listing_photo`) detaches links while keeping Storage objects privately preserved, and **Return to draft to edit** (`change_listing_status(..., 'reopen')`) allows older sold/traded/archived listings with `<3` or `>4` photos to adjust before resubmission.
+- **Client source bounds:** `<= 50 MB` original file, `64–12,000 px` per side, `<= 65 MP` decoded pixels.
+- **Outgoing & server upload bounds:** `<= 4,000,000` bytes incoming request body (aligned below Vercel's 4.5 MB standard limit), server Sharp `64–8000 px` / `<= 25 MP` / still JPEG/PNG/WebP only, `maxConcurrent = 2` per process, 20 upload attempts per 10 minutes per user, `<= 8 MiB` combined stored WebP variants per photo, 256 MiB retained processed-photo allowance per account.
+
+## Observability & Supabase Free tier capacity
+
+Privacy-safe structured server telemetry (`src/features/photos/telemetry.ts`) records strictly numeric/enum upload and delivery metrics (original/outgoing/stored bytes, prep/read/Sharp/Storage/DB durations, failure categories, HEIC fallback usage, conditional 304 vs. full responses, public vs. authenticated access paths) with zero filenames, raw bytes, EXIF, storage keys, tokens, or personal data.
+
+Using measured stored WebP totals across representative scenes (**~0.30 MB/photo typical** across `thumb + card + full`; **~0.54 MB/photo conservative high-detail mix**) with `3.6–4.0` photos/listing plus `25%` historical replacement/detach retention headroom (`4.5–5.0` retained assets/listing -> **~1.35–2.70 MB/listing**):
+
+| Listings | Typical Storage (1.35 MB/listing) | % of 1 GB Free | Conservative High-Detail (2.70 MB/listing) | % of 1 GB Free |
+|---:|---:|---:|---:|---:|
+| 20 | 27 MB | 2.6% | 54 MB | 5.3% |
+| 100 | 135 MB | 13.2% | 270 MB | 26.4% |
+| 200 | 270 MB | 26.4% | 540 MB | 52.7% |
+| 500 | 675 MB | 65.9% | 1,350 MB | 131.8% |
+| 800 | 1,080 MB | 105.5% | 2,160 MB | 210.9% |
+| 1,000 | 1,350 MB | 131.8% | 2,700 MB | 263.7% |
+
+- **Seller capacity within 1 GB Free Storage (70% warning = 717 MB):**
+  - Sellers averaging **10 listings**: **26–53 sellers** before 70% alert (**37–75 sellers** hard cap).
+  - Sellers averaging **20 listings**: **13–26 sellers** before 70% alert (**18–37 sellers** hard cap).
+- **Monthly uncached Storage egress (24 `card` images per marketplace browse view vs. Supabase Free 5 GB/month uncached allowance; 10 GB total = 5 GB cached + 5 GB uncached; ~45 KB typical / ~95 KB high-detail card):**
+  - **1,000 views:** `1.03–2.17 GB` (0% cache hit) → `0.31–0.65 GB` (70% 304 hit rate) → `0.15–0.33 GB` (85%).
+  - **3,000 views:** `3.09–6.52 GB` (0%) → `0.93–1.96 GB` (70%) → `0.46–0.98 GB` (85%).
+  - **5,000 views:** `5.15–10.87 GB` (0%) → `1.54–3.26 GB` (70%) → `0.77–1.63 GB` (85%).
+  - **10,000 views:** `10.30–21.74 GB` (0%) → `3.09–6.52 GB` (70%) → `1.54–3.26 GB` (85%).
+  - Note: Product detail `full` variant views add extra uncached egress on first load; client upload compression reduces mobile upload bandwidth, **not** permanent Storage size.
+- **Region colocation finding:** Verified `padel-hub-beta.vercel.app` currently executes Serverless Functions in **`iad1`** (US East) behind `fra1` Edge (`X-Vercel-Id: fra1::iad1::...`), while `padelhub-staging` Supabase runs in **`eu-central-1`** (Frankfurt). Colocating Vercel Functions to **`fra1`** (single Hobby region, subject to owner approval — not modified in this PR) would eliminate transatlantic RTT between Next.js and Supabase DB/Storage.
 
 ## Run locally
 
-Keep Supabase running, then:
+Keep local Supabase Docker running, apply local migrations through `027`, then:
 
 ```powershell
 npm run check
 node scripts/local-app.mjs serve
 ```
 
-Open http://127.0.0.1:3100/en/account/photos (Arabic: `/ar/account/photos`). Create your profile first. The launcher creates/checks the private local bucket and passes local credentials in process memory; it does not edit `.env.local` or contact a hosted project. Only server code receives the service-role key.
-
 In another terminal:
 
 ```powershell
-node scripts/local-app.mjs test --workers=1
+npm run test:unit
 npm run test:db
+node scripts/local-app.mjs test --workers=1
 ```
-
-This replaces the older account-only launcher when testing photos. Tests use synthetic accounts/images and leave them local. Hosted credentials, bucket policies and host body/time limits must be configured and verified before deployment. No production deployment is included.
