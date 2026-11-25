@@ -11,6 +11,7 @@ import {
   formatBrandLabel,
   getCategoryConfig,
   isEquipmentCategory,
+  meetsListingPhotoRules,
 } from '@/lib/domain/equipment';
 import { PG_ERROR_CODE, classifyRpcError } from '@/lib/errors/domain';
 import {
@@ -47,6 +48,13 @@ test('category configuration enforces Open/Closed equipment rules consistently',
   assert.equal(isEquipmentCategory('shoes'), true);
   assert.equal(isEquipmentCategory('helmets'), false);
   assert.equal(formatBrandLabel('drop_shot'), 'drop shot');
+
+  assert.equal(meetsListingPhotoRules(0), false);
+  assert.equal(meetsListingPhotoRules(2), false);
+  assert.equal(meetsListingPhotoRules(3), true);
+  assert.equal(meetsListingPhotoRules(4), true);
+  assert.equal(meetsListingPhotoRules(5), false);
+  assert.equal(meetsListingPhotoRules(6), false);
 });
 
 test('listing completion actions respect offer type and category rules', () => {

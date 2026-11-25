@@ -129,6 +129,7 @@ export type ListingEditorMessage =
   | 'saved'
   | 'submitted'
   | 'withdrawn'
+  | 'reopened'
   | 'statusUpdated'
   | 'session'
   | 'invalid'

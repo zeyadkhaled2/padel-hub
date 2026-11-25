@@ -191,6 +191,8 @@ const KNOWN_ACTIVITY_ACTIONS = {
   'listing.traded': 'listingTraded',
   'listing.archive': 'listingArchived',
   'listing.relist': 'listingRelisted',
+  'listing.reopen': 'listingReopened',
+  'listing.photo_detach': 'listingPhotoDetached',
   'report.dismiss': 'reportDismissed',
   'report.remove': 'reportRemoved',
   'report.suspend': 'reportSuspended',

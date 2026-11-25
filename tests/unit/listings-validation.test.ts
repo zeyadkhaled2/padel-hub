@@ -30,6 +30,10 @@ test('parseListingActionHeader validates UUID, positive version and known intent
     { ok: true, id: VALID_ID, version: 3, intent: 'relist' },
   );
   assert.deepEqual(
+    parseListingActionHeader({ id: VALID_ID, version: '4', intent: 'reopen' }),
+    { ok: true, id: VALID_ID, version: 4, intent: 'reopen' },
+  );
+  assert.deepEqual(
     parseListingActionHeader({ id: 'not-a-uuid', version: '1', intent: 'save' }),
     { ok: false },
   );

@@ -28,6 +28,7 @@ import {
   isListingEditable,
   isListingRelistable,
   isListingWithdrawable,
+  meetsListingPhotoRules,
   type ListingStatus,
 } from '@/lib/domain/equipment';
 import { formatAmount } from '@/lib/format';
@@ -113,7 +114,7 @@ export function SellerListingsBoard({
 
   function triggerLifecycleAction(
     item: OwnerListingSummary,
-    intent: 'withdraw' | 'sold' | 'traded' | 'archive' | 'relist',
+    intent: 'withdraw' | 'sold' | 'traded' | 'archive' | 'relist' | 'reopen',
   ) {
     setBusyListingId(item.id);
     setFeedback(null);
@@ -311,6 +312,10 @@ export function SellerListingsBoard({
                   profileReadyForPublic && PUBLIC_PREVIEW_STATUSES.includes(item.status);
                 const busy = isPending && busyListingId === item.id;
                 const needsMorePhotos = editable && item.photo_count < MIN_LISTING_PHOTOS;
+                const hasExcessPhotos = editable && item.photo_count > MAX_LISTING_PHOTOS;
+                const relistable = isListingRelistable(item.status);
+                const relistPhotoValid = meetsListingPhotoRules(item.photo_count);
+                const photoBadgeWarn = needsMorePhotos || hasExcessPhotos || (relistable && !relistPhotoValid);
 
                 return (
                   <li key={item.id} className="seller-listing-card">
@@ -336,7 +341,7 @@ export function SellerListingsBoard({
                       )}
                       <span
                         dir="ltr"
-                        className={`seller-thumb-count${needsMorePhotos ? ' is-warn' : ''}`}
+                        className={`seller-thumb-count${photoBadgeWarn ? ' is-warn' : ''}`}
                       >
                         {item.photo_count} / {MAX_LISTING_PHOTOS}
                       </span>
@@ -394,6 +399,39 @@ export function SellerListingsBoard({
                               min: MIN_LISTING_PHOTOS,
                               max: MAX_LISTING_PHOTOS,
                             })}
+                          </span>
+                        </p>
+                      )}
+
+                      {editable && hasExcessPhotos && (
+                        <p className="seller-photo-alert">
+                          <AlertTriangle size={14} aria-hidden />
+                          <span>
+                            {t('dashboardPhotosExcess', {
+                              current: item.photo_count,
+                              excess: item.photo_count - MAX_LISTING_PHOTOS,
+                              min: MIN_LISTING_PHOTOS,
+                              max: MAX_LISTING_PHOTOS,
+                            })}
+                          </span>
+                        </p>
+                      )}
+
+                      {relistable && !relistPhotoValid && (
+                        <p className="seller-photo-alert">
+                          <AlertTriangle size={14} aria-hidden />
+                          <span>
+                            {item.photo_count < MIN_LISTING_PHOTOS
+                              ? t('relistPhotoTooFew', {
+                                  count: item.photo_count,
+                                  min: MIN_LISTING_PHOTOS,
+                                  max: MAX_LISTING_PHOTOS,
+                                })
+                              : t('relistPhotoTooMany', {
+                                  count: item.photo_count,
+                                  min: MIN_LISTING_PHOTOS,
+                                  max: MAX_LISTING_PHOTOS,
+                                })}
                           </span>
                         </p>
                       )}
@@ -491,15 +529,38 @@ export function SellerListingsBoard({
                           </button>
                         )}
 
-                        {isListingRelistable(item.status) && (
+                        {relistable && relistPhotoValid && (
+                          <>
+                            <button
+                              type="button"
+                              className="button primary seller-card-btn"
+                              disabled={busy}
+                              onClick={() => triggerLifecycleAction(item, 'relist')}
+                            >
+                              <RotateCcw size={15} aria-hidden />
+                              <span>{t('relist')}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="button secondary seller-card-btn"
+                              disabled={busy}
+                              onClick={() => triggerLifecycleAction(item, 'reopen')}
+                            >
+                              <FileEdit size={15} aria-hidden />
+                              <span>{t('reopen')}</span>
+                            </button>
+                          </>
+                        )}
+
+                        {relistable && !relistPhotoValid && (
                           <button
                             type="button"
                             className="button primary seller-card-btn"
                             disabled={busy}
-                            onClick={() => triggerLifecycleAction(item, 'relist')}
+                            onClick={() => triggerLifecycleAction(item, 'reopen')}
                           >
                             <RotateCcw size={15} aria-hidden />
-                            <span>{t('relist')}</span>
+                            <span>{t('reopen')}</span>
                           </button>
                         )}
                       </div>

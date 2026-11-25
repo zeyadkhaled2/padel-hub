@@ -427,6 +427,187 @@ set local request.jwt.claims = '{"sub":"22222222-2222-4222-8222-222222222222","s
 select is(jsonb_array_length(public.get_my_listings()), 0, 'other account cannot read enriched owner listings');
 select is(jsonb_array_length(public.get_my_photo_drafts()), 0, 'other account cannot read enriched photo drafts');
 
+-- 4. Migration 026: Safe photo detachment (no media_assets deletion) & legacy relist-to-draft reopen flow
+-- 4a. Security checks: other owner denied on detach_listing_photo and reopen
+select throws_ok(
+ $$select public.detach_listing_photo(listing_id, 3, slot5_media) from legacy_state where kind = 'legacy_draft'$$,
+ '42501',
+ null,
+ 'other owner cannot detach photo from another seller draft'
+);
+select throws_ok(
+ $$select public.change_listing_status(listing_id, 2, 'reopen') from legacy_state where kind = 'legacy_active'$$,
+ '42501',
+ null,
+ 'other owner cannot reopen another seller sold listing'
+);
+
+set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
+
+-- 4b. Legacy 5-photo draft: stale version denied, detach slot-4 photo (5 -> 4), sort_order compacted 0..3, media_assets preserved, then submit succeeds!
+select throws_ok(
+ $$select public.detach_listing_photo(listing_id, 1, slot5_media) from legacy_state where kind = 'legacy_draft'$$,
+ 'PT409',
+ null,
+ 'detach_listing_photo rejects stale listing version'
+);
+select throws_ok(
+ $$select public.detach_listing_photo(listing_id, 3, gen_random_uuid()) from legacy_state where kind = 'legacy_draft'$$,
+ 'PT409',
+ null,
+ 'detach_listing_photo rejects unattached media id'
+);
+do $$
+declare
+ lid uuid := (select listing_id from legacy_state where kind = 'legacy_draft');
+ detached_id uuid;
+ res jsonb;
+begin
+ -- Remember the current 5th attached photo (slot 4 was replaced earlier so read live slot 4 via owner RPC)
+ detached_id := (public.get_my_listing(lid)->'media_ids'->>4)::uuid;
+ res := public.detach_listing_photo(lid, 3, detached_id);
+ if jsonb_array_length(res->'media_ids') <> 4 or (res->>'version')::integer <> 4 then
+  raise exception 'expected 4 photos and version 4 after detaching 5th photo, got %', res;
+ end if;
+ -- Submit now succeeds cleanly under the new 3-4 rule!
+ res := public.submit_listing(lid, 4);
+ if res->>'status' <> 'pending' then
+  raise exception 'trimmed legacy draft did not submit cleanly';
+ end if;
+end $$;
+reset role;
+select is(
+ (select count(*)::integer from public.media_assets where owner_id = '11111111-1111-4111-8111-111111111111' and id in (select media_id from public.listing_media where listing_id = (select listing_id from legacy_state where kind = 'legacy_draft'))),
+ 4,
+ 'trimmed legacy draft has 4 attached ready photos'
+);
+select is(
+ (select max(sort_order)::integer from public.listing_media where listing_id = (select listing_id from legacy_state where kind = 'legacy_draft')),
+ 3,
+ 'detach_listing_photo compacts remaining sort_order to 0..3'
+);
+-- Verify pending listing rejects detach_listing_photo
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
+select throws_ok(
+ $$select public.detach_listing_photo(listing_id, 5, (public.get_my_listing(listing_id)->'media_ids'->>0)::uuid) from legacy_state where kind = 'legacy_draft'$$,
+ 'PT409',
+ null,
+ 'detach_listing_photo rejects pending listings until withdrawn'
+);
+
+-- 4c. Legacy 6-photo SOLD listing: direct relist fails & rolls back, reopen -> draft preserves all 6 photos, detach twice (6 -> 5 -> 4), all 6 media_assets retained, submit succeeds!
+select throws_ok(
+ $$select public.change_listing_status(listing_id, 2, 'relist') from legacy_state where kind = 'legacy_active'$$,
+ '23514',
+ null,
+ 'direct relist of legacy 6-photo sold listing is blocked by 3-4 photo rule'
+);
+select is(
+ (select public.get_my_listing(listing_id)->>'status' from legacy_state where kind = 'legacy_active'),
+ 'sold',
+ 'failed relist of legacy 6-photo sold listing rolls back cleanly to sold'
+);
+select is(
+ (select public.change_listing_status(listing_id, 2, 'reopen')->>'status' from legacy_state where kind = 'legacy_active'),
+ 'draft',
+ 'reopen transitions legacy 6-photo sold listing back to private draft'
+);
+select is(
+ (select jsonb_array_length(public.get_my_listing(listing_id)->'media_ids') from legacy_state where kind = 'legacy_active'),
+ 6,
+ 'reopen preserves all 6 existing photos on legacy listing'
+);
+select throws_ok(
+ $$select public.change_listing_status(listing_id, 3, 'reopen') from legacy_state where kind = 'legacy_active'$$,
+ 'PT409',
+ null,
+ 'reopen rejects listings already in draft status'
+);
+do $$
+declare
+ lid uuid := (select listing_id from legacy_state where kind = 'legacy_active');
+ first_detach uuid;
+ second_detach uuid;
+ res jsonb;
+begin
+ first_detach := (public.get_my_listing(lid)->'media_ids'->>5)::uuid;
+ res := public.detach_listing_photo(lid, 3, first_detach);
+ if jsonb_array_length(res->'media_ids') <> 5 then
+  raise exception 'expected 5 photos after first detach from 6-photo draft';
+ end if;
+ second_detach := (res->'media_ids'->>4)::uuid;
+ res := public.detach_listing_photo(lid, 4, second_detach);
+ if jsonb_array_length(res->'media_ids') <> 4 then
+  raise exception 'expected 4 photos after second detach from 6-photo draft';
+ end if;
+ res := public.submit_listing(lid, 5);
+ if res->>'status' <> 'pending' then
+  raise exception 'reopened and trimmed legacy 6-photo listing did not submit';
+ end if;
+end $$;
+reset role;
+select ok(
+ exists(select 1 from public.media_assets where id = (select slot5_media from legacy_state where kind = 'legacy_active')),
+ 'detached 6th photo asset remains preserved in media_assets (never deleted)'
+);
+
+-- 4d. Legacy 1-photo ARCHIVED balls listing: direct relist fails & rolls back, reopen -> draft, attach 2 more photos (1 -> 3), submit succeeds!
+create temp table legacy_one_photo(listing_id uuid primary key);
+grant select on legacy_one_photo to authenticated, service_role;
+do $$
+declare
+ lid uuid := gen_random_uuid();
+begin
+ set constraints all immediate;
+ insert into public.listings(
+  id, seller_id, category, status, title, brand_slug, model, description,
+  governorate_slug, condition, condition_disclosure, offer_type, price_egp,
+  balls_quantity_packaging
+ ) values (
+  lid, '11111111-1111-4111-8111-111111111111', 'balls', 'archived',
+  'Legacy 1-photo Archived Balls', 'head', 'Pro', 'Older archived listing with one photo.',
+  'cairo', 'new', 'Sealed', 'sale', 300, '3 balls'
+ );
+ insert into public.listing_media(listing_id, owner_id, media_id, sort_order)
+ values (lid, '11111111-1111-4111-8111-111111111111', test_fixtures.asset('11111111-1111-4111-8111-111111111111'), 0);
+ insert into legacy_one_photo(listing_id) values (lid);
+end $$;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"11111111-1111-4111-8111-111111111111","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
+select throws_ok(
+ $$select public.change_listing_status(listing_id, 1, 'relist') from legacy_one_photo$$,
+ '23514',
+ null,
+ 'direct relist of legacy 1-photo archived listing is blocked by 3-photo minimum'
+);
+select is(
+ (select public.change_listing_status(listing_id, 1, 'reopen')->>'status' from legacy_one_photo),
+ 'draft',
+ 'reopen transitions legacy 1-photo archived listing to draft so missing photos can be added'
+);
+do $$
+declare
+ lid uuid := (select listing_id from legacy_one_photo);
+ ver integer := 2;
+ a_id uuid;
+ att_id uuid;
+ res jsonb;
+begin
+ execute 'set local role service_role';
+ for i in 1..2 loop
+  a_id := gen_random_uuid(); att_id := gen_random_uuid();
+  res := public.save_listing_photo('11111111-1111-4111-8111-111111111111', lid, ver, a_id, att_id, 'image/webp', 360, 800, 600, repeat('d', 64), pg_temp.manifest_for(a_id, att_id));
+  ver := (res->>'version')::integer;
+ end loop;
+ execute 'set local role authenticated';
+ res := public.submit_listing(lid, ver);
+ if res->>'status' <> 'pending' then
+  raise exception 'reopened legacy 1-photo listing did not submit after adding 2 photos';
+ end if;
+end $$;
+
 reset role;
 select * from finish();
 rollback;

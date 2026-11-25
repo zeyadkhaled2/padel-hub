@@ -19,10 +19,13 @@ No processing queue, worker claims, leases or automatic retries. The pre-existin
   - Submitting a listing for review requires 3 to 4 attached photos across every equipment category.
   - Attempting to attach a 5th photo is rejected (`409` / `PT409`).
   - Replacing an existing photo preserves its slot without consuming an additional photo slot; failed replacements never destroy or detach the existing photo.
-- **Legacy 5–6 photo compatibility (migration `20261125002500_photo_rules_and_seller_dashboard.sql`):**
+- **Safe photo detachment without Storage deletion (migration `20261125002600_photo_detach_and_legacy_relist.sql`):**
+  - Owners can detach any photo from an editable (`draft` or `rejected`) listing via **Remove from draft** (`public.detach_listing_photo`), compacting remaining `sort_order` cleanly to `0..N-1` while preserving the underlying `media_assets` record and `media-private` Storage objects untouched (never auto-deleted; remains privately accessible to the owner and `404` publicly).
+- **Legacy 5–6 photo & <3 photo relist compatibility (migrations `025`–`026`):**
   - Existing uploaded photos are never deleted or detached automatically, and `listing_media.sort_order` retains `0..5` compatibility for historical rows.
   - Already-published (`active`, `reserved`, `sold`, `traded`) listings that historically carried 5–6 photos continue displaying and serving all attached photos publicly and can transition cleanly through lifecycle actions (`sold`, `traded`, `archived`, `withdrawn`).
-  - Pre-existing 5–6 photo drafts retain all attached photos across text edits and in-place replacements (including slots 4–5), reject adding further photos, and require 3–4 attached photos before new submission/re-approval.
+  - Pre-existing 5–6 photo drafts retain all attached photos across text edits and in-place replacements (including slots 4–5), reject adding further photos, and can use **Remove from draft** in Photo Manager to trim down to 3–4 photos before submitting without deleting saved Storage objects.
+  - Older `sold`, `traded`, or `archived` listings whose photo count falls outside 3–4 (either legacy 1–2 photos or legacy 5–6 photos) can use **Return to draft to edit** (`change_listing_status(..., 'reopen')`) to move back to private `draft` status, add or detach photos, and then submit cleanly for fresh manual admin approval.
 - **File & abuse bounds:** 8 MiB input, 25 megapixels, dimensions 64–8000 px. Reject animations/unsupported formats. Extreme aspect ratios that resize below 64 px are rejected. Each server process handles at most two uploads concurrently; each user gets 20 attempts per ten minutes. A conservative 256 MiB retained processed-photo allowance per account prevents unbounded growth; review it against actual usage before launch. These are technical limits, not a paid plan or separate retailer entitlement.
 
 ## Run locally

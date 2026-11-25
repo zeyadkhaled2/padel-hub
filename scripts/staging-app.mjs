@@ -428,7 +428,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       await page.goto(`${appOrigin}/en/account/listings`);
       await page.locator('select[name="category"]').selectOption('rackets');
-      await page.locator('form.account-form button[type="submit"], form.account-form button.primary').first().click();
+      await page.getByRole('button', { name: 'Create listing', exact: true }).click();
       await page.waitForURL(/\/en\/account\/listings\/[0-9a-f-]{36}$/, { timeout: 25_000 });
       createdListingId = page.url().split('/').pop();
 
@@ -555,6 +555,16 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         version = saved.version;
       }
 
+      // Verify 2-photo draft is blocked from submission under uniform 3-4 photo rule
+      const underMinSubmit = await seller1SessionClient.rpc('submit_listing', {
+        p_listing_id: createdListingId,
+        p_expected_version: version,
+      });
+      assert(
+        underMinSubmit.error?.code === '23514',
+        `Submitting with 2 photos must fail with 23514 (got ${underMinSubmit.error?.code})`,
+      );
+
       // Concurrent upload race on the same expected version: exactly one 201 and one 409 conflict!
       const raceResponses = await Promise.all([0, 1].map(() =>
         fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
@@ -574,6 +584,53 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       const raceSaved = await raceWinner.json();
       uploadedIds.push(raceSaved.id);
       version = raceSaved.version;
+
+      // Upload 4th photo -> succeeds; 5th photo -> rejected with 409 photoLimit; detach 4th photo via UI -> preserves Storage object
+      const img4 = await makeSyntheticImage(160, 60, 90, false);
+      const up4 = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+        method: 'POST',
+        headers: {
+          origin: appOrigin,
+          cookie: s1Cookies,
+          'x-listing-version': String(version),
+          'content-type': img4.mime,
+        },
+        body: img4.bytes,
+      });
+      assert(up4.status === 201, `4th photo upload must succeed with 201 (got ${up4.status})`);
+      const saved4 = await up4.json();
+      version = saved4.version;
+
+      const up5 = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+        method: 'POST',
+        headers: {
+          origin: appOrigin,
+          cookie: s1Cookies,
+          'x-listing-version': String(version),
+          'content-type': img4.mime,
+        },
+        body: img4.bytes,
+      });
+      assert(up5.status === 409, `5th photo upload must be rejected with 409 (got ${up5.status})`);
+      const err5 = await up5.json();
+      assert(err5.error === 'photoLimit', `5th photo error must be photoLimit (got ${err5.error})`);
+
+      // Detach 4th photo safely through Photo Manager UI -> count drops 4 -> 3, Storage object remains privately accessible (200)
+      await page.goto(`${appOrigin}/en/account/photos?listing=${createdListingId}`);
+      await page.getByText('4 of 4 photos').waitFor({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Remove photo 4 from draft', exact: true }).click();
+      await page.getByRole('status').filter({ hasText: 'Photo removed from this draft.' }).waitFor({ timeout: 20_000 });
+      await page.getByText('3 of 4 photos').waitFor({ timeout: 15_000 });
+      const detachedPrivateRes = await fetch(`${appOrigin}/api/media/${saved4.id}?variant=full`, {
+        headers: { cookie: s1Cookies },
+      });
+      assert(detachedPrivateRes.status === 200, `Detached photo must remain preserved privately for owner (got ${detachedPrivateRes.status})`);
+      const detachedAnonRes = await fetch(`${appOrigin}/api/media/${saved4.id}?listing=${createdListingId}`);
+      assert(detachedAnonRes.status === 404, `Detached photo must not be publicly accessible (got ${detachedAnonRes.status})`);
+      const afterDetach = await seller1SessionClient.rpc('get_my_listing', { p_listing_id: createdListingId });
+      assert(afterDetach.data?.media_ids?.length === 3, `Expected 3 attached photos after detach, got ${afterDetach.data?.media_ids?.length}`);
+      version = afterDetach.data.version;
+      pass('Uniform 3-4 photo limits, 5th photo rejection (409), and safe UI photo detachment preserving Storage verified on hosted staging');
 
       const replacedId = uploadedIds[0];
       const rep = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
@@ -768,6 +825,18 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.locator('button[name="intent"][value="reject"]').click();
       await adminPage.waitForURL('**/en/admin?done=reject', { timeout: 25_000 });
 
+      // Verify enriched Seller Dashboard (EN desktop + AR 390px mobile) displays rejection reason and zero overflow
+      await page.goto(`${appOrigin}/en/account/listings`);
+      await page.getByText('Staging smoke rejection check').waitFor({ timeout: 15_000 });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(`${appOrigin}/ar/account/listings`);
+      await page.getByText('Staging smoke rejection check').waitFor({ timeout: 15_000 });
+      const sellerDashArOverflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      assert(sellerDashArOverflow <= 1, `Arabic mobile 390px /ar/account/listings overflow: ${sellerDashArOverflow}px`);
+      await page.setViewportSize({ width: 1280, height: 800 });
+
       await page.goto(`${appOrigin}/en/account/listings/${createdListingId}`);
       await page.getByText('Staging smoke rejection check').waitFor({ timeout: 15_000 });
       await page.getByRole('button', { name: 'Submit for approval', exact: true }).click();
@@ -844,23 +913,31 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.setViewportSize({ width: 1280, height: 800 });
       pass('Admin A Arabic RTL 390px mobile overview and live moderation activity feed verified on hosted staging');
 
-      // Withdraw listing -> verify revoked public listing immediately blocks detail, contact, and photo
+      // Mark approved listing sold, then verify 'reopen' transitions sold -> private draft cleanly (retaining photos & revoking public access)
       const latest = await seller1SessionClient.rpc('get_my_listing', { p_listing_id: createdListingId });
-      const withdraw = await seller1SessionClient.rpc('withdraw_listing', {
+      const markedSold = await seller1SessionClient.rpc('change_listing_status', {
         p_listing_id: createdListingId,
         p_expected_version: latest.data.version,
+        p_action: 'sold',
       });
-      assert(!withdraw.error && withdraw.data?.status === 'draft', 'Seller withdrawal to draft succeeded');
+      assert(!markedSold.error && markedSold.data?.status === 'sold', 'Marking approved listing sold succeeded');
+      const reopened = await seller1SessionClient.rpc('change_listing_status', {
+        p_listing_id: createdListingId,
+        p_expected_version: markedSold.data.version,
+        p_action: 'reopen',
+      });
+      assert(!reopened.error && reopened.data?.status === 'draft', 'Reopening sold listing to private draft succeeded');
+      assert(reopened.data?.media_ids?.length === 3, 'Reopened listing retained all 3 attached photos');
       const withdrawnId = createdListingId;
       createdListingId = null;
 
       const revokedDetail = await fetch(`${appOrigin}/en/equipment/${withdrawnId}`);
-      assert(revokedDetail.status === 404, `Withdrawn listing detail must return 404 (got ${revokedDetail.status})`);
+      assert(revokedDetail.status === 404, `Reopened draft detail must return 404 (got ${revokedDetail.status})`);
       const revokedContact = await fetch(`${appOrigin}/api/contact/${withdrawnId}`, { redirect: 'manual' });
-      assert(revokedContact.status === 404, `Withdrawn listing WhatsApp must return 404 (got ${revokedContact.status})`);
+      assert(revokedContact.status === 404, `Reopened draft WhatsApp must return 404 (got ${revokedContact.status})`);
       const revokedPhoto = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${withdrawnId}&variant=card`);
-      assert(revokedPhoto.status === 404, `Withdrawn listing public photo must return 404 (got ${revokedPhoto.status})`);
-      pass('Revoked public listing immediately blocks detail, contact, and public photo access');
+      assert(revokedPhoto.status === 404, `Reopened draft public photo must return 404 (got ${revokedPhoto.status})`);
+      pass('Seller dashboard (EN/AR), sold -> reopen to private draft, photo retention, and immediate public revocation verified on hosted staging');
 
       await anonCtxDesktop.close();
       await anonCtxMobile.close();

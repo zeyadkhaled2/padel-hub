@@ -43,6 +43,7 @@ import {
   isListingEditable,
   isListingRelistable,
   isListingWithdrawable,
+  meetsListingPhotoRules,
   type BrandSlug,
   type ListingTextFieldKey,
 } from '@/lib/domain/equipment';
@@ -94,7 +95,7 @@ function readListingFieldValue(listing: Listing, key: ListingFormFieldKey): stri
   }
 }
 
-const SUCCESS_MESSAGES = new Set(['saved', 'submitted', 'withdrawn', 'statusUpdated']);
+const SUCCESS_MESSAGES = new Set(['saved', 'submitted', 'withdrawn', 'reopened', 'statusUpdated']);
 
 export function ListingForm({
   initial,
@@ -670,16 +671,54 @@ export function ListingForm({
                     </div>
                   )}
 
-                  {isListingRelistable(listing.status) && (
-                    <div className="seller-card editor-lifecycle-card">
-                      <h3>{t('relist')}</h3>
-                      <p className="field-hint">{t('relistHint')}</p>
-                      <button name="intent" value="relist" className="button primary">
-                        <Send size={15} aria-hidden />
-                        <span>{t('relist')}</span>
-                      </button>
-                    </div>
-                  )}
+                  {isListingRelistable(listing.status) && (() => {
+                    const photoCount = listing.media_ids.length;
+                    const photoCountValid = meetsListingPhotoRules(photoCount);
+                    return (
+                      <div className="seller-card editor-lifecycle-card">
+                        <h3>{t('relist')}</h3>
+                        {photoCountValid ? (
+                          <p className="field-hint">{t('relistHint')}</p>
+                        ) : (
+                          <p className="seller-photo-alert">
+                            <AlertTriangle size={15} aria-hidden />
+                            <span>
+                              {photoCount < MIN_LISTING_PHOTOS
+                                ? t('relistPhotoTooFew', {
+                                    count: photoCount,
+                                    min: MIN_LISTING_PHOTOS,
+                                    max: MAX_LISTING_PHOTOS,
+                                  })
+                                : t('relistPhotoTooMany', {
+                                    count: photoCount,
+                                    min: MIN_LISTING_PHOTOS,
+                                    max: MAX_LISTING_PHOTOS,
+                                  })}
+                            </span>
+                          </p>
+                        )}
+                        <div className="editor-lifecycle-buttons">
+                          {photoCountValid ? (
+                            <>
+                              <button name="intent" value="relist" className="button primary">
+                                <Send size={15} aria-hidden />
+                                <span>{t('relist')}</span>
+                              </button>
+                              <button name="intent" value="reopen" className="button secondary">
+                                <RotateCcw size={15} aria-hidden />
+                                <span>{t('reopen')}</span>
+                              </button>
+                            </>
+                          ) : (
+                            <button name="intent" value="reopen" className="button primary">
+                              <RotateCcw size={15} aria-hidden />
+                              <span>{t('reopen')}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </fieldset>
@@ -738,7 +777,10 @@ export function ListingForm({
 
             {readiness.exceedsMaxPhotos && (
               <p className="field-hint editor-legacy-note">
-                {t('legacyPhotoLimitNote', { max: MAX_LISTING_PHOTOS })}
+                {t('legacyPhotoLimitNote', {
+                  count: listing.media_ids.length,
+                  max: MAX_LISTING_PHOTOS,
+                })}
               </p>
             )}
 

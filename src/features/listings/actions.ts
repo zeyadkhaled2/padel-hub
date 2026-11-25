@@ -95,7 +95,12 @@ export async function saveListing(
     if (!result.ok) return fail(mapListingRpcError(result.error, 'transition'));
     return {
       listing: result.listing,
-      message: header.intent === 'relist' ? 'submitted' : 'statusUpdated',
+      message:
+        header.intent === 'relist'
+          ? 'submitted'
+          : header.intent === 'reopen'
+            ? 'reopened'
+            : 'statusUpdated',
     };
   }
 
@@ -145,10 +150,16 @@ export async function runDashboardListingAction(
       return { ok: false, message: mapListingRpcError(result.error, 'transition') };
     }
     revalidatePath(`/${safeLocale}/account/listings`);
+    revalidatePath(`/${safeLocale}/account/listings/${header.id}`);
     return {
       ok: true,
       listing: result.listing,
-      message: header.intent === 'relist' ? 'submitted' : 'statusUpdated',
+      message:
+        header.intent === 'relist'
+          ? 'submitted'
+          : header.intent === 'reopen'
+            ? 'reopened'
+            : 'statusUpdated',
     };
   }
 

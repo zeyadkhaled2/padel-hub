@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   AlertTriangle,
   ArrowRight,
@@ -12,10 +12,12 @@ import {
   ImagePlus,
   RefreshCw,
   ShieldCheck,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { detachListingPhoto } from './actions';
 import { PHOTO_CLIENT_ERROR_CODES, PHOTO_LIMITS } from './types';
 
 function formatFileSize(bytes: number): string {
@@ -36,13 +38,26 @@ export function PhotoForm({
   };
 }) {
   const t = useTranslations('photos');
+  const locale = useLocale();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
   const [replace, setReplace] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const [detachingId, setDetachingId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [localSnapshot, setLocalSnapshot] = useState<{
+    version: number;
+    media_ids: string[];
+  } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const effective =
+    localSnapshot && localSnapshot.version > listing.version
+      ? localSnapshot
+      : { version: listing.version, media_ids: listing.media_ids };
+  const version = effective.version;
+  const mediaIds = effective.media_ids;
 
   useEffect(() => {
     return () => {
@@ -50,14 +65,14 @@ export function PhotoForm({
     };
   }, [preview]);
 
-  const count = listing.media_ids.length;
+  const count = mediaIds.length;
   const minPhotos = PHOTO_LIMITS.minPerListing;
   const maxPhotos = PHOTO_LIMITS.maxPerListing;
   const remainingRequired = Math.max(0, minPhotos - count);
   const atMaximum = count >= maxPhotos;
   const exceedsMax = count > maxPhotos;
   const emptySlotsCount = Math.max(0, maxPhotos - count);
-  const replacingIndex = replace ? listing.media_ids.indexOf(replace) : -1;
+  const replacingIndex = replace ? mediaIds.indexOf(replace) : -1;
 
   function clearSelectedFile() {
     setFile(null);
@@ -73,11 +88,12 @@ export function PhotoForm({
     }
     setProgress(0);
     setMessage('');
+    const currentMediaIds = mediaIds;
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `/api/listings/${listing.id}/photos`);
     xhr.timeout = 60000;
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-    xhr.setRequestHeader('X-Listing-Version', String(listing.version));
+    xhr.setRequestHeader('X-Listing-Version', String(version));
     if (replace) xhr.setRequestHeader('X-Replace-Photo', replace);
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -87,6 +103,17 @@ export function PhotoForm({
     xhr.onload = () => {
       setProgress(null);
       if (xhr.status === 201) {
+        try {
+          const saved = JSON.parse(xhr.responseText) as { id?: string; version?: number };
+          if (typeof saved.version === 'number' && typeof saved.id === 'string') {
+            const nextMediaIds = replace
+              ? currentMediaIds.map((item) => (item === replace ? saved.id! : item))
+              : [...currentMediaIds, saved.id];
+            setLocalSnapshot({ version: saved.version, media_ids: nextMediaIds });
+          }
+        } catch {
+          /* Server refresh below will sync state. */
+        }
         setFile(null);
         setPreview('');
         setReplace(null);
@@ -112,8 +139,31 @@ export function PhotoForm({
     xhr.send(file);
   }
 
-  const busy = progress !== null;
-  const isSuccess = message === 'saved';
+  async function handleDetach(mediaId: string) {
+    if (progress !== null || detachingId !== null) return;
+    setDetachingId(mediaId);
+    setMessage('');
+    try {
+      const result = await detachListingPhoto(locale, listing.id, version, mediaId);
+      if (result.ok) {
+        setLocalSnapshot({ version: result.version, media_ids: result.media_ids });
+        if (replace === mediaId) setReplace(null);
+        setMessage('detached');
+        router.refresh();
+      } else {
+        setMessage(result.error);
+      }
+    } catch {
+      setMessage('unavailable');
+    } finally {
+      setDetachingId(null);
+    }
+  }
+
+  const busy = progress !== null || detachingId !== null;
+  const uploading = progress !== null;
+  const isSuccess = message === 'saved' || message === 'detached';
+  const excessPhotos = Math.max(0, count - maxPhotos);
 
   return (
     <section aria-label={t('gallery')} className="photo-manager-workspace">
@@ -126,7 +176,7 @@ export function PhotoForm({
             </p>
             <p className="field-hint">
               {exceedsMax
-                ? t('legacyOverLimit', { count, max: maxPhotos })
+                ? t('legacyOverLimit', { count, max: maxPhotos, excess: excessPhotos })
                 : remainingRequired > 0
                   ? t('needMore', { remaining: remainingRequired, min: minPhotos, max: maxPhotos })
                   : atMaximum
@@ -138,9 +188,7 @@ export function PhotoForm({
             className={`seller-pill ${
               count >= minPhotos && count <= maxPhotos
                 ? 'is-ready'
-                : exceedsMax
-                  ? 'is-muted'
-                  : 'is-warn'
+                : 'is-warn'
             }`}
           >
             {count >= minPhotos && count <= maxPhotos ? (
@@ -168,7 +216,7 @@ export function PhotoForm({
 
       {/* Responsive Photo Grid (saved photos + empty visual slots up to 4) */}
       <div className="photo-grid">
-        {listing.media_ids.map((id, index) => {
+        {mediaIds.map((id, index) => {
           const isBeingReplaced = replace === id;
           return (
             <figure
@@ -191,20 +239,32 @@ export function PhotoForm({
               </div>
               <figcaption className="photo-slot-footer">
                 <span className="photo-slot-caption">{t('photoAlt', { number: index + 1 })}</span>
-                <button
-                  type="button"
-                  className={`button ${isBeingReplaced ? 'primary' : 'secondary'} photo-slot-action`}
-                  disabled={busy}
-                  aria-pressed={isBeingReplaced}
-                  onClick={() => {
-                    setReplace(id);
-                    setMessage('');
-                    fileInput.current?.focus();
-                  }}
-                >
-                  <RefreshCw size={14} aria-hidden />
-                  <span>{t('replace')}</span>
-                </button>
+                <div className="photo-slot-actions">
+                  <button
+                    type="button"
+                    className={`button ${isBeingReplaced ? 'primary' : 'secondary'} photo-slot-action`}
+                    disabled={busy}
+                    aria-pressed={isBeingReplaced}
+                    onClick={() => {
+                      setReplace(id);
+                      setMessage('');
+                      fileInput.current?.focus();
+                    }}
+                  >
+                    <RefreshCw size={14} aria-hidden />
+                    <span>{t('replace')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary photo-slot-action photo-detach-btn"
+                    disabled={busy}
+                    aria-label={t('detachAria', { number: index + 1 })}
+                    onClick={() => handleDetach(id)}
+                  >
+                    <Trash2 size={14} aria-hidden />
+                    <span>{detachingId === id ? t('detaching') : t('detach')}</span>
+                  </button>
+                </div>
               </figcaption>
             </figure>
           );
@@ -319,7 +379,7 @@ export function PhotoForm({
           </figure>
         )}
 
-        {busy && (
+        {uploading && (
           <div className="photo-progress-box">
             <div className="photo-progress-head">
               <p role="status">{progress === 100 ? t('processing') : t('uploading')}</p>
@@ -331,7 +391,7 @@ export function PhotoForm({
           </div>
         )}
 
-        {!busy && message && (
+        {!uploading && message && (
           <div
             role="status"
             aria-live="polite"
@@ -351,6 +411,7 @@ export function PhotoForm({
             type="button"
             className="button secondary"
             onClick={() => {
+              setLocalSnapshot(null);
               setMessage('');
               router.refresh();
             }}

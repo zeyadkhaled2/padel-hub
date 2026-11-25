@@ -31,7 +31,7 @@ export type OfferType = (typeof OFFER_TYPES)[number];
 export const RACKET_SHAPES = ['round', 'teardrop', 'diamond', 'hybrid'] as const;
 export type RacketShape = (typeof RACKET_SHAPES)[number];
 
-export const LISTING_LIFECYCLE_ACTIONS = ['sold', 'traded', 'archive', 'relist'] as const;
+export const LISTING_LIFECYCLE_ACTIONS = ['sold', 'traded', 'archive', 'relist', 'reopen'] as const;
 export type ListingLifecycleAction = (typeof LISTING_LIFECYCLE_ACTIONS)[number];
 
 export const LISTING_FORM_INTENTS = [
@@ -249,6 +249,10 @@ export function isListingArchivable(status: ListingStatus): boolean {
 
 export function isListingRelistable(status: ListingStatus): boolean {
   return RELISTABLE_LISTING_STATUSES.includes(status);
+}
+
+export function meetsListingPhotoRules(photoCount: number): boolean {
+  return photoCount >= MIN_LISTING_PHOTOS && photoCount <= MAX_LISTING_PHOTOS;
 }
 
 export function canMarkListingSold(status: ListingStatus, offerType: OfferType | null): boolean {

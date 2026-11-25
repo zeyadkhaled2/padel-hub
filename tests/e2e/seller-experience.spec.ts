@@ -598,6 +598,69 @@ test.describe('Phase UI-C — Premium Seller Experience', () => {
       await expect(page.getByRole('status')).toContainText('Listing status updated.');
       await expect(racketCard.getByText('Archived', { exact: true })).toBeVisible();
 
+      // 10. Safe photo detachment (without deleting Storage objects) & legacy relist-to-draft escape hatches
+      // 10a. Reopen the archived 4-photo racket back to draft from Seller Dashboard, detach 1 photo -> verify count drops 4 -> 3 & detached asset remains privately readable (200)
+      await racketCard.getByRole('button', { name: 'Return to draft to edit', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('Returned to draft.');
+      await expect(racketCard.getByText('Draft', { exact: true })).toBeVisible();
+
+      await page.goto(`/en/account/photos?listing=${racketId}`);
+      await expect(page.getByText('4 of 4 photos')).toBeVisible();
+      const fourthImgSrc = (await page.locator('.photo-grid img').nth(3).getAttribute('src'))!;
+      await page.getByRole('button', { name: 'Remove photo 4 from draft', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('Photo removed from this draft.');
+      await expect(page.getByText('3 of 4 photos')).toBeVisible();
+      await expect(page.locator('.photo-grid img')).toHaveCount(3);
+      await expect(page.locator('.photo-empty-slot')).toHaveCount(1);
+      // Underlying Storage object MUST remain preserved privately (HTTP 200 to owner, never deleted!)
+      expect((await page.request.get(fourthImgSrc)).status()).toBe(200);
+
+      // 10b. Legacy 5-photo draft: simulate pre-migration 5th attached photo, verify warning + detach down to 4 + submit succeeds!
+      const bagsId = createdListingIds[3];
+      const extraMediaId = new URL(fourthImgSrc, 'http://127.0.0.1:3100').pathname.split('/').pop()!;
+      localDbSql(`
+        insert into public.listing_media(listing_id, owner_id, media_id, sort_order)
+        select '${bagsId}', seller_id, '${extraMediaId}', 4
+        from public.listings
+        where id = '${bagsId}';
+      `);
+      await page.goto(`/en/account/photos?listing=${bagsId}`);
+      await expect(page.getByText('5 of 4 photos')).toBeVisible();
+      await expect(page.getByText(/Remove 1 photo from this draft/)).toBeVisible();
+      await page.getByRole('button', { name: 'Remove photo 5 from draft', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('Photo removed from this draft.');
+      await expect(page.getByText('4 of 4 photos')).toBeVisible();
+      await page.getByRole('link', { name: 'Listing details', exact: true }).click();
+      await page.getByRole('button', { name: 'Submit for approval', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('Submitted.');
+
+      // 10c. Legacy 2-photo archived balls listing: verify dashboard shows photo-requirement notice + primary Return to draft CTA, reopen, add 3rd photo & submit!
+      const ballsId = createdListingIds[1];
+      localDbSql(`
+        begin;
+        delete from public.listing_media where listing_id = '${ballsId}' and sort_order >= 2;
+        update public.listings set status = 'archived', version = version + 1 where id = '${ballsId}';
+        commit;
+      `);
+      await page.goto('/en/account/listings');
+      const ballsCard = page.locator('.seller-listing-card', { hasText: `Head Padel Pro S+ ${suffix}` });
+      await expect(ballsCard.getByText(/currently has 2 photos/)).toBeVisible();
+      await expect(ballsCard.getByRole('button', { name: 'Relist for approval', exact: true })).toHaveCount(0);
+      await ballsCard.getByRole('button', { name: 'Return to draft to edit', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('Returned to draft.');
+      await page.goto(`/en/account/photos?listing=${ballsId}`);
+      await expect(page.getByText('2 of 4 photos')).toBeVisible();
+      await page.getByLabel('Choose equipment photo').setInputFiles({
+        name: 'balls-3rd.jpg',
+        mimeType: 'image/jpeg',
+        buffer: photos[2],
+      });
+      await page.getByRole('button', { name: 'Upload photo', exact: true }).click();
+      await expect(page.getByText('3 of 4 photos')).toBeVisible();
+      await page.getByRole('link', { name: 'Listing details', exact: true }).click();
+      await page.getByRole('button', { name: 'Submit for approval', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('Submitted.');
+
       expect(pageErrors).toEqual([]);
     } finally {
       for (const lid of createdListingIds) {
