@@ -40,6 +40,7 @@ const updateProfileDetailsSchema = baseProfileDetailsSchema.extend({
 });
 
 const profileBundleSchema = z.object({
+  public_id: uuidSchema,
   username: usernameSchema,
   display_name: z.string(),
   governorate_slug: governorateSlugSchema,

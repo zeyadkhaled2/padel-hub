@@ -27,13 +27,14 @@ select ok((select public.get_photo_delivery(asset,'11111111-1111-4111-8111-11111
 select ok((select public.get_photo_delivery(asset,null,listing) is null from photo_test),'draft is not public');
 select ok((select public.get_photo_delivery(asset,'22222222-2222-4222-8222-222222222222',listing) is null from photo_test),'other owner cannot preview');
 reset role;
-select is((select count(*)::integer from public.listing_media where listing_id=(select listing from photo_test)),2,'old attachment retained on append');
+select is((select count(*)::integer from public.listing_media where listing_id=(select listing from photo_test)),4,'old attachments retained on fourth append');
 set constraints all immediate;
 -- Replacement needs the same optimistic version and exact existing attachment.
 set local role service_role;
+select throws_ok($$select public.save_listing_photo('11111111-1111-4111-8111-111111111111',listing,2,gen_random_uuid(),attempt,'image/png',300,400,400,repeat('b',64),manifest) from photo_test$$,'PT409',null,'fifth photo rejected at four-photo cap');
 select throws_ok($$select public.save_listing_photo('11111111-1111-4111-8111-111111111111',listing,1,gen_random_uuid(),attempt,'image/png',300,400,400,repeat('b',64),manifest,asset) from photo_test$$,'PT409',null,'failed replacement cannot detach old photo');
 reset role;
-select is((select count(*)::integer from public.listing_media where listing_id=(select listing from photo_test)),2,'failed replacement retained both photos');
+select is((select count(*)::integer from public.listing_media where listing_id=(select listing from photo_test)),4,'failed replacement retained all four photos');
 update public.seller_profiles set is_public=true where user_id='11111111-1111-4111-8111-111111111111';
 update public.listings set status='active',last_approved_content_version=content_version where id=(select listing from photo_test);
 grant padelhub_review_writer to postgres;

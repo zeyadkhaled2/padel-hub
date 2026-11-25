@@ -84,10 +84,21 @@ select lives_ok($$update public.listings set status='draft'; delete from public.
 select is((select count(*)::integer from public.media_assets where id='88888888-8888-4888-8888-888888888888'),1,'detached saved asset remains');
 insert into public.listings(id,seller_id,category,title,brand_slug,model,description,governorate_slug,condition,condition_disclosure,offer_type,price_egp,balls_quantity_packaging)
  values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','11111111-1111-4111-8111-111111111111','balls','Synthetic balls','head','Test','Synthetic test only','cairo','new','Test disclosure','sale',100,'3 balls');
-select throws_ok($$update public.listings set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,'23514',null,'balls need at least one photo');
+select throws_ok($$update public.listings set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,'23514',null,'balls need at least three photos (0 blocked)');
 insert into public.listing_media(listing_id,owner_id,media_id,sort_order) values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','11111111-1111-4111-8111-111111111111','88888888-8888-4888-8888-888888888888',0);
-select lives_ok($$update public.listings set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,'one photo permits complete balls listing');
-select throws_ok($$update public.listing_media set sort_order=6 where listing_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,'23514',null,'photo positions limited to six');
+select throws_ok($$update public.listings set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,'23514',null,'one photo is below minimum for balls');
+select pg_temp.media_fixture('99999999-9999-4999-8999-999999999991','11111111-1111-4111-8111-111111111111','listing_photo');
+select pg_temp.media_fixture('99999999-9999-4999-8999-999999999992','11111111-1111-4111-8111-111111111111','listing_photo');
+select pg_temp.media_fixture('99999999-9999-4999-8999-999999999993','11111111-1111-4111-8111-111111111111','listing_photo');
+select pg_temp.media_fixture('99999999-9999-4999-8999-999999999994','11111111-1111-4111-8111-111111111111','listing_photo');
+insert into public.listing_media(listing_id,owner_id,media_id,sort_order) values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','11111111-1111-4111-8111-111111111111','99999999-9999-4999-8999-999999999991',1);
+select throws_ok($$update public.listings set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,'23514',null,'two photos are below minimum for balls');
+insert into public.listing_media(listing_id,owner_id,media_id,sort_order) values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','11111111-1111-4111-8111-111111111111','99999999-9999-4999-8999-999999999992',2);
+select lives_ok($$update public.listings set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,'three photos permit complete balls listing');
+insert into public.listing_media(listing_id,owner_id,media_id,sort_order) values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','11111111-1111-4111-8111-111111111111','99999999-9999-4999-8999-999999999993',3);
+select lives_ok($$update public.listings set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,'four photos permit complete balls listing');
+select throws_ok($$insert into public.listing_media(listing_id,owner_id,media_id,sort_order) values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','11111111-1111-4111-8111-111111111111','99999999-9999-4999-8999-999999999994',4)$$,'23514',null,'five photos exceed maximum on pending listing');
+select throws_ok($$update public.listing_media set sort_order=6 where listing_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' and sort_order=0$$,'23514',null,'sort_order upper bound enforced');
 select is(private.valid_media_manifest((select ready_manifest from public.media_assets where id='33333333-3333-4333-8333-333333333333'),gen_random_uuid(),gen_random_uuid()),false,'manifest keys cannot refer to a different asset or attempt');
 insert into private.media_jobs(operation,media_id,subject_id,storage_bucket,key_manifest) values('explicit_delete','66666666-6666-4666-8666-666666666666','11111111-1111-4111-8111-111111111111','media-private','["raw/unfinished"]');
 delete from public.media_assets where id='66666666-6666-4666-8666-666666666666';

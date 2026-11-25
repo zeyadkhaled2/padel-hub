@@ -328,7 +328,7 @@ test.describe('live buyer experience (UI-B)', () => {
           shoe_size_eu: 43.5,
         },
       });
-      const vShoes = await attachPhotos(shoes.id, 2, [1, 0]);
+      const vShoes = await attachPhotos(shoes.id, 2, [1, 0, 2]);
       await sellerRpc('submit_listing', { p_listing_id: shoes.id, p_expected_version: vShoes });
       approveSyntheticBuyerTestListing(shoes.id);
 

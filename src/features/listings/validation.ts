@@ -4,6 +4,8 @@ import {
   LISTING_FORM_INTENTS,
   LISTING_LIFECYCLE_ACTIONS,
   LISTING_TEXT_LIMITS,
+  MAX_LISTING_PHOTOS,
+  MIN_LISTING_PHOTOS,
   getCategoryConfig,
   type EquipmentCategory,
   type ListingFormIntent,
@@ -19,6 +21,7 @@ import {
   listingConditionSchema,
   listingPriceSchema,
   listingStatusSchema,
+  nonNegativeIntSchema,
   offerTypeSchema,
   parseOptionalBoundedInt,
   parseShoeSizeEuInput,
@@ -30,10 +33,13 @@ import {
   strictPositiveIntSchema,
   uuidSchema,
 } from '@/lib/validation/shared';
+import type { Profile } from '@/features/profile/types';
 import type {
   Listing,
   ListingDraftPatch,
   ListingEditorMessage,
+  ListingFieldErrors,
+  ListingReadinessItem,
   ListingRejectionDecision,
   OwnerListingSummary,
   PhotoDraftSummary,
@@ -122,6 +128,15 @@ const ownerListingSummaryListSchema = z.array(
     category: equipmentCategorySchema,
     title: z.string().nullable(),
     status: listingStatusSchema,
+    offer_type: offerTypeSchema.nullable().optional().default(null),
+    price_egp: listingPriceSchema.nullable().optional().default(null),
+    is_negotiable: z.boolean().optional().default(false),
+    condition: listingConditionSchema.nullable().optional().default(null),
+    version: strictPositiveIntSchema.optional().default(1),
+    updated_at: z.string().nullable().optional().default(null),
+    cover_media_id: uuidSchema.nullable().optional().default(null),
+    photo_count: nonNegativeIntSchema.optional().default(0),
+    rejection_reason: z.string().nullable().optional().default(null),
   }),
 );
 
@@ -131,6 +146,8 @@ const photoDraftSummaryListSchema = z.array(
     category: equipmentCategorySchema,
     title: z.string().nullable(),
     version: strictPositiveIntSchema,
+    status: listingStatusSchema.optional().default('draft'),
+    photo_count: nonNegativeIntSchema.optional().default(0),
   }),
 );
 
@@ -187,6 +204,124 @@ function parseOptionalPrice(raw: string | undefined): { ok: true; value: number 
     return { ok: false };
   }
   return { ok: true, value: parsed.data };
+}
+
+export function getListingFieldErrors(
+  category: EquipmentCategory,
+  values: Record<string, string>,
+): ListingFieldErrors {
+  const errors: ListingFieldErrors = {};
+
+  for (const [key, limit] of Object.entries(LISTING_TEXT_LIMITS) as [ListingTextFieldKey, number][]) {
+    const trimmed = (values[key] ?? '').trim();
+    if (trimmed.length > limit) {
+      errors[key] = 'fieldTooLong';
+    }
+  }
+
+  if (!parseOptionalChoice(brandSlugSchema, values.brand_slug).ok) {
+    errors.brand_slug = 'fieldInvalidChoice';
+  }
+  if (!parseOptionalChoice(governorateSlugSchema, values.governorate_slug).ok) {
+    errors.governorate_slug = 'fieldInvalidChoice';
+  }
+  if (!parseOptionalChoice(listingConditionSchema, values.condition).ok) {
+    errors.condition = 'fieldInvalidChoice';
+  }
+  if (!parseOptionalChoice(offerTypeSchema, values.offer_type).ok) {
+    errors.offer_type = 'fieldInvalidChoice';
+  }
+  if (!parseOptionalPrice(values.price_egp).ok) {
+    errors.price_egp = 'fieldInvalidPrice';
+  }
+
+  const config = getCategoryConfig(category);
+  if (config.hasShoeSize && !parseShoeSizeEuInput(values.shoe_size_eu ?? '').ok) {
+    errors.shoe_size_eu = 'fieldInvalidShoeSize';
+  }
+  if (config.hasRacketSpecs) {
+    if (!parseOptionalBoundedInt(values.racket_year, racketYearSchema).ok) {
+      errors.racket_year = 'fieldInvalidRacketYear';
+    }
+    if (!parseOptionalBoundedInt(values.racket_weight_grams, racketWeightGramsSchema).ok) {
+      errors.racket_weight_grams = 'fieldInvalidRacketWeight';
+    }
+    if (!parseOptionalChoice(racketShapeSchema, values.racket_shape).ok) {
+      errors.racket_shape = 'fieldInvalidChoice';
+    }
+  }
+
+  return errors;
+}
+
+export function getListingSubmissionReadiness(
+  listing: Listing,
+  profile: Pick<Profile, 'is_public' | 'public_contact_consent' | 'whatsapp_e164' | 'account_status'> | null,
+): {
+  items: ListingReadinessItem[];
+  readyToSubmit: boolean;
+  missingPhotosCount: number;
+  exceedsMaxPhotos: boolean;
+} {
+  const titleLen = (listing.title ?? '').trim().length;
+  const modelLen = (listing.model ?? '').trim().length;
+  const descLen = (listing.description ?? '').trim().length;
+  const brandOk =
+    listing.brand_slug !== null &&
+    (listing.brand_slug !== 'other' || (listing.brand_custom ?? '').trim().length >= 1);
+  const basicsDone =
+    titleLen >= 3 &&
+    modelLen >= 1 &&
+    descLen >= 10 &&
+    brandOk &&
+    listing.governorate_slug !== null;
+
+  const condDisclosureOk = (listing.condition_disclosure ?? '').trim().length >= 3;
+  let categorySpecificOk = true;
+  if (listing.category === 'rackets') {
+    categorySpecificOk = (listing.racket_damage_repair_disclosure ?? '').trim().length >= 3;
+  } else if (listing.category === 'balls') {
+    categorySpecificOk = (listing.balls_quantity_packaging ?? '').trim().length >= 2;
+  } else if (listing.category === 'shoes') {
+    categorySpecificOk = listing.shoe_size_eu !== null;
+  }
+  const conditionDone = listing.condition !== null && condDisclosureOk && categorySpecificOk;
+
+  const effectiveOffer = listing.category === 'rackets' ? listing.offer_type : 'sale';
+  const priceNeeded = effectiveOffer === 'sale' || effectiveOffer === 'both';
+  const swapNeeded = effectiveOffer === 'swap' || effectiveOffer === 'both';
+  const offerDone =
+    effectiveOffer !== null &&
+    (!priceNeeded || listing.price_egp !== null) &&
+    (!swapNeeded || (listing.swap_preference ?? '').trim().length >= 3);
+
+  const photoCount = listing.media_ids.length;
+  const photosDone = photoCount >= MIN_LISTING_PHOTOS && photoCount <= MAX_LISTING_PHOTOS;
+  const missingPhotosCount = Math.max(0, MIN_LISTING_PHOTOS - photoCount);
+  const exceedsMaxPhotos = photoCount > MAX_LISTING_PHOTOS;
+
+  const accountDone = Boolean(
+    profile &&
+      profile.account_status === 'active' &&
+      profile.is_public &&
+      profile.public_contact_consent &&
+      profile.whatsapp_e164,
+  );
+
+  const items: ListingReadinessItem[] = [
+    { key: 'basics', done: basicsDone },
+    { key: 'condition', done: conditionDone },
+    { key: 'offer', done: offerDone },
+    { key: 'photos', done: photosDone },
+    { key: 'account', done: accountDone },
+  ];
+
+  return {
+    items,
+    readyToSubmit: items.every((item) => item.done),
+    missingPhotosCount,
+    exceedsMaxPhotos,
+  };
 }
 
 export function buildListingDraftPatch(

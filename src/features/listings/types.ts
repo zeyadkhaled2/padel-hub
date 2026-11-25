@@ -99,6 +99,15 @@ export type OwnerListingSummary = {
   category: EquipmentCategory;
   title: string | null;
   status: ListingStatus;
+  offer_type: OfferType | null;
+  price_egp: number | null;
+  is_negotiable: boolean;
+  condition: ListingCondition | null;
+  version: number;
+  updated_at: string | null;
+  cover_media_id: string | null;
+  photo_count: number;
+  rejection_reason: string | null;
 };
 
 export type PhotoDraftSummary = {
@@ -106,6 +115,8 @@ export type PhotoDraftSummary = {
   category: EquipmentCategory;
   title: string | null;
   version: number;
+  status: ListingStatus;
+  photo_count: number;
 };
 
 export type ListingRejectionDecision = {
@@ -138,6 +149,16 @@ export type ListingFormFieldKey =
   | 'racket_weight_grams'
   | 'racket_shape';
 
+export type ListingFieldErrorKey =
+  | 'fieldTooLong'
+  | 'fieldInvalidChoice'
+  | 'fieldInvalidPrice'
+  | 'fieldInvalidShoeSize'
+  | 'fieldInvalidRacketYear'
+  | 'fieldInvalidRacketWeight';
+
+export type ListingFieldErrors = Partial<Record<ListingFormFieldKey, ListingFieldErrorKey>>;
+
 export type ListingDraftPatch = {
   title: string | null;
   brand_slug: BrandSlug | null;
@@ -165,6 +186,16 @@ export type ListingState = {
   listing: Listing;
   message?: ListingEditorMessage;
   values?: Record<string, string>;
+  fieldErrors?: ListingFieldErrors;
+};
+
+export type DashboardActionResult =
+  | { ok: true; listing: Listing; message: ListingEditorMessage }
+  | { ok: false; message: ListingEditorMessage };
+
+export type ListingReadinessItem = {
+  key: 'basics' | 'condition' | 'offer' | 'photos' | 'account';
+  done: boolean;
 };
 
 export const textFields = LISTING_TEXT_LIMITS;

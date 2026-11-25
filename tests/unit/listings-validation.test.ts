@@ -2,10 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildListingDraftPatch,
+  getListingFieldErrors,
+  getListingSubmissionReadiness,
   mapListingRpcError,
   parseCreateListingCategory,
   parseListingActionHeader,
   parseOwnerListing,
+  parseOwnerListingSummaries,
+  parsePhotoDraftSummaries,
 } from '@/features/listings/validation';
 import { RACKET_SHAPES } from '@/lib/domain/equipment';
 
@@ -344,4 +348,148 @@ test('parseOwnerListing validates racket specification bounds and preserves purc
   assert.equal(parseOwnerListing({ ...baseRacket, racket_year: 2009 }), null);
   assert.equal(parseOwnerListing({ ...baseRacket, racket_weight_grams: 421 }), null);
   assert.equal(parseOwnerListing({ ...baseRacket, racket_shape: 'square' }), null);
+});
+
+
+test('getListingFieldErrors reports specific invalid fields across categories', () => {
+  assert.deepEqual(
+    getListingFieldErrors('rackets', {
+      title: 'x'.repeat(121),
+      price_egp: '0',
+      racket_year: '2009',
+      racket_weight_grams: '450',
+      racket_shape: 'oval',
+      brand_slug: 'unknown',
+    }),
+    {
+      title: 'fieldTooLong',
+      price_egp: 'fieldInvalidPrice',
+      racket_year: 'fieldInvalidRacketYear',
+      racket_weight_grams: 'fieldInvalidRacketWeight',
+      racket_shape: 'fieldInvalidChoice',
+      brand_slug: 'fieldInvalidChoice',
+    },
+  );
+
+  assert.deepEqual(
+    getListingFieldErrors('shoes', {
+      shoe_size_eu: '42.3',
+      price_egp: '500001',
+    }),
+    {
+      shoe_size_eu: 'fieldInvalidShoeSize',
+      price_egp: 'fieldInvalidPrice',
+    },
+  );
+});
+
+test('getListingSubmissionReadiness enforces 3-4 photos across all equipment categories', () => {
+  const readyProfile = {
+    is_public: true,
+    public_contact_consent: true,
+    whatsapp_e164: '+201000000000',
+    account_status: 'active' as const,
+  };
+  const makePhotoIds = (count: number) =>
+    Array.from({ length: count }, (_, i) => `11111111-1111-4111-8111-11111111110${i}`);
+
+  const baseComplete = {
+    id: VALID_ID,
+    status: 'draft' as const,
+    title: 'Complete Listing',
+    brand_slug: 'head' as const,
+    brand_custom: null,
+    model: 'Pro Model',
+    description: 'Detailed complete equipment description.',
+    governorate_slug: 'cairo' as const,
+    district_text: null,
+    condition: 'new' as const,
+    condition_disclosure: 'Unused in box',
+    offer_type: 'sale' as const,
+    price_egp: 2500,
+    is_negotiable: false,
+    swap_preference: null,
+    racket_damage_repair_disclosure: null,
+    racket_year: null,
+    racket_shape: null,
+    racket_weight_grams: null,
+    racket_purchase_date: null,
+    shoe_size_eu: null,
+    balls_quantity_packaging: null,
+    balls_availability_note: null,
+    version: 1,
+    content_version: 1,
+    last_approved_content_version: null,
+  };
+
+  const categoryListings = [
+    { ...baseComplete, category: 'rackets' as const, racket_damage_repair_disclosure: 'No cracks' },
+    { ...baseComplete, category: 'balls' as const, balls_quantity_packaging: '3 pressurized balls' },
+    { ...baseComplete, category: 'shoes' as const, shoe_size_eu: 42.5 },
+    { ...baseComplete, category: 'bags' as const },
+  ];
+
+  for (const item of categoryListings) {
+    for (const count of [0, 1, 2]) {
+      const readiness = getListingSubmissionReadiness(
+        { ...item, media_ids: makePhotoIds(count) },
+        readyProfile,
+      );
+      assert.equal(readiness.readyToSubmit, false, `${item.category} with ${count} photos`);
+      assert.equal(readiness.missingPhotosCount, 3 - count);
+      assert.equal(readiness.exceedsMaxPhotos, false);
+    }
+    for (const count of [3, 4]) {
+      const readiness = getListingSubmissionReadiness(
+        { ...item, media_ids: makePhotoIds(count) },
+        readyProfile,
+      );
+      assert.equal(readiness.readyToSubmit, true, `${item.category} with ${count} photos`);
+      assert.equal(readiness.missingPhotosCount, 0);
+      assert.equal(readiness.exceedsMaxPhotos, false);
+    }
+    const overLimit = getListingSubmissionReadiness(
+      { ...item, media_ids: makePhotoIds(5) },
+      readyProfile,
+    );
+    assert.equal(overLimit.readyToSubmit, false, `${item.category} with 5 photos`);
+    assert.equal(overLimit.exceedsMaxPhotos, true);
+  }
+});
+
+test('parseOwnerListingSummaries and parsePhotoDraftSummaries parse enriched dashboard payloads safely', () => {
+  const summaries = parseOwnerListingSummaries([
+    {
+      id: VALID_ID,
+      category: 'shoes',
+      title: 'Court Shoes',
+      status: 'rejected',
+      offer_type: 'sale',
+      price_egp: 3200,
+      is_negotiable: true,
+      condition: 'used',
+      version: 4,
+      updated_at: '2026-11-25T10:00:00Z',
+      cover_media_id: '22222222-2222-4222-8222-222222222222',
+      photo_count: 3,
+      rejection_reason: 'Add a clearer sole photo.',
+    },
+  ]);
+  assert.ok(summaries);
+  assert.equal(summaries[0].photo_count, 3);
+  assert.equal(summaries[0].rejection_reason, 'Add a clearer sole photo.');
+
+  const drafts = parsePhotoDraftSummaries([
+    {
+      id: VALID_ID,
+      category: 'bags',
+      title: 'Padel Bag',
+      version: 2,
+      status: 'draft',
+      photo_count: 2,
+    },
+  ]);
+  assert.ok(drafts);
+  assert.equal(drafts[0].photo_count, 2);
+  assert.equal(drafts[0].status, 'draft');
 });

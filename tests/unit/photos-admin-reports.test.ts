@@ -66,30 +66,45 @@ test('photo upload and delivery validators enforce origin, version, size, varian
     { ok: false, code: 'tooLarge', status: 413 },
   );
 
-  // Slot eligibility checks optimistic version, editable status, and 6-photo cap.
-  assert.deepEqual(
-    checkPhotoSlotEligibility({ version: 2, status: 'draft', media_ids: [ASSET_ID] }, 2, null),
-    { ok: true },
-  );
+  // Slot eligibility checks optimistic version, editable status, and 4-photo cap (0..4 + legacy 5..6).
+  for (const count of [0, 1, 2, 3]) {
+    assert.deepEqual(
+      checkPhotoSlotEligibility({ version: 2, status: 'draft', media_ids: Array(count).fill(ASSET_ID) }, 2, null),
+      { ok: true },
+      `new photo allowed when ${count} photos exist`,
+    );
+  }
   assert.deepEqual(
     checkPhotoSlotEligibility({ version: 3, status: 'draft', media_ids: [] }, 2, null),
     { ok: false, code: 'conflict', status: 409 },
   );
+  for (const fullCount of [4, 5, 6]) {
+    assert.deepEqual(
+      checkPhotoSlotEligibility(
+        { version: 2, status: 'draft', media_ids: Array(fullCount).fill(ASSET_ID) },
+        2,
+        null,
+      ),
+      { ok: false, code: 'photoLimit', status: 409 },
+      `adding photo rejected when ${fullCount} photos exist`,
+    );
+    assert.deepEqual(
+      checkPhotoSlotEligibility(
+        { version: 2, status: 'draft', media_ids: Array(fullCount).fill(ASSET_ID) },
+        2,
+        ASSET_ID,
+      ),
+      { ok: true },
+      `replacing photo allowed when ${fullCount} photos exist`,
+    );
+  }
   assert.deepEqual(
     checkPhotoSlotEligibility(
-      { version: 2, status: 'draft', media_ids: Array(6).fill(ASSET_ID) },
+      { version: 2, status: 'draft', media_ids: [ASSET_ID] },
       2,
-      null,
+      '55555555-5555-4555-8555-555555555555',
     ),
     { ok: false, code: 'photoLimit', status: 409 },
-  );
-  assert.deepEqual(
-    checkPhotoSlotEligibility(
-      { version: 2, status: 'draft', media_ids: Array(6).fill(ASSET_ID) },
-      2,
-      ASSET_ID,
-    ),
-    { ok: true },
   );
 
   // Image metadata bounds reject animated, tiny, huge, or unsupported formats.

@@ -28,7 +28,7 @@ select throws_ok($$select public.change_listing_status(id,1,'archive') from life
 select is((select public.change_listing_status(id,2,'relist')->>'status' from lifecycle_fixture),'pending','relist requires approval');
 select is((select public.get_my_listing(id)->>'version' from lifecycle_fixture),'4','relist preserves version sequence');
 select is((select public.change_listing_status(id,4,'archive')->>'status' from lifecycle_fixture),'archived','pending listing can be archived');
-select ok((select jsonb_array_length(public.get_my_listing(id)->'media_ids')=1 from lifecycle_fixture),'photos retained');
+select ok((select jsonb_array_length(public.get_my_listing(id)->'media_ids')=3 from lifecycle_fixture),'photos retained');
 select public.update_seller_profile(3,'{"is_public":false}');
 select throws_ok($$select public.change_listing_status(id,5,'relist') from lifecycle_fixture$$,'23514',null,'private profile blocks relist');
 select is((select public.get_my_listing(id)->>'status' from lifecycle_fixture),'archived','failed relist rolls back status');
@@ -40,14 +40,14 @@ update public.listings set category='rackets',status='active',offer_type='swap',
  balls_quantity_packaging=null,swap_preference='Another racket',racket_damage_repair_disclosure='None'
  where id in(select id from lifecycle_fixture);
 insert into public.listing_media(listing_id,owner_id,media_id,sort_order)
- select id,'11111111-1111-4111-8111-111111111111',test_fixtures.asset('11111111-1111-4111-8111-111111111111'),n
- from lifecycle_fixture cross join generate_series(1,2) n;
+ select id,'11111111-1111-4111-8111-111111111111',test_fixtures.asset('11111111-1111-4111-8111-111111111111'),3
+ from lifecycle_fixture;
 set local role authenticated;
 select throws_ok($$select public.change_listing_status(id,5,'sold') from lifecycle_fixture$$,'22023',null,'swap-only cannot be sold');
 select is((select public.change_listing_status(id,5,'traded')->>'status' from lifecycle_fixture),'traded','racket trade succeeds');
 select public.update_seller_profile(4,'{"is_public":true}');
 select is((select public.change_listing_status(id,6,'relist')->>'status' from lifecycle_fixture),'pending','traded racket needs approval again');
-select ok((select jsonb_array_length(public.get_my_listing(id)->'media_ids')=3 from lifecycle_fixture),'all racket photos retained');
+select ok((select jsonb_array_length(public.get_my_listing(id)->'media_ids')=4 from lifecycle_fixture),'all racket photos retained');
 reset role;
 select * from finish();
 rollback;
