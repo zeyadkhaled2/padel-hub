@@ -122,3 +122,20 @@ export async function submitOrWithdrawOwnerListing(
   if (!listing) return { ok: false, error: null };
   return { ok: true, listing };
 }
+
+export async function detachOwnerListingPhoto(
+  client: SupabaseClient,
+  listingId: string,
+  expectedVersion: number,
+  mediaId: string,
+): Promise<ListingMutationResult> {
+  const { data, error } = await client.rpc('detach_listing_photo', {
+    p_listing_id: listingId,
+    p_expected_version: expectedVersion,
+    p_media_id: mediaId,
+  });
+  if (error) return { ok: false, error };
+  const listing = parseOwnerListing(data);
+  if (!listing) return { ok: false, error: null };
+  return { ok: true, listing };
+}

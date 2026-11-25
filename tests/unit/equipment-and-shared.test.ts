@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import {
   CATEGORY_CONFIG,
   EQUIPMENT_CATEGORIES,
+  MAX_LISTING_PHOTOS,
+  MIN_LISTING_PHOTOS,
   SHOE_SIZES_EU,
   canMarkListingSold,
   canMarkListingTraded,
   formatBrandLabel,
   getCategoryConfig,
   isEquipmentCategory,
+  meetsListingPhotoRules,
 } from '@/lib/domain/equipment';
 import { PG_ERROR_CODE, classifyRpcError } from '@/lib/errors/domain';
 import {
@@ -21,15 +24,18 @@ import {
 
 test('category configuration enforces Open/Closed equipment rules consistently', () => {
   assert.deepEqual([...EQUIPMENT_CATEGORIES], ['rackets', 'balls', 'shoes', 'bags']);
+  assert.equal(MIN_LISTING_PHOTOS, 3);
+  assert.equal(MAX_LISTING_PHOTOS, 4);
 
   assert.equal(getCategoryConfig('rackets').minPhotos, 3);
+  assert.equal(getCategoryConfig('rackets').maxPhotos, 4);
   assert.equal(getCategoryConfig('rackets').supportsSwap, true);
   assert.deepEqual([...getCategoryConfig('rackets').supportedOfferTypes], ['sale', 'swap', 'both']);
 
   for (const accessory of ['balls', 'shoes', 'bags'] as const) {
     const config = CATEGORY_CONFIG[accessory];
-    assert.equal(config.minPhotos, 1);
-    assert.equal(config.maxPhotos, 6);
+    assert.equal(config.minPhotos, 3);
+    assert.equal(config.maxPhotos, 4);
     assert.equal(config.supportsSwap, false);
     assert.deepEqual([...config.supportedOfferTypes], ['sale']);
   }
@@ -42,6 +48,13 @@ test('category configuration enforces Open/Closed equipment rules consistently',
   assert.equal(isEquipmentCategory('shoes'), true);
   assert.equal(isEquipmentCategory('helmets'), false);
   assert.equal(formatBrandLabel('drop_shot'), 'drop shot');
+
+  assert.equal(meetsListingPhotoRules(0), false);
+  assert.equal(meetsListingPhotoRules(2), false);
+  assert.equal(meetsListingPhotoRules(3), true);
+  assert.equal(meetsListingPhotoRules(4), true);
+  assert.equal(meetsListingPhotoRules(5), false);
+  assert.equal(meetsListingPhotoRules(6), false);
 });
 
 test('listing completion actions respect offer type and category rules', () => {

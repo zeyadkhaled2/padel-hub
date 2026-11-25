@@ -1,4 +1,4 @@
-import { MAX_LISTING_PHOTOS } from '@/lib/domain/equipment';
+import { MAX_LISTING_PHOTOS, MIN_LISTING_PHOTOS } from '@/lib/domain/equipment';
 
 export const PHOTO_VARIANTS = ['thumb', 'card', 'full'] as const;
 export type PhotoVariant = (typeof PHOTO_VARIANTS)[number];
@@ -9,6 +9,7 @@ export type PhotoInputFormat = (typeof PHOTO_ALLOWED_FORMATS)[number];
 export const PHOTO_LIMITS = {
   bucket: 'media-private',
   maxBytes: 8 * 1024 * 1024,
+  minPerListing: MIN_LISTING_PHOTOS,
   maxPerListing: MAX_LISTING_PHOTOS,
   minDimension: 64,
   maxDimension: 8000,

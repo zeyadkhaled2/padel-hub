@@ -61,6 +61,8 @@ select throws_ok($$select public.withdraw_listing((select id from fixture where 
 reset role;
 insert into fixture values
  ('asset',test_fixtures.asset('11111111-1111-4111-8111-111111111111')),
+ ('asset2',test_fixtures.asset('11111111-1111-4111-8111-111111111111')),
+ ('asset3',test_fixtures.asset('11111111-1111-4111-8111-111111111111')),
  ('unready',test_fixtures.asset('11111111-1111-4111-8111-111111111111','listing_photo',false)),
  ('avatar',test_fixtures.asset('11111111-1111-4111-8111-111111111111','profile_avatar')),
  ('foreign',test_fixtures.asset('22222222-2222-4222-8222-222222222222'));
@@ -71,8 +73,8 @@ select throws_ok($$select public.update_listing_draft((select id from fixture wh
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),2,'{}',array[(select id from fixture where name='avatar')])$$,'23514',null,'avatar purpose denied');
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),2,'{}',array[null::uuid])$$,'22023',null,'null photo denied');
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='draft'),2,'{}',array[(select id from fixture where name='asset'),(select id from fixture where name='asset')])$$,'22023',null,'duplicate photo denied');
-select is(public.update_listing_draft((select id from fixture where name='draft'),2,'{}',array[(select id from fixture where name='asset')])->>'version','3','ready own photo attaches');
-select throws_ok($$select public.submit_listing((select id from fixture where name='draft'),3)$$,'23514',null,'photo alone does not satisfy completeness');
+select is(public.update_listing_draft((select id from fixture where name='draft'),2,'{}',array[(select id from fixture where name='asset'),(select id from fixture where name='asset2'),(select id from fixture where name='asset3')])->>'version','3','three ready own photos attach');
+select throws_ok($$select public.submit_listing((select id from fixture where name='draft'),3)$$,'23514',null,'photos alone do not satisfy completeness');
 select is(public.get_my_listing((select id from fixture where name='draft'))->>'version','3','failed submission rolls back version');
 select is(public.update_listing_draft((select id from fixture where name='draft'),3,'{"brand_slug":"head","model":"Test","description":"Synthetic test description","governorate_slug":"cairo","condition":"new","condition_disclosure":"Unused","offer_type":"sale","price_egp":100,"balls_quantity_packaging":"3 balls"}')->>'version','4','complete balls edit succeeds');
 select throws_ok($$select public.submit_listing((select id from fixture where name='draft'),3)$$,'PT409',null,'stale submission denied');
@@ -84,7 +86,7 @@ select throws_ok($$select public.update_listing_draft((select id from fixture wh
 select throws_ok($$select public.withdraw_listing((select id from fixture where name='draft'),4)$$,'PT409',null,'stale withdrawal denied');
 select is(public.withdraw_listing((select id from fixture where name='draft'),5)->>'version','6','pending withdrawal increments version');
 select is(public.get_my_listing((select id from fixture where name='draft'))->>'content_version','4','withdrawal preserves content version');
-select is(jsonb_array_length(public.get_my_listing((select id from fixture where name='draft'))->'media_ids'),1,'withdrawal retains attachment');
+select is(jsonb_array_length(public.get_my_listing((select id from fixture where name='draft'))->'media_ids'),3,'withdrawal retains attachments');
 select throws_ok($$select public.withdraw_listing((select id from fixture where name='draft'),6)$$,'PT409',null,'draft cannot withdraw again');
 insert into fixture values('second',(public.create_listing_draft('balls')->>'id')::uuid);
 select throws_ok($$select public.update_listing_draft((select id from fixture where name='second'),1,'{}',array[(select id from fixture where name='asset')])$$,'23505',null,'attached photo cannot be reused');
@@ -93,7 +95,7 @@ select throws_ok($$update public.listings set status='active'$$,'42501',null,'di
 select throws_ok($$select * from public.media_assets$$,'42501',null,'direct storage metadata read denied');
 reset role;
 set constraints all immediate;
-select is((select count(*)::integer from public.media_assets),4,'no assets deleted by draft operations');
+select is((select count(*)::integer from public.media_assets),6,'no assets deleted by draft operations');
 select ok(not (public.get_my_listing((select id from fixture where name='draft'))::text like '%synthetic/%'),'bundle contains no storage path');
 set constraints all deferred;
 -- Exact cap boundaries use complete synthetic ready fixtures, not an upload system.

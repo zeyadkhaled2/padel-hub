@@ -146,6 +146,7 @@ test('parseProfileBundle strips private user_id while preserving owner DTO field
 
   assert.ok(parsed);
   assert.equal(parsed.username, 'omar_padel');
+  assert.equal(parsed.public_id, '22222222-2222-4222-8222-222222222222');
   assert.equal('user_id' in parsed, false);
 });
 

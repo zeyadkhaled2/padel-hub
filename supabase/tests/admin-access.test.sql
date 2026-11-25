@@ -12,7 +12,7 @@ select public.create_seller_profile('admin_fixture_owner','Synthetic Owner','cai
 reset role;
 create temp table admin_fixture as select test_fixtures.listing('11111111-1111-4111-8111-111111111111','pending') id;
 alter table admin_fixture add column asset uuid;
-update admin_fixture set asset=(select media_id from public.listing_media where listing_id=admin_fixture.id);
+update admin_fixture set asset=(select media_id from public.listing_media where listing_id=admin_fixture.id order by sort_order limit 1);
 grant select on admin_fixture to authenticated,anon;
 set local role anon;
 select throws_ok($$select public.get_my_admin_access()$$,'42501',null,'anonymous admin access denied');

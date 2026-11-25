@@ -31,7 +31,7 @@ export type OfferType = (typeof OFFER_TYPES)[number];
 export const RACKET_SHAPES = ['round', 'teardrop', 'diamond', 'hybrid'] as const;
 export type RacketShape = (typeof RACKET_SHAPES)[number];
 
-export const LISTING_LIFECYCLE_ACTIONS = ['sold', 'traded', 'archive', 'relist'] as const;
+export const LISTING_LIFECYCLE_ACTIONS = ['sold', 'traded', 'archive', 'relist', 'reopen'] as const;
 export type ListingLifecycleAction = (typeof LISTING_LIFECYCLE_ACTIONS)[number];
 
 export const LISTING_FORM_INTENTS = [
@@ -148,7 +148,8 @@ export const SHOE_SIZES_EU: readonly number[] = Array.from(
   (_, index) => SHOE_SIZE_BOUNDS.min + index * SHOE_SIZE_BOUNDS.step,
 );
 
-export const MAX_LISTING_PHOTOS = 6;
+export const MIN_LISTING_PHOTOS = 3;
+export const MAX_LISTING_PHOTOS = 4;
 export const PAGE_SIZE = 24;
 export const MAX_PAGE = 10_000;
 export const MAX_SEARCH_QUERY_LENGTH = 120;
@@ -175,7 +176,7 @@ export type CategoryConfig = {
 export const CATEGORY_CONFIG: Readonly<Record<EquipmentCategory, CategoryConfig>> = {
   rackets: {
     slug: 'rackets',
-    minPhotos: 3,
+    minPhotos: MIN_LISTING_PHOTOS,
     maxPhotos: MAX_LISTING_PHOTOS,
     supportedOfferTypes: ['sale', 'swap', 'both'],
     defaultOfferType: 'sale',
@@ -187,7 +188,7 @@ export const CATEGORY_CONFIG: Readonly<Record<EquipmentCategory, CategoryConfig>
   },
   balls: {
     slug: 'balls',
-    minPhotos: 1,
+    minPhotos: MIN_LISTING_PHOTOS,
     maxPhotos: MAX_LISTING_PHOTOS,
     supportedOfferTypes: ['sale'],
     defaultOfferType: 'sale',
@@ -202,7 +203,7 @@ export const CATEGORY_CONFIG: Readonly<Record<EquipmentCategory, CategoryConfig>
   },
   shoes: {
     slug: 'shoes',
-    minPhotos: 1,
+    minPhotos: MIN_LISTING_PHOTOS,
     maxPhotos: MAX_LISTING_PHOTOS,
     supportedOfferTypes: ['sale'],
     defaultOfferType: 'sale',
@@ -214,7 +215,7 @@ export const CATEGORY_CONFIG: Readonly<Record<EquipmentCategory, CategoryConfig>
   },
   bags: {
     slug: 'bags',
-    minPhotos: 1,
+    minPhotos: MIN_LISTING_PHOTOS,
     maxPhotos: MAX_LISTING_PHOTOS,
     supportedOfferTypes: ['sale'],
     defaultOfferType: 'sale',
@@ -248,6 +249,10 @@ export function isListingArchivable(status: ListingStatus): boolean {
 
 export function isListingRelistable(status: ListingStatus): boolean {
   return RELISTABLE_LISTING_STATUSES.includes(status);
+}
+
+export function meetsListingPhotoRules(photoCount: number): boolean {
+  return photoCount >= MIN_LISTING_PHOTOS && photoCount <= MAX_LISTING_PHOTOS;
 }
 
 export function canMarkListingSold(status: ListingStatus, offerType: OfferType | null): boolean {

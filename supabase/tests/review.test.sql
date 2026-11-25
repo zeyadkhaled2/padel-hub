@@ -45,7 +45,7 @@ set local request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","aal
 update review_fixture set snapshot=public.admin_get_listing_review(id);
 select is((select snapshot from review_fixture where name='approve')->'listing'->>'version','1','review includes listing version');
 select is((select snapshot from review_fixture where name='approve')->'profile'->>'version','3','review includes profile version');
-select is(jsonb_array_length((select snapshot from review_fixture where name='approve')->'media_manifest'),1,'review has ordered ready manifest');
+select is(jsonb_array_length((select snapshot from review_fixture where name='approve')->'media_manifest'),3,'review has ordered ready manifest');
 select ok(not ((select snapshot from review_fixture where name='approve')->'profile' ? 'whatsapp_e164'),'review excludes private number');
 select throws_ok($$select public.admin_approve_listing((select id from review_fixture where name='approve'),0,1,3,(select snapshot from review_fixture where name='approve')->'media_manifest')$$,'PT409',null,'stale listing rejected');
 select throws_ok($$select public.admin_approve_listing((select id from review_fixture where name='approve'),1,0,3,(select snapshot from review_fixture where name='approve')->'media_manifest')$$,'PT409',null,'stale content rejected');
@@ -128,8 +128,8 @@ set local request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","aal
 select is(public.admin_reject_listing((select id from review_fixture where name='reject'),1,1,3,(select snapshot from review_fixture where name='reject')->'media_manifest','Please clarify condition')->>'status','rejected','valid rejection succeeds');
 reset role;
 select is((select decision_reason from private.listing_moderation_state where listing_id=(select id from review_fixture where name='reject')),'Please clarify condition','reason recorded');
-select is((select count(*)::integer from public.listing_media),5,'decisions preserve attachments');
-select is((select count(*)::integer from public.media_assets),5,'decisions preserve assets');
+select is((select count(*)::integer from public.listing_media),15,'decisions preserve attachments');
+select is((select count(*)::integer from public.media_assets),15,'decisions preserve assets');
 grant padelhub_review_writer to postgres;
 grant usage on schema extensions to padelhub_review_writer;
 set local role padelhub_review_writer;

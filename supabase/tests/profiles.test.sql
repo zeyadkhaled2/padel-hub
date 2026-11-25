@@ -112,13 +112,16 @@ reset role;
 set constraints all deferred;
 do $$ declare listing uuid; asset uuid; attempt uuid; manifest jsonb; begin
  for i in 1..6 loop
-  listing:=gen_random_uuid(); asset:=gen_random_uuid(); attempt:=gen_random_uuid();
-  select jsonb_object_agg(v,jsonb_build_object('key','processed/'||asset||'/'||attempt||'/'||v||'.webp','sha256',repeat('a',64),'bytes',100)) into manifest from unnest(array['thumb','card','full']) v;
-  insert into public.media_assets(id,owner_id,purpose,status,private_storage_path,input_mime_type,byte_size,width_px,height_px,exif_stripped,ready_attempt_id,ready_manifest,content_sha256)
-  values(asset,'22222222-2222-4222-8222-222222222222','listing_photo','ready','raw/'||asset,'image/jpeg',100,400,400,true,attempt,manifest,repeat('a',64));
+  listing:=gen_random_uuid();
   insert into public.listings(id,seller_id,category,status,title,brand_slug,model,description,governorate_slug,condition,condition_disclosure,offer_type,price_egp,balls_quantity_packaging)
   values(listing,'22222222-2222-4222-8222-222222222222','balls','pending','Synthetic balls','head','Test','Synthetic test only','giza','new','Test disclosure','sale',100,'3 balls');
-  insert into public.listing_media(listing_id,owner_id,media_id,sort_order) values(listing,'22222222-2222-4222-8222-222222222222',asset,0);
+  for s in 0..2 loop
+   asset:=gen_random_uuid(); attempt:=gen_random_uuid();
+   select jsonb_object_agg(v,jsonb_build_object('key','processed/'||asset||'/'||attempt||'/'||v||'.webp','sha256',repeat('a',64),'bytes',100)) into manifest from unnest(array['thumb','card','full']) v;
+   insert into public.media_assets(id,owner_id,purpose,status,private_storage_path,input_mime_type,byte_size,width_px,height_px,exif_stripped,ready_attempt_id,ready_manifest,content_sha256)
+   values(asset,'22222222-2222-4222-8222-222222222222','listing_photo','ready','raw/'||asset,'image/jpeg',100,400,400,true,attempt,manifest,repeat('a',64));
+   insert into public.listing_media(listing_id,owner_id,media_id,sort_order) values(listing,'22222222-2222-4222-8222-222222222222',asset,s);
+  end loop;
  end loop;
 end $$;
 set constraints all immediate;

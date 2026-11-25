@@ -16,6 +16,7 @@ export const PROFILE_TEXT_LIMITS = {
 } as const;
 
 export type Profile = {
+  public_id: string;
   username: string;
   display_name: string;
   governorate_slug: GovernorateSlug;

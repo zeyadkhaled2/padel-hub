@@ -9,11 +9,11 @@ begin
  return asset;
 end $$;
 create function test_fixtures.listing(owner_id uuid,listing_status text default 'draft') returns uuid language plpgsql as $$
-declare listing uuid:=gen_random_uuid(); asset uuid;
+declare listing uuid:=gen_random_uuid();
 begin
- asset:=test_fixtures.asset(owner_id);
  insert into public.listings(id,seller_id,category,status,title,brand_slug,model,description,governorate_slug,condition,condition_disclosure,offer_type,price_egp,balls_quantity_packaging,last_approved_content_version)
  values(listing,owner_id,'balls',listing_status,'Synthetic balls','head','Test','Synthetic test only','giza','new','Test disclosure','sale',100,'3 balls',case when listing_status in ('active','reserved','sold') then 1 end);
- insert into public.listing_media(listing_id,owner_id,media_id,sort_order) values(listing,owner_id,asset,0);
+ insert into public.listing_media(listing_id,owner_id,media_id,sort_order)
+ select listing,owner_id,test_fixtures.asset(owner_id),n from generate_series(0,2) n;
  return listing;
 end $$;

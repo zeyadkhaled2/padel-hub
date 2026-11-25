@@ -312,7 +312,9 @@ test.describe('local verified accounts', () => {
     await page.getByRole('button', { name: 'Submit for approval', exact: true }).click();
     await expect(page.getByRole('status')).toContainText('Submitted.');
     await page.goto('/en/account/listings');
-    await expect(page.getByText('Waiting for approval', { exact: false })).toBeVisible();
+    await expect(
+      page.getByRole('listitem').filter({ hasText: `Latest racket title ${suffix}` }).getByText('Waiting for approval', { exact: false }),
+    ).toBeVisible();
     await page.getByRole('link', { name: `Latest racket title ${suffix}`, exact: true }).click();
     await expect(page.getByText('Status: Waiting for approval', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Listing title', { exact: true })).toHaveCount(0);

@@ -38,12 +38,18 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
   await rpc('update_my_contact',{p_expected_profile_version:2,p_expected_contact_version:1,p_whatsapp_e164:'+201000000001',p_public_contact_consent:true});
   const draft=await rpc('create_listing_draft',{p_category:'balls'}); const id=draft.id;
   await rpc('update_listing_draft',{p_listing_id:id,p_expected_version:1,p_patch:{title:`Admin test balls ${suffix}`,brand_slug:'head',model:'Test',description:'Synthetic admin review fixture only.',governorate_slug:'cairo',condition:'new',condition_disclosure:'Sealed test pack',offer_type:'sale',price_egp:200,balls_quantity_packaging:'Three balls'}});
-  const asset=randomUUID(), attempt=randomUUID();const bytes=await sharp({create:{width:320,height:240,channels:3,background:'#245b38'}}).webp().toBuffer();
-  const hash=createHash('sha256').update(bytes).digest('hex');const manifest:Record<string,unknown>={};
-  for(const variant of ['thumb','card','full']){const key=`processed/${asset}/${attempt}/${variant}.webp`;const upload=await service.storage.from('media-private').upload(key,bytes,{contentType:'image/webp'});if(upload.error)throw new Error('Fixture upload failed');manifest[variant]={key,sha256:hash,bytes:bytes.length};}
-  const photo=await service.rpc('save_listing_photo',{p_owner:ownerId,p_listing:id,p_version:2,p_asset:asset,p_attempt:attempt,p_mime:'image/webp',p_bytes:bytes.length*3,p_width:320,p_height:240,p_hash:hash,p_manifest:manifest});
-  if(photo.error)throw new Error('Fixture attachment failed');
-  await rpc('submit_listing',{p_listing_id:id,p_expected_version:3});
+  const bytes=await sharp({create:{width:320,height:240,channels:3,background:'#245b38'}}).webp().toBuffer();
+  const hash=createHash('sha256').update(bytes).digest('hex');
+  let asset=''; let ballsVersion=2;
+  for(let i=0;i<3;i++){
+    const bAsset=randomUUID(), bAttempt=randomUUID();const manifest:Record<string,unknown>={};
+    if(i===0)asset=bAsset;
+    for(const variant of ['thumb','card','full']){const key=`processed/${bAsset}/${bAttempt}/${variant}.webp`;const upload=await service.storage.from('media-private').upload(key,bytes,{contentType:'image/webp'});if(upload.error)throw new Error('Fixture upload failed');manifest[variant]={key,sha256:hash,bytes:bytes.length};}
+    const photo=await service.rpc('save_listing_photo',{p_owner:ownerId,p_listing:id,p_version:ballsVersion,p_asset:bAsset,p_attempt:bAttempt,p_mime:'image/webp',p_bytes:bytes.length*3,p_width:320,p_height:240,p_hash:hash,p_manifest:manifest});
+    if(photo.error)throw new Error('Fixture attachment failed');
+    ballsVersion++;
+  }
+  await rpc('submit_listing',{p_listing_id:id,p_expected_version:ballsVersion});
 
   // Pending racket fixture with optional specifications for admin review translation verification.
   const racketDraft=await rpc('create_listing_draft',{p_category:'rackets'}); const racketId=racketDraft.id;
