@@ -1,0 +1,43 @@
+THIRD-PARTY OPEN-SOURCE NOTICE — libheif-js / libheif / libde265
+==================================================================
+
+Raketna uses `libheif-js` (version 1.23.5), an Emscripten WebAssembly build
+of `libheif` and `libde265`, solely as an optional on-demand browser fallback
+to decode HEIC/HEIF camera photographs when native browser decoding is not
+available.
+
+License
+-------
+`libheif-js`, `libheif`, and `libde265` are covered by the GNU Lesser General
+Public License, Version 3 (LGPL-3.0), which incorporates the terms and
+conditions of the GNU General Public License, Version 3 (GPL-3.0). Sample and
+wrapper files distributed with `libheif` are additionally licensed under the
+MIT License.
+
+Verbatim Copies of LGPL-3.0, GPL-3.0, and MIT License
+-----------------------------------------------------
+- Full verbatim license document: /licenses/libheif-js-LICENSE.txt
+- Accompanying license alongside the module: /vendor/libheif/LICENSE.txt
+
+Upstream Corresponding Source
+-----------------------------
+- libheif-js (Kiril Vatev, v1.23.5):
+  https://github.com/catdad-experiments/libheif-js
+  https://www.npmjs.com/package/libheif-js/v/1.23.5
+- libheif (struktur AG):
+  https://github.com/strukturag/libheif
+- libde265 (struktur AG):
+  https://github.com/strukturag/libde265
+
+Standalone Dynamic Loading & Modification / Replacement (LGPL-3.0 §4(d))
+------------------------------------------------------------------------
+The unmodified upstream ES module is served separately from Raketna's
+application code at:
+  /vendor/libheif/libheif-bundle.mjs
+
+Raketna loads this file dynamically at runtime via standard ES module
+`import()` only when needed. No restriction is placed on modifying or
+debugging the library portions, and any interface-compatible build exposing a
+default export factory returning `{ HeifDecoder }` may be substituted at
+`/vendor/libheif/libheif-bundle.mjs` (including via browser local overrides or
+self-hosted replacement) without rebuilding Raketna.

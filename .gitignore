@@ -2,6 +2,7 @@
 # Local worker/reviewer coordination (never publish)
 /LOCAL_AGENT_PLAN.md
 /.local-handoff/
+/public/vendor/libheif/
 
 node_modules/
 /.next/

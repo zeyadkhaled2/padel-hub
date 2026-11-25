@@ -228,10 +228,10 @@ test.describe('Media Optimization V1 — Client Prep, HEIC, Queue, Idempotency &
         },
       });
 
-      const loadedChunks: string[] = [];
+      const heicModuleResponses: number[] = [];
       page.on('response', (res) => {
-        if (res.url().includes('/_next/static/chunks/') && res.url().endsWith('.js')) {
-          loadedChunks.push(res.url());
+        if (res.url().includes('/vendor/libheif/libheif-bundle.mjs')) {
+          heicModuleResponses.push(res.status());
         }
       });
 
@@ -347,10 +347,10 @@ test.describe('Media Optimization V1 — Client Prep, HEIC, Queue, Idempotency &
       const cornerAlpha = pngDecoded.data[(10 * pngDecoded.info.width + 10) * 4 + 3];
       expect(cornerAlpha).toBeLessThan(10);
 
-      // Verify libheif chunk was NOT loaded before selecting an actual HEIC file!
-      const chunksBeforeHeic = loadedChunks.length;
+      // Verify standalone LGPL-3.0 libheif module was NOT loaded before selecting an actual HEIC file!
+      expect(heicModuleResponses.length).toBe(0);
 
-      // 1D. Upload REAL HEVC-encoded .heic file -> triggers lazy WASM fallback in Chromium!
+      // 1D. Upload REAL HEVC-encoded .heic file -> triggers lazy standalone WASM fallback in Chromium!
       const heicReqPromise = page.waitForRequest(
         (req) => req.method() === 'POST' && req.url().includes(`/api/listings/${draft1.id}/photos`),
       );
@@ -365,7 +365,20 @@ test.describe('Media Optimization V1 — Client Prep, HEIC, Queue, Idempotency &
         .locator('.photo-queue-thumb img')
         .evaluate((img: HTMLImageElement) => img.naturalWidth);
       expect(heicPreviewWidth).toBe(320);
-      expect(loadedChunks.length).toBeGreaterThan(chunksBeforeHeic);
+      expect(heicModuleResponses.length).toBeGreaterThanOrEqual(1);
+      expect(heicModuleResponses[0]).toBe(200);
+
+      // Verify LGPL-3.0 license & notice files are served cleanly over HTTP!
+      for (const noticePath of [
+        '/licenses/libheif-js-NOTICE.txt',
+        '/licenses/libheif-js-LICENSE.txt',
+        '/vendor/libheif/LICENSE.txt',
+      ]) {
+        const noticeRes = await page.request.get(noticePath);
+        expect(noticeRes.status()).toBe(200);
+        const body = await noticeRes.text();
+        expect(body).toMatch(/LGPL|GNU LESSER GENERAL PUBLIC LICENSE/i);
+      }
 
       await page.getByRole('button', { name: 'Upload photo', exact: true }).click();
       const heicReq = await heicReqPromise;
@@ -584,9 +597,297 @@ test.describe('Media Optimization V1 — Client Prep, HEIC, Queue, Idempotency &
       await expect(page.getByRole('status')).toContainText('4 MB');
       await page.unroute(`**/api/listings/${draft2.id}/photos`);
 
-      // 2C. Arabic RTL 390px dark mobile visual & overflow check on Photo Manager with queued files!
+      // -----------------------------------------------------------------------
+      // DRAFT 3: Regression tests — multi-large-photo prep cancellation, cancelled-upload retry
+      //          (uncommitted & ambiguous commit), cancel during retry backoff, cancelled
+      //          replacement retry, and conflict / Retry-After gates on individual Retry
+      // -----------------------------------------------------------------------
+      const draft3 = await rpc('create_listing_draft', { p_category: 'bags' });
+      createdListings.push(draft3.id);
+
+      await page.goto(`/en/account/photos?listing=${draft3.id}`);
+      await expect(page.getByText('0 of 4 photos')).toBeVisible();
+
+      // 3A. Select two large photos simultaneously (48 MP + >4.5 MB), immediately cancel one during
+      //     serial preparation, and confirm the remaining large photo prepares & uploads cleanly!
+      await page.getByLabel('Choose equipment photo').setInputFiles([
+        { name: 'prep-cancel-48mp.jpg', mimeType: 'image/jpeg', buffer: photo48Mp },
+        { name: 'prep-keep-large.jpg', mimeType: 'image/jpeg', buffer: largeIphoneJpeg },
+      ]);
+      await expect(page.locator('.photo-queue-item')).toHaveCount(2);
+      const cancelFirstPrepBtn = page
+        .locator('.photo-queue-item')
+        .first()
+        .locator('button')
+        .last();
+      await cancelFirstPrepBtn.click();
+      await expect(
+        page.locator('.photo-queue-item', { hasText: 'prep-keep-large.jpg' }).locator('.photo-queue-badge.is-ready'),
+      ).toBeVisible({ timeout: 25_000 });
+      await page.getByRole('button', { name: 'Upload photo', exact: true }).click();
+      await expect(page.getByText('1 of 4 photos')).toBeVisible({ timeout: 25_000 });
+
+      // 3B. Cancelled upload retry (server did NOT commit): hold POST open, click Cancel,
+      //     verify preview preserved + Retry works after reconciling GET!
+      let hold3BRelease!: () => void;
+      const hold3BEntered = new Promise<void>((r) => {
+        hold3BRelease = r;
+      });
+      let post3BCount = 0;
+      let get3BReconcileCount = 0;
+      let allow3BContinue!: () => void;
+      const wait3BGate = new Promise<void>((r) => {
+        allow3BContinue = r;
+      });
+
+      await page.route(`**/api/listings/${draft3.id}/photos*`, async (route) => {
+        if (route.request().method() === 'GET' && route.request().url().includes('uploadKey=')) {
+          get3BReconcileCount++;
+          await route.continue();
+          return;
+        }
+        if (route.request().method() === 'POST') {
+          post3BCount++;
+          if (post3BCount === 1) {
+            hold3BRelease();
+            await wait3BGate;
+            await route.abort('aborted').catch(() => {});
+            return;
+          }
+        }
+        await route.continue();
+      });
+
+      await page.getByLabel('Choose equipment photo').setInputFiles({
+        name: 'cancel-retry-uncommitted.jpg',
+        mimeType: 'image/jpeg',
+        buffer: smallJpeg1,
+      });
+      await expect(page.locator('.photo-queue-badge.is-ready')).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Upload photo', exact: true }).click();
+      await hold3BEntered;
+      await page.getByRole('button', { name: 'Cancel upload for cancel-retry-uncommitted.jpg' }).click();
+      allow3BContinue();
+
+      await expect(page.locator('.photo-queue-badge.is-cancelled')).toBeVisible();
+      await expect(page.locator('.photo-queue-thumb img')).toBeVisible(); // Thumbnail preserved!
+      const retry3BBtn = page.getByRole('button', { name: 'Retry', exact: true });
+      await expect(retry3BBtn).toBeEnabled();
+      await retry3BBtn.click();
+      await expect(page.getByText('2 of 4 photos')).toBeVisible({ timeout: 20_000 });
+      expect(get3BReconcileCount).toBeGreaterThanOrEqual(1);
+      expect(post3BCount).toBe(2);
+      await page.unroute(`**/api/listings/${draft3.id}/photos*`);
+
+      // 3C. Cancelled upload retry (AMBIGUOUS SERVER COMMIT): forward POST to real server so DB commits (201),
+      //     hold browser response until seller clicks Cancel -> Retry MUST reconcile and save with 0 duplicate POSTs!
+      let post3CCount = 0;
+      let committed3CReady!: () => void;
+      const wait3CCommitted = new Promise<void>((r) => {
+        committed3CReady = r;
+      });
+      let release3CAbort!: () => void;
+      const wait3CAbort = new Promise<void>((r) => {
+        release3CAbort = r;
+      });
+
+      await page.route(`**/api/listings/${draft3.id}/photos*`, async (route) => {
+        if (route.request().method() === 'POST') {
+          post3CCount++;
+          if (post3CCount === 1) {
+            const serverRes = await route.fetch();
+            expect(serverRes.status()).toBe(201);
+            committed3CReady();
+            await wait3CAbort;
+            await route.abort('connectionreset').catch(() => {});
+            return;
+          }
+        }
+        await route.continue();
+      });
+
+      await page.getByLabel('Choose equipment photo').setInputFiles({
+        name: 'cancel-retry-committed.jpg',
+        mimeType: 'image/jpeg',
+        buffer: smallJpeg2,
+      });
+      await expect(page.locator('.photo-queue-badge.is-ready')).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Upload photo', exact: true }).click();
+      await wait3CCommitted;
+      await page.getByRole('button', { name: 'Cancel upload for cancel-retry-committed.jpg' }).click();
+      release3CAbort();
+
+      await expect(page.locator('.photo-queue-badge.is-cancelled')).toBeVisible();
+      await page.getByRole('button', { name: 'Retry', exact: true }).click();
+      await expect(page.getByText('3 of 4 photos')).toBeVisible({ timeout: 20_000 });
+      expect(post3CCount).toBe(1); // Zero duplicate POST!
+      await page.unroute(`**/api/listings/${draft3.id}/photos*`);
+
+      // 3D. Cancel during automatic retry backoff delay (503 Retry-After: 4) -> ZERO second automatic POST!
+      let post3DCount = 0;
+      let reconcile3DDone!: () => void;
+      const wait3DBackoff = new Promise<void>((r) => {
+        reconcile3DDone = r;
+      });
+
+      await page.route(`**/api/listings/${draft3.id}/photos*`, async (route) => {
+        if (route.request().method() === 'POST') {
+          post3DCount++;
+          await route.fulfill({
+            status: 503,
+            headers: { 'Content-Type': 'application/json', 'Retry-After': '4' },
+            body: JSON.stringify({ error: 'unavailable' }),
+          });
+          return;
+        }
+        if (route.request().method() === 'GET' && route.request().url().includes('uploadKey=')) {
+          await route.continue();
+          reconcile3DDone();
+          return;
+        }
+        await route.continue();
+      });
+
+      await page.getByLabel('Choose equipment photo').setInputFiles({
+        name: 'cancel-during-backoff.jpg',
+        mimeType: 'image/jpeg',
+        buffer: optimizedWebp,
+      });
+      await expect(page.locator('.photo-queue-badge.is-ready')).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Upload photo', exact: true }).click();
+      await wait3DBackoff;
+      // Wait briefly so the browser finishes parsing the reconcile response and enters the 4s backoff timer.
+      await page.waitForTimeout(200);
+      // Click Cancel while waiting inside the 4-second retry backoff delay!
+      await page.getByRole('button', { name: 'Cancel upload for cancel-during-backoff.jpg' }).click();
+      await expect(page.locator('.photo-queue-badge.is-cancelled')).toBeVisible();
+      await page.waitForTimeout(1500);
+      expect(post3DCount).toBe(1); // Backoff aborted cleanly; zero second POST!
+      await page.unroute(`**/api/listings/${draft3.id}/photos*`);
+
+      // Now Retry that cancelled item cleanly to fill slot 4 of 4!
+      await page.getByRole('button', { name: 'Retry', exact: true }).click();
+      await expect(page.getByText('4 of 4 photos')).toBeVisible({ timeout: 20_000 });
+
+      // 3E. Cancelled replacement retry (AMBIGUOUS COMMITTED REPLACEMENT): replace photo #1,
+      //     commit on server (201), hold until Cancel -> Retry reconciles with 0 duplicate POSTs!
+      const originalFirstSrc = await page.locator('.photo-grid img').first().getAttribute('src');
+      let post3ECount = 0;
+      let repCommittedReady!: () => void;
+      const waitRepCommitted = new Promise<void>((r) => {
+        repCommittedReady = r;
+      });
+      let releaseRepAbort!: () => void;
+      const waitRepAbort = new Promise<void>((r) => {
+        releaseRepAbort = r;
+      });
+
+      await page.route(`**/api/listings/${draft3.id}/photos*`, async (route) => {
+        if (route.request().method() === 'POST') {
+          post3ECount++;
+          if (post3ECount === 1) {
+            const serverRes = await route.fetch();
+            expect(serverRes.status()).toBe(201);
+            repCommittedReady();
+            await waitRepAbort;
+            await route.abort('connectionreset').catch(() => {});
+            return;
+          }
+        }
+        await route.continue();
+      });
+
+      await page.getByRole('button', { name: 'Replace photo', exact: true }).first().click();
+      await page.getByLabel('Choose equipment photo').setInputFiles({
+        name: 'cancel-replace-committed.jpg',
+        mimeType: 'image/jpeg',
+        buffer: smallJpeg1,
+      });
+      await expect(page.locator('.photo-queue-badge.is-ready')).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Replace photo', exact: true }).last().click();
+      await waitRepCommitted;
+      await page.getByRole('button', { name: 'Cancel upload for cancel-replace-committed.jpg' }).click();
+      releaseRepAbort();
+
+      await expect(page.locator('.photo-queue-badge.is-cancelled')).toBeVisible();
+      await page.getByRole('button', { name: 'Retry', exact: true }).click();
+      await expect(page.locator('.photo-queue-item')).toHaveCount(0, { timeout: 20_000 });
+      expect(post3ECount).toBe(1); // Zero duplicate replacement POST!
+      await expect(page.getByText('4 of 4 photos')).toBeVisible();
+      const replacedFirstSrc = await page.locator('.photo-grid img').first().getAttribute('src');
+      expect(replacedFirstSrc).not.toBe(originalFirstSrc);
+      await page.unroute(`**/api/listings/${draft3.id}/photos*`);
+
+      // 3F. Conflict gate & 429 Retry-After cooldown gate block individual Retry until satisfied!
+      let post3FCount = 0;
+      let mode3F: '409' | '429' | 'pass' = '409';
+      await page.route(`**/api/listings/${draft3.id}/photos*`, async (route) => {
+        if (route.request().method() === 'POST') {
+          post3FCount++;
+          if (mode3F === '409') {
+            await route.fulfill({
+              status: 409,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ error: 'conflict' }),
+            });
+            return;
+          }
+          if (mode3F === '429') {
+            await route.fulfill({
+              status: 429,
+              headers: { 'Content-Type': 'application/json', 'Retry-After': '3' },
+              body: JSON.stringify({ error: 'rateLimited' }),
+            });
+            return;
+          }
+        }
+        await route.continue();
+      });
+
+      await page.getByRole('button', { name: 'Replace photo', exact: true }).first().click();
+      await page.getByLabel('Choose equipment photo').setInputFiles({
+        name: 'gate-check.jpg',
+        mimeType: 'image/jpeg',
+        buffer: smallJpeg2,
+      });
+      await expect(page.locator('.photo-queue-badge.is-ready')).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Replace photo', exact: true }).last().click();
+
+      // After 409 conflict: Reload draft is shown AND individual Retry button is disabled!
+      await expect(page.getByRole('button', { name: 'Reload draft', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeDisabled();
+      expect(post3FCount).toBe(1);
+
+      // Click Reload draft -> reconciles and returns item to ready; now test 429 Retry-After: 3s!
+      mode3F = '429';
+      await page.getByRole('button', { name: 'Reload draft', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Reload draft', exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Replace photo', exact: true }).last().click();
+
+      // During 3s cooldown: Retry button MUST be disabled!
+      const retryCooldownBtn = page.getByRole('button', { name: 'Retry', exact: true });
+      await expect(retryCooldownBtn).toBeDisabled();
+      expect(post3FCount).toBe(2);
+
+      // Once 3s cooldown elapses, Retry automatically unlocks and succeeds!
+      mode3F = 'pass';
+      await expect(retryCooldownBtn).toBeEnabled({ timeout: 8_000 });
+      await retryCooldownBtn.click();
+      await expect(page.locator('.photo-queue-item')).toHaveCount(0, { timeout: 20_000 });
+      expect(post3FCount).toBe(3);
+      await page.unroute(`**/api/listings/${draft3.id}/photos*`);
+
+      // 2C. Arabic RTL 390px dark mobile visual & overflow check on Photo Manager + Open-Source Notices!
       if (info.project.name === 'desktop') {
         await page.setViewportSize({ width: 390, height: 900 });
+        await page.goto('/en/about#open-source-notices');
+        await expect(page.getByRole('heading', { name: 'Open-source software notices' })).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+
+        await page.goto('/ar/about#open-source-notices');
+        await expect(page.getByRole('heading', { name: 'إشعارات البرمجيات مفتوحة المصدر' })).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+
         await page.goto(`/ar/account/photos?listing=${draft1.id}`);
         await page.getByRole('combobox', { name: 'مظهر الموقع' }).selectOption('dark');
         expect(await page.evaluate(() => document.documentElement.dir)).toBe('rtl');

@@ -9,13 +9,44 @@ export type DecodedHeicPixels = {
   hasAlpha: boolean;
 };
 
+/**
+ * Unmodified upstream libheif-js ES module served separately from app bundles for
+ * lazy on-demand loading and LGPL-3.0 §4(d)(1) standalone library replaceability.
+ * See /licenses/libheif-js-NOTICE.txt and /licenses/libheif-js-LICENSE.txt.
+ */
+export const HEIC_DECODER_PUBLIC_URL = '/vendor/libheif/libheif-bundle.mjs';
+
 let libheifPromise: Promise<LibheifBundle> | null = null;
+
+function resolveBrowserDecoderUrl(): string | null {
+  if (
+    typeof self !== 'undefined' &&
+    typeof self.location?.origin === 'string' &&
+    self.location.origin !== 'null' &&
+    /^https?:\/\//i.test(self.location.origin)
+  ) {
+    return new URL(HEIC_DECODER_PUBLIC_URL, self.location.origin).href;
+  }
+  return null;
+}
+
+async function importStandaloneLibheif(): Promise<unknown> {
+  const browserUrl = resolveBrowserDecoderUrl();
+  if (browserUrl) {
+    // Dynamic runtime ES module import outside Webpack bundling.
+    return import(/* webpackIgnore: true */ browserUrl);
+  }
+  // Node.js unit test fallback (never bundled by Webpack).
+  const nodeModuleId = 'libheif-js/wasm-bundle.js';
+  return import(/* webpackIgnore: true */ nodeModuleId);
+}
 
 async function loadLibheif(): Promise<LibheifBundle> {
   if (!libheifPromise) {
-    libheifPromise = import('libheif-js/wasm-bundle.js')
+    libheifPromise = importStandaloneLibheif()
       .then((mod) => {
-        const resolved = (mod.default ?? mod) as unknown as
+        const record = mod as { default?: unknown };
+        const resolved = (record.default ?? mod) as unknown as
           | LibheifBundle
           | (() => LibheifBundle);
         const bundle = typeof resolved === 'function' ? resolved() : resolved;
@@ -33,8 +64,8 @@ async function loadLibheif(): Promise<LibheifBundle> {
 }
 
 /**
- * Lazily loads the libheif-js WASM decoder (compiled with libde265 for real HEVC HEIC support)
- * and decodes the primary still image into an RGBA buffer.
+ * Lazily loads the unmodified standalone libheif-js WASM decoder (compiled with libde265
+ * for real HEVC HEIC support) and decodes the primary still image into an RGBA buffer.
  *
  * Enforces decoded pixel safety bounds BEFORE allocating RGBA memory and always frees
  * libheif WASM handles in `finally` to avoid heap leaks across multi-photo batches.
@@ -71,13 +102,14 @@ export async function decodeHeicBytes(
   }
 
   try {
-    const primary = images.find((img) => {
-      try {
-        return img.is_primary();
-      } catch {
-        return false;
-      }
-    }) ?? images[0];
+    const primary =
+      images.find((img) => {
+        try {
+          return img.is_primary();
+        } catch {
+          return false;
+        }
+      }) ?? images[0];
 
     const width = primary.get_width();
     const height = primary.get_height();

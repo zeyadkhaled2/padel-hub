@@ -240,8 +240,11 @@ export async function reconcileListingPhotoState(
   signal?: AbortSignal,
 ): Promise<
   | { ok: true; data: PhotoReconcileResponse }
-  | { ok: false; code: PhotoErrorCode }
+  | { ok: false; code: PhotoErrorCode; aborted?: boolean }
 > {
+  if (signal?.aborted) {
+    return { ok: false, code: 'unavailable', aborted: true };
+  }
   try {
     const query = uploadKey ? `?uploadKey=${encodeURIComponent(uploadKey)}` : '';
     const response = await fetch(`/api/listings/${listingId}/photos${query}`, {
@@ -263,8 +266,11 @@ export async function reconcileListingPhotoState(
       return { ok: false, code: 'unavailable' };
     }
     return { ok: true, data };
-  } catch {
-    return { ok: false, code: 'unavailable' };
+  } catch (error) {
+    const aborted =
+      Boolean(signal?.aborted) ||
+      (error instanceof Error && error.name === 'AbortError');
+    return { ok: false, code: 'unavailable', aborted };
   }
 }
 

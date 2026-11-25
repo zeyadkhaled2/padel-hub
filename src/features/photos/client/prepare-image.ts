@@ -36,12 +36,13 @@ const EXTENDED_HEADER_SNIFF_BYTES = 512 * 1024;
 
 let sharedWorker: Worker | null = null;
 let workerJobSeq = 0;
+let workerQueueTail: Promise<void> = Promise.resolve();
 
-export function terminateImagePrepWorker(): void {
-  if (sharedWorker) {
-    sharedWorker.terminate();
-    sharedWorker = null;
-  }
+export function terminateImagePrepWorker(expectedWorker?: Worker): void {
+  if (!sharedWorker) return;
+  if (expectedWorker && sharedWorker !== expectedWorker) return;
+  sharedWorker.terminate();
+  sharedWorker = null;
 }
 
 function nowMs(): number {
@@ -82,88 +83,105 @@ function runInWorker(
   inspection: ImageHeaderInspection,
   options: PreparePhotoOptions,
 ): Promise<Omit<PreparedPhotoResult, 'originalBytes' | 'preparedBytes' | 'durationMs' | 'workerUsed'>> {
-  return new Promise((resolve, reject) => {
-    if (options.signal?.aborted) {
-      reject(new ClientImagePrepError('cancelled'));
-      return;
-    }
-
-    let worker: Worker;
-    try {
-      if (!sharedWorker) {
-        sharedWorker = new Worker(new URL('./worker.ts', import.meta.url));
-      }
-      worker = sharedWorker;
-    } catch {
-      reject(new Error('Worker creation failed'));
-      return;
-    }
-
-    const jobId = ++workerJobSeq;
-
-    const cleanup = () => {
-      worker.removeEventListener('message', handleMessage);
-      worker.removeEventListener('error', handleError);
-      options.signal?.removeEventListener('abort', handleAbort);
-    };
-
-    const handleAbort = () => {
-      cleanup();
-      terminateImagePrepWorker();
-      reject(new ClientImagePrepError('cancelled'));
-    };
-
-    const handleError = () => {
-      cleanup();
-      terminateImagePrepWorker();
-      reject(new Error('Worker runtime error'));
-    };
-
-    const handleMessage = (event: MessageEvent<WorkerPrepResponse>) => {
-      if (!event.data || event.data.id !== jobId) return;
-      cleanup();
-      if (event.data.ok) {
-        const {
-          blob,
-          mimeType,
-          sourceFormat,
-          originalWidth,
-          originalHeight,
-          width,
-          height,
-          passedThrough,
-          heicFallbackUsed,
-          qualityUsed,
-        } = event.data;
-        resolve({
-          blob,
-          mimeType,
-          sourceFormat,
-          originalWidth,
-          originalHeight,
-          width,
-          height,
-          passedThrough,
-          heicFallbackUsed,
-          qualityUsed,
-        });
-      } else {
-        reject(new ClientImagePrepError(event.data.code));
-      }
-    };
-
-    worker.addEventListener('message', handleMessage);
-    worker.addEventListener('error', handleError);
-    options.signal?.addEventListener('abort', handleAbort, { once: true });
-
-    const payload: WorkerPrepRequest = {
-      id: jobId,
-      file,
-      inspection,
-      forceHeicFallback: options.forceHeicFallback,
-    };
-    worker.postMessage(payload);
+  // Defense-in-depth serialization around the shared worker so even direct callers
+  // cannot interleave messages or terminate another job's active worker instance.
+  const previous = workerQueueTail;
+  let releaseTurn!: () => void;
+  workerQueueTail = new Promise<void>((resolve) => {
+    releaseTurn = resolve;
   });
+
+  return previous
+    .then(
+      () =>
+        new Promise<
+          Omit<PreparedPhotoResult, 'originalBytes' | 'preparedBytes' | 'durationMs' | 'workerUsed'>
+        >((resolve, reject) => {
+          if (options.signal?.aborted) {
+            reject(new ClientImagePrepError('cancelled'));
+            return;
+          }
+
+          let worker: Worker;
+          try {
+            if (!sharedWorker) {
+              sharedWorker = new Worker(new URL('./worker.ts', import.meta.url));
+            }
+            worker = sharedWorker;
+          } catch {
+            reject(new Error('Worker creation failed'));
+            return;
+          }
+
+          const jobId = ++workerJobSeq;
+
+          const cleanup = () => {
+            worker.removeEventListener('message', handleMessage);
+            worker.removeEventListener('error', handleError);
+            options.signal?.removeEventListener('abort', handleAbort);
+          };
+
+          const handleAbort = () => {
+            cleanup();
+            terminateImagePrepWorker(worker);
+            reject(new ClientImagePrepError('cancelled'));
+          };
+
+          const handleError = () => {
+            cleanup();
+            terminateImagePrepWorker(worker);
+            reject(new Error('Worker runtime error'));
+          };
+
+          const handleMessage = (event: MessageEvent<WorkerPrepResponse>) => {
+            if (!event.data || event.data.id !== jobId) return;
+            cleanup();
+            if (event.data.ok) {
+              const {
+                blob,
+                mimeType,
+                sourceFormat,
+                originalWidth,
+                originalHeight,
+                width,
+                height,
+                passedThrough,
+                heicFallbackUsed,
+                qualityUsed,
+              } = event.data;
+              resolve({
+                blob,
+                mimeType,
+                sourceFormat,
+                originalWidth,
+                originalHeight,
+                width,
+                height,
+                passedThrough,
+                heicFallbackUsed,
+                qualityUsed,
+              });
+            } else {
+              reject(new ClientImagePrepError(event.data.code));
+            }
+          };
+
+          worker.addEventListener('message', handleMessage);
+          worker.addEventListener('error', handleError);
+          options.signal?.addEventListener('abort', handleAbort, { once: true });
+
+          const payload: WorkerPrepRequest = {
+            id: jobId,
+            file,
+            inspection,
+            forceHeicFallback: options.forceHeicFallback,
+          };
+          worker.postMessage(payload);
+        }),
+    )
+    .finally(() => {
+      releaseTurn();
+    });
 }
 
 async function loadHtmlImage(

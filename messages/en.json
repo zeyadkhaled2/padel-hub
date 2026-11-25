@@ -21,7 +21,8 @@
     "sell": "Sell equipment",
     "footerNavHeading": "Marketplace",
     "footerAccountHeading": "Account",
-    "footerSafetyNote": "Manual listing review · Direct WhatsApp coordination · 0% platform commission"
+    "footerSafetyNote": "Manual listing review · Direct WhatsApp coordination · 0% platform commission",
+    "openSourceNotices": "Open-source notices"
   },
   "market": {
     "eyebrow": "For the love of the game",
@@ -77,6 +78,10 @@
     "step3": "Make your own arrangements",
     "step3Body": "Agree payment and pickup directly. Raketna does not process payments or deliver equipment.",
     "status": "Browse approved listings, explore seller storefronts, and contact sellers directly on WhatsApp.",
+    "openSourceHeading": "Open-source software notices",
+    "openSourceLibheifBody": "Optional browser HEIC/HEIF photo decoding uses the unmodified libheif-js library (libheif and libde265), licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0) incorporating the GNU GPL v3.0, loaded dynamically at runtime.",
+    "openSourceNoticeLink": "Read libheif-js notice & source info",
+    "openSourceLicenseLink": "Read LGPL-3.0 & GPL-3.0 license text",
     "courtCaption": "Made for more court time.",
     "specShape": "Shape & balance",
     "specWeight": "Weight class",

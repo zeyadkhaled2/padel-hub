@@ -19,17 +19,23 @@ import {
   X,
 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
-import { isListingEditable, type ListingStatus } from '@/lib/domain/equipment';
 import { detachListingPhoto } from './actions';
+import { CLIENT_IMAGE_LIMITS, ClientImagePrepError } from './client/constants';
 import {
-  CLIENT_IMAGE_LIMITS,
-  ClientImagePrepError,
-  type PreparedPhotoResult,
-} from './client/constants';
+  createPreparationScheduler,
+  type PreparationScheduler,
+} from './client/prep-scheduler';
 import {
   preparePhotoForUpload,
   terminateImagePrepWorker,
 } from './client/prepare-image';
+import {
+  createUploadQueueController,
+  getEffectiveCooldownUntilMs,
+  getRetryBlockReason,
+  type PhotoQueueItem,
+  type QueueBanner,
+} from './client/queue-controller';
 import {
   formatFileSize,
   generateUploadKey,
@@ -37,56 +43,6 @@ import {
   sendPreparedPhotoUpload,
 } from './client/upload-transport';
 import { PHOTO_LIMITS } from './types';
-
-type QueueItemStatus =
-  | 'selected'
-  | 'preparing'
-  | 'ready'
-  | 'uploading'
-  | 'saving'
-  | 'saved'
-  | 'failed'
-  | 'cancelled';
-
-type PhotoQueueItem = {
-  localId: string;
-  uploadKey: string;
-  file: File | null;
-  fileName: string;
-  originalBytes: number;
-  status: QueueItemStatus;
-  progress: number;
-  previewUrl: string;
-  prepared: PreparedPhotoResult | null;
-  errorCode: string | null;
-  retryAfterSeconds: number | null;
-  canRetry: boolean;
-};
-
-type BannerState =
-  | { kind: 'success' | 'error' | 'info'; key: string; values?: Record<string, number> }
-  | null;
-
-const MAX_AUTO_TRANSIENT_RETRIES = 1;
-const TRANSIENT_RETRY_BACKOFF_MS = 1200;
-
-function sleep(ms: number, signal?: AbortSignal): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (signal?.aborted) {
-      resolve(false);
-      return;
-    }
-    const timer = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort);
-      resolve(true);
-    }, ms);
-    const onAbort = () => {
-      clearTimeout(timer);
-      resolve(false);
-    };
-    signal?.addEventListener('abort', onAbort, { once: true });
-  });
-}
 
 export function PhotoForm({
   listing,
@@ -106,8 +62,10 @@ export function PhotoForm({
   const [replace, setReplace] = useState<string | null>(null);
   const [detachingId, setDetachingId] = useState<string | null>(null);
   const [isUploadingQueue, setIsUploadingQueue] = useState(false);
-  const [banner, setBanner] = useState<BannerState>(null);
+  const [banner, setBanner] = useState<QueueBanner>(null);
   const [hasConflict, setHasConflict] = useState(false);
+  const [rateLimitUntilMs, setRateLimitUntilMs] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [localSnapshot, setLocalSnapshot] = useState<{
     version: number;
     media_ids: string[];
@@ -116,10 +74,12 @@ export function PhotoForm({
   const fileInput = useRef<HTMLInputElement>(null);
   const queueRef = useRef<PhotoQueueItem[]>([]);
   const mountedRef = useRef(true);
-  const prepRunningRef = useRef(false);
   const uploadRunningRef = useRef(false);
+  const hasConflictRef = useRef(false);
+  const rateLimitUntilRef = useRef<number | null>(null);
   const activeAbortRef = useRef<Map<string, AbortController>>(new Map());
   const previewUrlsRef = useRef<Set<string>>(new Set());
+  const prepSchedulerRef = useRef<PreparationScheduler | null>(null);
 
   const effective =
     localSnapshot && localSnapshot.version >= listing.version
@@ -139,6 +99,19 @@ export function PhotoForm({
     setQueue(next);
   }, []);
 
+  const updateHasConflict = useCallback((value: boolean) => {
+    hasConflictRef.current = value;
+    setHasConflict(value);
+  }, []);
+
+  const updateRateLimitUntilMs = useCallback((value: number | null) => {
+    rateLimitUntilRef.current = value;
+    setRateLimitUntilMs(value);
+    if (value !== null) {
+      setNowMs(Date.now());
+    }
+  }, []);
+
   const revokeUrl = useCallback((url: string) => {
     if (!url) return;
     previewUrlsRef.current.delete(url);
@@ -155,13 +128,97 @@ export function PhotoForm({
     return url;
   }, []);
 
-  // Release ObjectURLs, abort in-flight requests/prep, and terminate worker on unmount.
+  const getPreparationScheduler = useCallback((): PreparationScheduler => {
+    if (!prepSchedulerRef.current) {
+      prepSchedulerRef.current = createPreparationScheduler(
+        (file, signal) => preparePhotoForUpload(file, { signal }),
+        {
+          onStart: (localId) => {
+            if (!mountedRef.current) return;
+            updateQueue((prev) =>
+              prev.map((item) =>
+                item.localId === localId
+                  ? { ...item, status: 'preparing', errorCode: null }
+                  : item,
+              ),
+            );
+          },
+          onSuccess: (localId, prepared) => {
+            if (!mountedRef.current) return;
+            const previewUrl = trackPreviewUrl(prepared.blob);
+            let assigned = false;
+            updateQueue((prev) =>
+              prev.map((item) => {
+                if (item.localId !== localId) return item;
+                assigned = true;
+                if (item.previewUrl) revokeUrl(item.previewUrl);
+                return {
+                  ...item,
+                  file: null, // Drop original File reference once optimized Blob is ready.
+                  status: 'ready',
+                  prepared,
+                  previewUrl,
+                  errorCode: null,
+                  canRetry: false,
+                };
+              }),
+            );
+            if (!assigned) {
+              revokeUrl(previewUrl);
+            }
+          },
+          onCancel: (localId) => {
+            if (!mountedRef.current) return;
+            updateQueue((prev) =>
+              prev.map((item) => {
+                if (item.localId !== localId) return item;
+                if (item.previewUrl) revokeUrl(item.previewUrl);
+                return {
+                  ...item,
+                  file: null,
+                  previewUrl: '',
+                  status: 'cancelled',
+                  prepared: null,
+                  errorCode: null,
+                  canRetry: false,
+                };
+              }),
+            );
+          },
+          onError: (localId, error) => {
+            if (!mountedRef.current) return;
+            const code =
+              error instanceof ClientImagePrepError ? error.code : 'invalidFile';
+            updateQueue((prev) =>
+              prev.map((item) =>
+                item.localId === localId
+                  ? {
+                      ...item,
+                      file: null,
+                      status: 'failed',
+                      prepared: null,
+                      errorCode: code,
+                      canRetry: false,
+                    }
+                  : item,
+              ),
+            );
+          },
+        },
+      );
+    }
+    return prepSchedulerRef.current;
+  }, [revokeUrl, trackPreviewUrl, updateQueue]);
+
+  // Release ObjectURLs, cancel pending preparation, abort in-flight uploads, and terminate worker on unmount.
   useEffect(() => {
     mountedRef.current = true;
     const controllers = activeAbortRef.current;
     const trackedUrls = previewUrlsRef.current;
     return () => {
       mountedRef.current = false;
+      prepSchedulerRef.current?.cancelAll();
+      prepSchedulerRef.current = null;
       for (const controller of controllers.values()) {
         controller.abort();
       }
@@ -177,6 +234,26 @@ export function PhotoForm({
       terminateImagePrepWorker();
     };
   }, []);
+
+  // Live countdown ticker only while a Retry-After cooldown is active.
+  const maxActiveCooldownUntil = queue.reduce<number>(
+    (acc, item) => Math.max(acc, item.retryAvailableAtMs ?? 0),
+    rateLimitUntilMs ?? 0,
+  );
+  const isCooldownActive = maxActiveCooldownUntil > nowMs;
+
+  useEffect(() => {
+    if (!isCooldownActive) return;
+    const timer = window.setInterval(() => {
+      const current = Date.now();
+      setNowMs(current);
+      if (rateLimitUntilRef.current !== null && current >= rateLimitUntilRef.current) {
+        rateLimitUntilRef.current = null;
+        setRateLimitUntilMs(null);
+      }
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [isCooldownActive]);
 
   // Warn before accidental navigation only while an upload is actively in flight.
   useEffect(() => {
@@ -198,105 +275,35 @@ export function PhotoForm({
   const emptySlotsCount = Math.max(0, maxPhotos - count);
   const replacingIndex = replace ? mediaIds.indexOf(replace) : -1;
 
-  // Sequentially prepare one photo at a time to keep mobile memory bounded.
-  const prepareItem = useCallback(
-    async (localId: string): Promise<PhotoQueueItem | null> => {
-      const current = queueRef.current.find((item) => item.localId === localId);
-      if (!current || current.status !== 'selected' || !current.file) {
-        return current ?? null;
-      }
-
-      const controller = new AbortController();
-      activeAbortRef.current.set(localId, controller);
-      const sourceFile = current.file;
-
-      updateQueue((prev) =>
-        prev.map((item) =>
-          item.localId === localId
-            ? { ...item, status: 'preparing', errorCode: null }
-            : item,
-        ),
-      );
-
-      try {
-        const prepared = await preparePhotoForUpload(sourceFile, {
-          signal: controller.signal,
-        });
-        if (!mountedRef.current || controller.signal.aborted) {
-          return null;
-        }
-        const previewUrl = trackPreviewUrl(prepared.blob);
-        let updatedItem: PhotoQueueItem | null = null;
-        updateQueue((prev) =>
-          prev.map((item) => {
-            if (item.localId !== localId) return item;
-            if (item.previewUrl) revokeUrl(item.previewUrl);
-            updatedItem = {
-              ...item,
-              file: null, // Drop original File reference once optimized Blob is ready.
-              status: 'ready',
-              prepared,
-              previewUrl,
-              errorCode: null,
-              canRetry: false,
-            };
-            return updatedItem;
-          }),
-        );
-        return updatedItem;
-      } catch (error) {
-        if (!mountedRef.current) return null;
-        if (error instanceof ClientImagePrepError && error.code === 'cancelled') {
-          updateQueue((prev) =>
-            prev.map((item) =>
-              item.localId === localId
-                ? { ...item, file: null, status: 'cancelled', errorCode: null, canRetry: false }
-                : item,
-            ),
-          );
-          return null;
-        }
-
-        const code =
-          error instanceof ClientImagePrepError ? error.code : 'invalidFile';
-        let failedItem: PhotoQueueItem | null = null;
-        updateQueue((prev) =>
-          prev.map((item) => {
-            if (item.localId !== localId) return item;
-            failedItem = {
-              ...item,
-              file: null,
-              status: 'failed',
-              prepared: null,
-              errorCode: code,
-              canRetry: false,
-            };
-            return failedItem;
-          }),
-        );
-        return failedItem;
-      } finally {
-        activeAbortRef.current.delete(localId);
-      }
-    },
-    [revokeUrl, trackPreviewUrl, updateQueue],
-  );
-
-  const drainPreparationQueue = useCallback(async () => {
-    if (prepRunningRef.current) return;
-    prepRunningRef.current = true;
-    try {
-      while (mountedRef.current) {
-        const nextSelected = queueRef.current.find((item) => item.status === 'selected');
-        if (!nextSelected) break;
-        await prepareItem(nextSelected.localId);
-      }
-    } finally {
-      prepRunningRef.current = false;
-    }
-  }, [prepareItem]);
+  function buildQueueController() {
+    const scheduler = getPreparationScheduler();
+    return createUploadQueueController({
+      listingId: listing.id,
+      maxPhotos,
+      isMounted: () => mountedRef.current,
+      getSnapshot: () => latestSnapshotRef.current,
+      setSnapshot: (next) => {
+        latestSnapshotRef.current = next;
+        setLocalSnapshot(next);
+      },
+      getQueue: () => queueRef.current,
+      updateQueue,
+      getHasConflict: () => hasConflictRef.current,
+      setHasConflict: updateHasConflict,
+      getRateLimitUntilMs: () => rateLimitUntilRef.current,
+      setRateLimitUntilMs: updateRateLimitUntilMs,
+      setBanner,
+      onReplaceCleared: () => setReplace(null),
+      revokeUrl,
+      activeAbortMap: activeAbortRef.current,
+      waitForPrepared: (localId) => scheduler.waitFor(localId),
+      sendUpload: sendPreparedPhotoUpload,
+      reconcile: reconcileListingPhotoState,
+    });
+  }
 
   function clearQueue() {
+    prepSchedulerRef.current?.cancelAll();
     for (const item of queueRef.current) {
       activeAbortRef.current.get(item.localId)?.abort();
       if (item.previewUrl) revokeUrl(item.previewUrl);
@@ -307,20 +314,35 @@ export function PhotoForm({
   }
 
   function removeOrCancelItem(localId: string) {
+    prepSchedulerRef.current?.cancel(localId);
     const controller = activeAbortRef.current.get(localId);
     if (controller) {
       controller.abort();
     }
     updateQueue((prev) => {
       const target = prev.find((item) => item.localId === localId);
-      if (target?.previewUrl) revokeUrl(target.previewUrl);
-      // Keep an explicit cancelled badge if cancelled mid-upload/prep; otherwise remove from list.
-      if (
-        target &&
-        (target.status === 'uploading' ||
-          target.status === 'saving' ||
-          target.status === 'preparing')
-      ) {
+      if (!target) return prev;
+
+      // Cancelled mid-upload / saving / retry-backoff: preserve prepared blob & preview for Retry,
+      // and require reconciliation before retrying since the server may have committed.
+      if (target.status === 'uploading' || target.status === 'saving') {
+        return prev.map((item) =>
+          item.localId === localId
+            ? {
+                ...item,
+                status: 'cancelled',
+                progress: 0,
+                errorCode: null,
+                canRetry: item.prepared !== null,
+                needsReconcile: true,
+              }
+            : item,
+        );
+      }
+
+      // Cancelled mid-preparation: drop original File immediately to free mobile memory.
+      if (target.status === 'preparing') {
+        if (target.previewUrl) revokeUrl(target.previewUrl);
         return prev.map((item) =>
           item.localId === localId
             ? {
@@ -328,12 +350,18 @@ export function PhotoForm({
                 file: null,
                 previewUrl: '',
                 status: 'cancelled',
+                prepared: null,
                 progress: 0,
-                canRetry: item.prepared !== null,
+                errorCode: null,
+                canRetry: false,
+                needsReconcile: false,
               }
             : item,
         );
       }
+
+      // Removing a queued/ready/failed/cancelled row frees its preview URL cleanly.
+      if (target.previewUrl) revokeUrl(target.previewUrl);
       return prev.filter((item) => item.localId !== localId);
     });
     if (fileInput.current && queueRef.current.length <= 1) {
@@ -344,10 +372,11 @@ export function PhotoForm({
   function handleFileSelection(files: FileList | null) {
     if (!files || files.length === 0) return;
     const picked = Array.from(files);
-    setHasConflict(false);
+    const scheduler = getPreparationScheduler();
 
     if (replace) {
       // Replacement targets one slot without consuming an additional photo slot.
+      scheduler.cancelAll();
       for (const existing of queueRef.current) {
         activeAbortRef.current.get(existing.localId)?.abort();
         if (existing.previewUrl) revokeUrl(existing.previewUrl);
@@ -356,6 +385,7 @@ export function PhotoForm({
       const item: PhotoQueueItem = {
         localId: generateUploadKey(),
         uploadKey: generateUploadKey(),
+        replaceTargetId: replace,
         file: single,
         fileName: single.name,
         originalBytes: single.size,
@@ -365,11 +395,15 @@ export function PhotoForm({
         prepared: null,
         errorCode: null,
         retryAfterSeconds: null,
+        retryAvailableAtMs: null,
         canRetry: false,
+        needsReconcile: false,
+        lastSentVersion: null,
       };
       updateQueue(() => [item]);
-      setBanner(null);
-      void drainPreparationQueue();
+      if (!hasConflictRef.current) setBanner(null);
+      if (fileInput.current) fileInput.current.value = '';
+      void scheduler.enqueue(item.localId, single);
       return;
     }
 
@@ -393,6 +427,7 @@ export function PhotoForm({
     const newItems: PhotoQueueItem[] = accepted.map((file) => ({
       localId: generateUploadKey(),
       uploadKey: generateUploadKey(),
+      replaceTargetId: null,
       file,
       fileName: file.name,
       originalBytes: file.size,
@@ -402,11 +437,19 @@ export function PhotoForm({
       prepared: null,
       errorCode: null,
       retryAfterSeconds: null,
+      retryAvailableAtMs: null,
       canRetry: false,
+      needsReconcile: false,
+      lastSentVersion: null,
     }));
 
     updateQueue((prev) => {
       const kept = prev.filter((item) => item.status !== 'saved' && item.status !== 'cancelled');
+      for (const dropped of prev) {
+        if ((dropped.status === 'saved' || dropped.status === 'cancelled') && dropped.previewUrl) {
+          revokeUrl(dropped.previewUrl);
+        }
+      }
       return [...kept, ...newItems];
     });
 
@@ -416,413 +459,36 @@ export function PhotoForm({
         key: 'slotsCapped',
         values: { accepted: accepted.length, selected: picked.length, max: maxPhotos },
       });
-    } else {
+    } else if (!hasConflictRef.current) {
       setBanner(null);
     }
 
     if (fileInput.current) fileInput.current.value = '';
-    void drainPreparationQueue();
-  }
 
-  async function applyAuthoritativeReconcile(listingId: string, uploadKey?: string) {
-    const rec = await reconcileListingPhotoState(listingId, uploadKey);
-    if (!rec.ok) return rec;
-    const synced = { version: rec.data.version, media_ids: rec.data.media_ids };
-    latestSnapshotRef.current = synced;
-    setLocalSnapshot(synced);
-    return rec;
-  }
-
-  async function uploadSingleQueueItem(
-    localId: string,
-    targetReplaceId: string | null,
-  ): Promise<'saved' | 'pause_conflict' | 'pause_rate_limit' | 'pause_auth' | 'pause_network' | 'item_failed' | 'cancelled'> {
-    // Ensure preparation finished if this item was still waiting/preparing.
-    let item = queueRef.current.find((entry) => entry.localId === localId);
-    if (!item) return 'cancelled';
-
-    if (item.status === 'selected') {
-      await prepareItem(localId);
-      item = queueRef.current.find((entry) => entry.localId === localId);
-    } else if (item.status === 'preparing') {
-      // Wait cleanly while in-flight preparation finishes.
-      while (mountedRef.current) {
-        const cur = queueRef.current.find((entry) => entry.localId === localId);
-        if (!cur || cur.status !== 'preparing') {
-          item = cur;
-          break;
-        }
-        await sleep(50);
+    // Enqueue strictly through the single-flight preparation scheduler.
+    for (const item of newItems) {
+      if (item.file) {
+        void scheduler.enqueue(item.localId, item.file);
       }
     }
-
-    if (!item || !mountedRef.current) return 'cancelled';
-    if (item.status === 'cancelled') return 'cancelled';
-    if (!item.prepared) {
-      if (item.errorCode) {
-        setBanner({ kind: 'error', key: item.errorCode });
-      }
-      return 'item_failed';
-    }
-
-    const prepared = item.prepared;
-    const uploadKey = item.uploadKey;
-
-    const markItemSaved = (
-      savedId: string,
-      savedVersion: number,
-      authoritativeMediaIds?: string[],
-    ) => {
-      const prevSnapshot = latestSnapshotRef.current;
-      const nextMediaIds =
-        authoritativeMediaIds ??
-        (targetReplaceId
-          ? prevSnapshot.media_ids.map((id) => (id === targetReplaceId ? savedId : id))
-          : prevSnapshot.media_ids.includes(savedId)
-            ? prevSnapshot.media_ids
-            : [...prevSnapshot.media_ids, savedId]);
-      const nextSnapshot = { version: savedVersion, media_ids: nextMediaIds };
-      latestSnapshotRef.current = nextSnapshot;
-      setLocalSnapshot(nextSnapshot);
-
-      updateQueue((prev) =>
-        prev.map((entry) => {
-          if (entry.localId !== localId) return entry;
-          if (entry.previewUrl) revokeUrl(entry.previewUrl);
-          return {
-            ...entry,
-            status: 'saved',
-            progress: 100,
-            previewUrl: '',
-            prepared: null,
-            errorCode: null,
-            retryAfterSeconds: null,
-            canRetry: false,
-          };
-        }),
-      );
-      if (targetReplaceId) {
-        setReplace(null);
-      }
-    };
-
-    for (let attempt = 0; attempt <= MAX_AUTO_TRANSIENT_RETRIES; attempt++) {
-      if (!mountedRef.current) return 'cancelled';
-
-      const sentVersion = latestSnapshotRef.current.version;
-      const controller = new AbortController();
-      activeAbortRef.current.set(localId, controller);
-
-      updateQueue((prev) =>
-        prev.map((entry) =>
-          entry.localId === localId
-            ? {
-                ...entry,
-                status: 'uploading',
-                progress: 0,
-                errorCode: null,
-                retryAfterSeconds: null,
-              }
-            : entry,
-        ),
-      );
-
-      const result = await sendPreparedPhotoUpload({
-        listingId: listing.id,
-        expectedVersion: sentVersion,
-        uploadKey,
-        replacePhotoId: targetReplaceId,
-        prepared,
-        signal: controller.signal,
-        onProgress: (pct, phase) => {
-          if (!mountedRef.current) return;
-          updateQueue((prev) =>
-            prev.map((entry) =>
-              entry.localId === localId &&
-              (entry.status === 'uploading' || entry.status === 'saving')
-                ? { ...entry, status: phase, progress: pct }
-                : entry,
-            ),
-          );
-        },
-      });
-
-      activeAbortRef.current.delete(localId);
-      if (!mountedRef.current) return 'cancelled';
-
-      if (result.ok) {
-        markItemSaved(result.id, result.version, result.media_ids);
-        return 'saved';
-      }
-
-      if (result.kind === 'cancelled') {
-        updateQueue((prev) =>
-          prev.map((entry) =>
-            entry.localId === localId
-              ? { ...entry, status: 'cancelled', progress: 0, canRetry: true }
-              : entry,
-          ),
-        );
-        return 'cancelled';
-      }
-
-      if (result.kind === 'auth') {
-        updateQueue((prev) =>
-          prev.map((entry) =>
-            entry.localId === localId
-              ? { ...entry, status: 'failed', progress: 0, errorCode: 'signin', canRetry: true }
-              : entry,
-          ),
-        );
-        setBanner({ kind: 'error', key: 'signin' });
-        return 'pause_auth';
-      }
-
-      if (result.kind === 'rate_limited') {
-        updateQueue((prev) =>
-          prev.map((entry) =>
-            entry.localId === localId
-              ? {
-                  ...entry,
-                  status: 'failed',
-                  progress: 0,
-                  errorCode: 'rateLimited',
-                  retryAfterSeconds: result.retryAfterSeconds ?? null,
-                  canRetry: true,
-                }
-              : entry,
-          ),
-        );
-        setBanner({ kind: 'error', key: 'rateLimited' });
-        return 'pause_rate_limit';
-      }
-
-      if (result.kind === 'payload_too_large') {
-        updateQueue((prev) =>
-          prev.map((entry) =>
-            entry.localId === localId
-              ? {
-                  ...entry,
-                  status: 'failed',
-                  progress: 0,
-                  errorCode: 'payloadTooLarge',
-                  canRetry: false,
-                }
-              : entry,
-          ),
-        );
-        setBanner({ kind: 'error', key: 'payloadTooLarge' });
-        return 'item_failed';
-      }
-
-      if (result.kind === 'photo_limit') {
-        await applyAuthoritativeReconcile(listing.id);
-        updateQueue((prev) =>
-          prev.map((entry) =>
-            entry.localId === localId
-              ? {
-                  ...entry,
-                  status: 'failed',
-                  progress: 0,
-                  errorCode: 'photoLimit',
-                  canRetry: false,
-                }
-              : entry,
-          ),
-        );
-        setBanner({ kind: 'error', key: 'photoLimit' });
-        return 'pause_conflict';
-      }
-
-      if (result.kind === 'validation') {
-        updateQueue((prev) =>
-          prev.map((entry) =>
-            entry.localId === localId
-              ? {
-                  ...entry,
-                  status: 'failed',
-                  progress: 0,
-                  errorCode: result.code,
-                  canRetry: false,
-                }
-              : entry,
-          ),
-        );
-        setBanner({ kind: 'error', key: result.code });
-        return 'item_failed';
-      }
-
-      if (result.kind === 'conflict') {
-        // Pause queue and reconcile authoritative server listing state + upload receipt.
-        const reconciled = await applyAuthoritativeReconcile(listing.id, uploadKey);
-        if (reconciled.ok && reconciled.data.matchedUpload) {
-          markItemSaved(
-            reconciled.data.matchedUpload.id,
-            reconciled.data.version,
-            reconciled.data.media_ids,
-          );
-          return 'saved';
-        }
-        const stillEditable =
-          reconciled.ok &&
-          isListingEditable(reconciled.data.status as ListingStatus) &&
-          (targetReplaceId
-            ? reconciled.data.media_ids.includes(targetReplaceId)
-            : reconciled.data.media_ids.length < maxPhotos);
-        setHasConflict(true);
-        updateQueue((prev) =>
-          prev.map((entry) =>
-            entry.localId === localId
-              ? {
-                  ...entry,
-                  status: 'failed',
-                  progress: 0,
-                  errorCode: 'conflict',
-                  canRetry: stillEditable,
-                }
-              : entry,
-          ),
-        );
-        setBanner({ kind: 'error', key: 'conflict' });
-        return 'pause_conflict';
-      }
-
-      // Ambiguous network/timeout/5xx failure: ALWAYS reconcile before retrying!
-      const reconciled = await applyAuthoritativeReconcile(listing.id, uploadKey);
-      if (!mountedRef.current) return 'cancelled';
-
-      if (reconciled.ok && reconciled.data.matchedUpload) {
-        // Server actually committed the upload before the response dropped!
-        markItemSaved(
-          reconciled.data.matchedUpload.id,
-          reconciled.data.version,
-          reconciled.data.media_ids,
-        );
-        return 'saved';
-      }
-
-      if (reconciled.ok && reconciled.data.version !== sentVersion) {
-        // Listing changed elsewhere while our request failed. Pause and explain conflict.
-        setHasConflict(true);
-        updateQueue((prev) =>
-          prev.map((entry) =>
-            entry.localId === localId
-              ? {
-                  ...entry,
-                  status: 'failed',
-                  progress: 0,
-                  errorCode: 'conflict',
-                  canRetry:
-                    isListingEditable(reconciled.data.status as ListingStatus) &&
-                    (targetReplaceId
-                      ? reconciled.data.media_ids.includes(targetReplaceId)
-                      : reconciled.data.media_ids.length < maxPhotos),
-                }
-              : entry,
-          ),
-        );
-        setBanner({ kind: 'error', key: 'conflict' });
-        return 'pause_conflict';
-      }
-
-      // Reconciliation confirmed our upload did NOT commit and version is unchanged.
-      // Perform at most one bounded automatic retry after backoff, keeping the same uploadKey.
-      if (reconciled.ok && attempt < MAX_AUTO_TRANSIENT_RETRIES) {
-        const waitMs =
-          result.retryAfterSeconds && result.retryAfterSeconds <= 10
-            ? result.retryAfterSeconds * 1000
-            : TRANSIENT_RETRY_BACKOFF_MS;
-        const okToContinue = await sleep(waitMs);
-        if (okToContinue && mountedRef.current) {
-          continue;
-        }
-      }
-
-      updateQueue((prev) =>
-        prev.map((entry) =>
-          entry.localId === localId
-            ? {
-                ...entry,
-                status: 'failed',
-                progress: 0,
-                errorCode: 'unavailable',
-                canRetry: true,
-              }
-            : entry,
-        ),
-      );
-      setBanner({ kind: 'error', key: 'unavailable' });
-      return 'pause_network';
-    }
-
-    return 'pause_network';
   }
 
   async function runSequentialUpload(specificLocalId?: string) {
     if (uploadRunningRef.current || detachingId !== null) return;
+
+    const controller = buildQueueController();
     uploadRunningRef.current = true;
     setIsUploadingQueue(true);
-    setHasConflict(false);
-    setBanner(null);
-
-    let savedInRun = 0;
-    let encounteredError = false;
-    const targetReplaceId = replace;
 
     try {
-      const targetIds = specificLocalId
-        ? [specificLocalId]
-        : queueRef.current
-            .filter(
-              (item) =>
-                item.status === 'selected' ||
-                item.status === 'preparing' ||
-                item.status === 'ready' ||
-                (item.status === 'failed' && item.canRetry) ||
-                (item.status === 'cancelled' && item.canRetry),
-            )
-            .map((item) => item.localId);
-
-      // If seller clicked Upload/Replace when the only queued item failed preparation
-      // (for example a corrupted file), surface that exact error clearly in status.
-      if (targetIds.length === 0) {
-        const firstPrepError = queueRef.current.find(
-          (item) => item.status === 'failed' && item.errorCode,
-        );
-        if (firstPrepError?.errorCode) {
-          setBanner({ kind: 'error', key: firstPrepError.errorCode });
-        }
-        return;
-      }
-
-      for (const localId of targetIds) {
-        if (!mountedRef.current) break;
-
-        // If replacing, stop after replacing the single target slot.
-        if (!targetReplaceId && latestSnapshotRef.current.media_ids.length >= maxPhotos) {
-          setBanner({ kind: 'info', key: 'photoLimit' });
-          break;
-        }
-
-        const outcome = await uploadSingleQueueItem(localId, targetReplaceId);
-        if (outcome === 'saved') {
-          savedInRun++;
-          if (targetReplaceId) break;
-        } else if (
-          outcome === 'pause_conflict' ||
-          outcome === 'pause_rate_limit' ||
-          outcome === 'pause_auth' ||
-          outcome === 'pause_network'
-        ) {
-          encounteredError = true;
-          break;
-        } else if (outcome === 'item_failed') {
-          encounteredError = true;
-        }
-      }
+      const { savedInRun, encounteredError, cancelledInRun } =
+        await controller.runSequentialUploadBatch({
+          specificLocalId,
+          fallbackReplaceId: replace,
+        });
 
       if (mountedRef.current && savedInRun > 0) {
-        if (!encounteredError) {
+        if (!encounteredError && !cancelledInRun) {
           setBanner(
             savedInRun === 1
               ? { kind: 'success', key: 'saved' }
@@ -832,7 +498,7 @@ export function PhotoForm({
           updateQueue((prev) => prev.filter((item) => item.status !== 'saved'));
           if (fileInput.current) fileInput.current.value = '';
         }
-        // Single server refresh after the sequential batch completes (no per-photo refresh).
+        // Single server refresh after the sequential batch settles (no per-photo refresh).
         router.refresh();
       }
     } finally {
@@ -843,11 +509,20 @@ export function PhotoForm({
     }
   }
 
+  async function handleReloadAfterConflict() {
+    if (uploadRunningRef.current || detachingId !== null) return;
+    const controller = buildQueueController();
+    const rec = await controller.reloadAfterConflict();
+    if (rec.ok) {
+      router.refresh();
+    }
+  }
+
   async function handleDetach(mediaId: string) {
     if (isUploadingQueue || detachingId !== null) return;
     setDetachingId(mediaId);
     setBanner(null);
-    setHasConflict(false);
+    updateHasConflict(false);
     try {
       const result = await detachListingPhoto(locale, listing.id, version, mediaId);
       if (result.ok) {
@@ -858,7 +533,7 @@ export function PhotoForm({
         setBanner({ kind: 'success', key: 'detached' });
         router.refresh();
       } else {
-        if (result.error === 'conflict') setHasConflict(true);
+        if (result.error === 'conflict') updateHasConflict(true);
         setBanner({ kind: 'error', key: result.error });
       }
     } catch {
@@ -870,19 +545,28 @@ export function PhotoForm({
 
   const busy = isUploadingQueue || detachingId !== null;
   const excessPhotos = Math.max(0, count - maxPhotos);
-  const uploadableCount = queue.filter(
+  const uploadableItems = queue.filter(
     (item) =>
       item.status === 'selected' ||
       item.status === 'preparing' ||
       item.status === 'ready' ||
       (item.status === 'failed' && item.canRetry) ||
       (item.status === 'cancelled' && item.canRetry),
-  ).length;
+  );
+  const uploadableCount = uploadableItems.length;
   const hasUnsavedItems = queue.some((item) => item.status !== 'saved');
   const hasAnyQueueItems = queue.length > 0;
   const isPreparingAny = queue.some(
     (item) => item.status === 'selected' || item.status === 'preparing',
   );
+
+  const globalRateLimited = rateLimitUntilMs !== null && rateLimitUntilMs > nowMs;
+  const allUploadablesCoolingDown =
+    uploadableItems.length > 0 &&
+    uploadableItems.every((item) => {
+      const until = getEffectiveCooldownUntilMs(rateLimitUntilMs, item);
+      return until !== null && until > nowMs;
+    });
 
   const primaryButtonLabel = replace
     ? t('replace')
@@ -968,8 +652,11 @@ export function PhotoForm({
                     disabled={busy}
                     aria-pressed={isBeingReplaced}
                     onClick={() => {
+                      if (replace !== id && queueRef.current.length > 0) {
+                        clearQueue();
+                      }
                       setReplace(id);
-                      setBanner(null);
+                      if (!hasConflictRef.current) setBanner(null);
                       fileInput.current?.focus();
                     }}
                   >
@@ -1104,6 +791,18 @@ export function PhotoForm({
                   item.prepared &&
                   !item.prepared.passedThrough &&
                   item.prepared.preparedBytes < item.originalBytes;
+                const retryBlock = getRetryBlockReason({
+                  item,
+                  hasConflict,
+                  rateLimitUntilMs,
+                  nowMs,
+                });
+                const liveRetryAfterSeconds =
+                  retryBlock.blocked && retryBlock.reason === 'cooldown'
+                    ? retryBlock.remainingSeconds
+                    : item.retryAvailableAtMs && item.retryAvailableAtMs > nowMs
+                      ? Math.max(1, Math.ceil((item.retryAvailableAtMs - nowMs) / 1000))
+                      : null;
 
                 return (
                   <li
@@ -1171,8 +870,8 @@ export function PhotoForm({
                       {item.status === 'failed' && item.errorCode && (
                         <p className="field-error photo-queue-error">
                           {t(item.errorCode)}
-                          {item.retryAfterSeconds
-                            ? ` (${t('retryAfterHint', { seconds: item.retryAfterSeconds })})`
+                          {liveRetryAfterSeconds !== null
+                            ? ` (${t('retryAfterHint', { seconds: liveRetryAfterSeconds })})`
                             : ''}
                         </p>
                       )}
@@ -1184,7 +883,7 @@ export function PhotoForm({
                           <button
                             type="button"
                             className="button secondary seller-compact-btn"
-                            disabled={busy}
+                            disabled={busy || retryBlock.blocked}
                             onClick={() => void runSequentialUpload(item.localId)}
                           >
                             <RotateCcw size={14} aria-hidden />
@@ -1254,12 +953,7 @@ export function PhotoForm({
             type="button"
             className="button secondary"
             disabled={busy}
-            onClick={async () => {
-              setHasConflict(false);
-              setBanner(null);
-              await applyAuthoritativeReconcile(listing.id);
-              router.refresh();
-            }}
+            onClick={() => void handleReloadAfterConflict()}
           >
             {t('reload')}
           </button>
@@ -1273,6 +967,8 @@ export function PhotoForm({
               !hasAnyQueueItems ||
               busy ||
               hasConflict ||
+              globalRateLimited ||
+              allUploadablesCoolingDown ||
               (!replace && atMaximum)
             }
             onClick={() => void runSequentialUpload()}
