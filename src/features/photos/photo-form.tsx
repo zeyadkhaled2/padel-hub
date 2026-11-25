@@ -283,6 +283,7 @@ export function PhotoForm({
       isMounted: () => mountedRef.current,
       getSnapshot: () => latestSnapshotRef.current,
       setSnapshot: (next) => {
+        if (next.version < latestSnapshotRef.current.version) return;
         latestSnapshotRef.current = next;
         setLocalSnapshot(next);
       },

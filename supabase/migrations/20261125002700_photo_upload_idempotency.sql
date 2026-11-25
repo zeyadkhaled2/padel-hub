@@ -119,7 +119,13 @@ begin
    end if;
    return jsonb_build_object(
     'id', existing_receipt.asset_id,
-    'version', existing_receipt.resulting_version,
+    'version', greatest(l.version, existing_receipt.resulting_version),
+    'media_ids', coalesce(
+     (select jsonb_agg(lm.media_id order by lm.sort_order)
+      from public.listing_media lm
+      where lm.listing_id = l.id),
+     '[]'::jsonb
+    ),
     'idempotent', true
    );
   end if;

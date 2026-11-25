@@ -281,6 +281,8 @@ test('upload concurrency saturation returns 503 BEFORE consuming upload rate lim
     releaseFirstUpload = resolve;
   });
   let savedReceipt: Record<string, unknown> | null = null;
+  let currentListingVersion = 1;
+  let currentMediaIds: string[] = [];
 
   const adminClient = {
     rpc: async (fn: string, args: Record<string, unknown>) => {
@@ -292,13 +294,16 @@ test('upload concurrency saturation returns 503 BEFORE consuming upload rate lim
         return { data: true, error: null };
       }
       if (fn === 'save_listing_photo') {
+        const nextVersion = Number(args.p_version) + 1;
+        currentListingVersion = nextVersion;
+        currentMediaIds = [...currentMediaIds, String(args.p_asset)];
         savedReceipt = {
           id: args.p_asset,
-          version: Number(args.p_version) + 1,
+          version: nextVersion,
           expected_version: Number(args.p_version),
           replace_photo_id: args.p_replace ?? null,
         };
-        return { data: { id: args.p_asset, version: Number(args.p_version) + 1 }, error: null };
+        return { data: { id: args.p_asset, version: nextVersion }, error: null };
       }
       return { data: null, error: null };
     },
@@ -326,7 +331,12 @@ test('upload concurrency saturation returns 503 BEFORE consuming upload rate lim
     getServiceClient: () => adminClient,
     getVerifiedUserClient: async () => ({ client: adminClient, user: { id: OWNER_ID } }),
     loadOwnerListing: async () => ({
-      listing: { id: LISTING_ID, version: 1, status: 'draft', media_ids: [] },
+      listing: {
+        id: LISTING_ID,
+        version: currentListingVersion,
+        status: 'draft',
+        media_ids: currentMediaIds,
+      },
     }),
     readBody: async () => Buffer.from([1, 2, 3, 4]),
     processPhoto: async () => {
@@ -401,4 +411,187 @@ test('upload concurrency saturation returns 503 BEFORE consuming upload rate lim
   assert.equal(rateLimitCalls, 1, 'idempotent replay must not burn rate limit');
   assert.equal(sharpCalls, 1, 'idempotent replay must not rerun Sharp');
   assert.equal(storageCalls, 1, 'idempotent replay must not re-upload Storage variants');
+});
+
+test('reconcileListingPhotos performs bounded re-fetch when upload commits between snapshot and receipt, and fails closed if consistency cannot be reached', async () => {
+  const ASSET_2 = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  let loadCalls = 0;
+  let scenario: 'interleaved_commit' | 'persistent_stale' = 'interleaved_commit';
+
+  const adminClient = {
+    rpc: async (fn: string) => {
+      if (fn === 'get_photo_upload_receipt') {
+        return {
+          data: {
+            id: ASSET_ID,
+            version: 2,
+            expected_version: 1,
+            replace_photo_id: null,
+          },
+          error: null,
+        };
+      }
+      return { data: null, error: null };
+    },
+  } as unknown as SupabaseClient;
+
+  const { reconcileListingPhotos } = createPhotoHandlers({
+    getAuthConfig: () => ({ origin: 'http://127.0.0.1:3100' }),
+    getServiceConfig: () => ({ url: 'http://127.0.0.1:54321', key: 'service-key' }),
+    getServiceClient: () => adminClient,
+    getVerifiedUserClient: async () => ({ client: adminClient, user: { id: OWNER_ID } }),
+    loadOwnerListing: async () => {
+      loadCalls++;
+      if (scenario === 'interleaved_commit') {
+        // Call 1 returns stale v1 before the interrupted upload committed;
+        // bounded re-fetch (Call 2) observes the committed v2 (or newer v3) snapshot!
+        if (loadCalls === 1) {
+          return { listing: { id: LISTING_ID, version: 1, status: 'draft', media_ids: [] } };
+        }
+        return {
+          listing: {
+            id: LISTING_ID,
+            version: 3,
+            status: 'draft',
+            media_ids: [ASSET_ID, ASSET_2],
+          },
+        };
+      }
+      // Persistent lag/stale snapshot: always lags behind receipt version 2!
+      return { listing: { id: LISTING_ID, version: 1, status: 'draft', media_ids: [] } };
+    },
+    readBody: async () => Buffer.alloc(0),
+    processPhoto: async () => {
+      throw new Error('Unexpected Sharp call');
+    },
+    downloadVariant: async () => null,
+    uploadVariants: async () => {},
+    maxConcurrent: 2,
+  });
+
+  // Case A: Interleaved commit -> bounded re-fetch returns consistent snapshot (version 3 >= receipt version 2).
+  const okRes = await reconcileListingPhotos(
+    new Request(`http://127.0.0.1:3100/api/listings/${LISTING_ID}/photos?uploadKey=${UPLOAD_KEY}`),
+    LISTING_ID,
+  );
+  assert.equal(okRes.status, 200);
+  assert.equal(loadCalls, 2, 'must re-fetch owner listing when initial snapshot predates receipt');
+  const okBody = (await okRes.json()) as {
+    version: number;
+    media_ids: string[];
+    matchedUpload: { id: string; version: number } | null;
+  };
+  assert.equal(okBody.version, 3);
+  assert.deepEqual(okBody.media_ids, [ASSET_ID, ASSET_2]);
+  assert.equal(okBody.matchedUpload?.id, ASSET_ID);
+  assert.equal(okBody.matchedUpload?.version, 2);
+
+  // Case B: Persistent stale snapshot -> fails closed with 503 after bounded re-fetches (never returns inconsistent pair).
+  scenario = 'persistent_stale';
+  loadCalls = 0;
+  const staleRes = await reconcileListingPhotos(
+    new Request(`http://127.0.0.1:3100/api/listings/${LISTING_ID}/photos?uploadKey=${UPLOAD_KEY}`),
+    LISTING_ID,
+  );
+  assert.equal(staleRes.status, 503);
+  assert.equal(staleRes.headers.get('cache-control'), 'private, no-store');
+  assert.equal(loadCalls, 3, 'initial read + 2 bounded re-fetches before failing closed');
+});
+
+test('uploadPhoto early idempotent replay re-fetches stale snapshot and never regresses listing version when listing advanced further', async () => {
+  const ASSET_2 = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const ASSET_3 = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+  let loadCalls = 0;
+  let mode: 'interleaved' | 'advanced' = 'interleaved';
+
+  const adminClient = {
+    rpc: async (fn: string) => {
+      if (fn === 'get_photo_upload_receipt') {
+        return {
+          data: {
+            id: ASSET_ID,
+            version: 2,
+            expected_version: 1,
+            replace_photo_id: null,
+          },
+          error: null,
+        };
+      }
+      throw new Error(`Unexpected RPC ${fn} during early idempotent replay`);
+    },
+  } as unknown as SupabaseClient;
+
+  const { uploadPhoto } = createPhotoHandlers({
+    getAuthConfig: () => ({ origin: 'http://127.0.0.1:3100' }),
+    getServiceConfig: () => ({ url: 'http://127.0.0.1:54321', key: 'service-key' }),
+    getServiceClient: () => adminClient,
+    getVerifiedUserClient: async () => ({ client: adminClient, user: { id: OWNER_ID } }),
+    loadOwnerListing: async () => {
+      loadCalls++;
+      if (mode === 'interleaved') {
+        if (loadCalls === 1) {
+          return { listing: { id: LISTING_ID, version: 1, status: 'draft', media_ids: [] } };
+        }
+        return { listing: { id: LISTING_ID, version: 2, status: 'draft', media_ids: [ASSET_ID] } };
+      }
+      return {
+        listing: {
+          id: LISTING_ID,
+          version: 4,
+          status: 'draft',
+          media_ids: [ASSET_ID, ASSET_2, ASSET_3],
+        },
+      };
+    },
+    readBody: async () => Buffer.from([1, 2, 3]),
+    processPhoto: async () => {
+      throw new Error('Must not rerun Sharp on idempotent replay');
+    },
+    downloadVariant: async () => null,
+    uploadVariants: async () => {},
+    maxConcurrent: 2,
+  });
+
+  const makeReq = () =>
+    new Request(`http://127.0.0.1:3100/api/listings/${LISTING_ID}/photos`, {
+      method: 'POST',
+      headers: {
+        origin: 'http://127.0.0.1:3100',
+        'x-listing-version': '1',
+        'x-upload-key': UPLOAD_KEY,
+      },
+      body: Buffer.from([1, 2, 3]),
+    });
+
+  // Case A: Interleaved commit between snapshot v1 and receipt v2 -> re-fetches v2 cleanly!
+  const resInterleaved = await uploadPhoto(makeReq(), LISTING_ID);
+  assert.equal(resInterleaved.status, 200);
+  const bodyA = (await resInterleaved.json()) as {
+    id: string;
+    version: number;
+    media_ids: string[];
+    idempotent: boolean;
+  };
+  assert.equal(loadCalls, 2);
+  assert.equal(bodyA.id, ASSET_ID);
+  assert.equal(bodyA.version, 2);
+  assert.deepEqual(bodyA.media_ids, [ASSET_ID]);
+  assert.equal(bodyA.idempotent, true);
+
+  // Case B: Listing already moved ahead to v4 -> delayed replay of v1->v2 key returns v4 (NEVER regresses to 2)!
+  mode = 'advanced';
+  loadCalls = 0;
+  const resAdvanced = await uploadPhoto(makeReq(), LISTING_ID);
+  assert.equal(resAdvanced.status, 200);
+  const bodyB = (await resAdvanced.json()) as {
+    id: string;
+    version: number;
+    media_ids: string[];
+    idempotent: boolean;
+  };
+  assert.equal(loadCalls, 1);
+  assert.equal(bodyB.id, ASSET_ID);
+  assert.equal(bodyB.version, 4);
+  assert.deepEqual(bodyB.media_ids, [ASSET_ID, ASSET_2, ASSET_3]);
+  assert.equal(bodyB.idempotent, true);
 });

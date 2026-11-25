@@ -2,7 +2,7 @@ begin;
 create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
-select plan(18);
+select plan(20);
 grant usage on schema extensions to authenticated, anon, service_role;
 
 -- Verify private.photo_upload_idempotency has ENABLE + FORCE RLS and zero public/anon/authenticated grants.
@@ -92,8 +92,8 @@ select is(
 --    returns the ORIGINAL asset1 and version 2 with idempotent=true and creates ZERO duplicates!
 select is(
   (select public.save_listing_photo('11111111-1111-4111-8111-111111111111', listing_id, 1, asset2, attempt2, 'image/webp', 600, 800, 600, repeat('2', 64), m2, null, key1) from idem_fx),
-  (select jsonb_build_object('id', asset1, 'version', 2, 'idempotent', true) from idem_fx),
-  'idempotent replay returns original asset and version without duplicating'
+  (select jsonb_build_object('id', asset1, 'version', 2, 'media_ids', jsonb_build_array(asset1), 'idempotent', true) from idem_fx),
+  'idempotent replay returns original asset, current version and media_ids without duplicating'
 );
 reset role;
 select is(
@@ -135,8 +135,8 @@ select is(
 );
 select is(
   (select public.save_listing_photo('11111111-1111-4111-8111-111111111111', listing_id, 2, asset3, attempt3, 'image/webp', 600, 800, 600, repeat('3', 64), m3, asset1, key2) from idem_fx),
-  (select jsonb_build_object('id', asset2, 'version', 3, 'idempotent', true) from idem_fx),
-  'replayed replacement returns original replacement asset2 idempotently'
+  (select jsonb_build_object('id', asset2, 'version', 3, 'media_ids', jsonb_build_array(asset2), 'idempotent', true) from idem_fx),
+  'replayed replacement returns original replacement asset2 and current media_ids idempotently'
 );
 reset role;
 select is(
@@ -157,6 +157,21 @@ select is(
   (select count(*)::integer from public.listing_media where listing_id = (select listing_id from idem_fx)),
   2,
   '12-argument append attaches second photo cleanly'
+);
+
+-- 7. Delayed idempotent replay of key1 AFTER subsequent writes advanced listing version to 4
+--    MUST return current version 4 (never regress to 2) and current media_ids [asset2, asset3]!
+set local role service_role;
+select is(
+  (select public.save_listing_photo('11111111-1111-4111-8111-111111111111', listing_id, 1, asset3, attempt3, 'image/webp', 600, 800, 600, repeat('3', 64), m3, null, key1) from idem_fx),
+  (select jsonb_build_object('id', asset1, 'version', 4, 'media_ids', jsonb_build_array(asset2, asset3), 'idempotent', true) from idem_fx),
+  'delayed idempotent replay returns current listing version (4) and media_ids without regressing to receipt version (2)'
+);
+reset role;
+select is(
+  (select version from public.listings where id = (select listing_id from idem_fx)),
+  4,
+  'delayed idempotent replay leaves authoritative listing version unchanged at 4'
 );
 
 select * from finish();

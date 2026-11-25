@@ -173,6 +173,20 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
   const getItem = (localId: string): PhotoQueueItem | undefined =>
     deps.getQueue().find((entry) => entry.localId === localId);
 
+  function isConsistentReconcileData(data: PhotoReconcileResponse): boolean {
+    return data.matchedUpload === null || data.version >= data.matchedUpload.version;
+  }
+
+  function applyAuthoritativeSnapshot(next: ListingPhotoSnapshot): ListingPhotoSnapshot {
+    const current = deps.getSnapshot();
+    if (next.version < current.version) {
+      // Never regress the client's confirmed listing version or discard newer attached photos.
+      return current;
+    }
+    deps.setSnapshot(next);
+    return next;
+  }
+
   function markItemSaved(params: {
     localId: string;
     targetReplaceId: string | null;
@@ -182,15 +196,20 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
   }) {
     const { localId, targetReplaceId, savedId, savedVersion, authoritativeMediaIds } = params;
     const prevSnapshot = deps.getSnapshot();
-    const nextMediaIds =
-      authoritativeMediaIds ??
-      (targetReplaceId
-        ? prevSnapshot.media_ids.map((id) => (id === targetReplaceId ? savedId : id))
-        : prevSnapshot.media_ids.includes(savedId)
-          ? prevSnapshot.media_ids
-          : [...prevSnapshot.media_ids, savedId]);
 
-    deps.setSnapshot({ version: savedVersion, media_ids: nextMediaIds });
+    // Only advance the confirmed snapshot when savedVersion is at least as new as our
+    // current confirmed version so delayed idempotent replays can never regress version or media_ids.
+    if (savedVersion >= prevSnapshot.version) {
+      const nextMediaIds =
+        authoritativeMediaIds ??
+        (targetReplaceId
+          ? prevSnapshot.media_ids.map((id) => (id === targetReplaceId ? savedId : id))
+          : prevSnapshot.media_ids.includes(savedId)
+            ? prevSnapshot.media_ids
+            : [...prevSnapshot.media_ids, savedId]);
+
+      applyAuthoritativeSnapshot({ version: savedVersion, media_ids: nextMediaIds });
+    }
 
     deps.updateQueue((prev) =>
       prev.map((entry) => {
@@ -260,7 +279,7 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
       return rec;
     }
 
-    deps.setSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
+    applyAuthoritativeSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
 
     deps.updateQueue((prev) =>
       prev.map((entry) => {
@@ -387,8 +406,8 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
           return 'cancelled';
         }
 
-        if (!preRec.ok) {
-          if (preRec.code === 'signin') {
+        if (!preRec.ok || !isConsistentReconcileData(preRec.data)) {
+          if (!preRec.ok && preRec.code === 'signin') {
             deps.updateQueue((prev) =>
               prev.map((entry) =>
                 entry.localId === localId
@@ -430,14 +449,14 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
             localId,
             targetReplaceId,
             savedId: preRec.data.matchedUpload.id,
-            savedVersion: preRec.data.version,
+            savedVersion: Math.max(preRec.data.version, preRec.data.matchedUpload.version),
             authoritativeMediaIds: preRec.data.media_ids,
           });
           return 'saved';
         }
 
         const knownVersionBeforeReconcile = deps.getSnapshot().version;
-        deps.setSnapshot({ version: preRec.data.version, media_ids: preRec.data.media_ids });
+        applyAuthoritativeSnapshot({ version: preRec.data.version, media_ids: preRec.data.media_ids });
 
         const evalResult = evaluateEditableAndSlot(preRec.data, targetReplaceId);
         const externalVersionChanged = preRec.data.version !== knownVersionBeforeReconcile;
@@ -626,7 +645,7 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
             return 'cancelled';
           }
           if (rec.ok) {
-            deps.setSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
+            applyAuthoritativeSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
           }
           deps.updateQueue((prev) =>
             prev.map((entry) =>
@@ -671,20 +690,21 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
             markItemCancelledPreservingPrepared(localId, true);
             return 'cancelled';
           }
-          if (rec.ok && rec.data.matchedUpload) {
+          const recConsistent = rec.ok && isConsistentReconcileData(rec.data);
+          if (recConsistent && rec.data.matchedUpload) {
             markItemSaved({
               localId,
               targetReplaceId,
               savedId: rec.data.matchedUpload.id,
-              savedVersion: rec.data.version,
+              savedVersion: Math.max(rec.data.version, rec.data.matchedUpload.version),
               authoritativeMediaIds: rec.data.media_ids,
             });
             return 'saved';
           }
-          if (rec.ok) {
-            deps.setSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
+          if (recConsistent) {
+            applyAuthoritativeSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
           }
-          const evalResult = rec.ok
+          const evalResult = recConsistent
             ? evaluateEditableAndSlot(rec.data, targetReplaceId)
             : { canRetry: false };
           deps.setHasConflict(true);
@@ -697,7 +717,7 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
                     progress: 0,
                     errorCode: 'conflict',
                     canRetry: evalResult.canRetry,
-                    needsReconcile: !rec.ok,
+                    needsReconcile: !recConsistent,
                   }
                 : entry,
             ),
@@ -713,19 +733,20 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
           return 'cancelled';
         }
 
-        if (rec.ok && rec.data.matchedUpload) {
+        const recConsistent = rec.ok && isConsistentReconcileData(rec.data);
+        if (recConsistent && rec.data.matchedUpload) {
           markItemSaved({
             localId,
             targetReplaceId,
             savedId: rec.data.matchedUpload.id,
-            savedVersion: rec.data.version,
+            savedVersion: Math.max(rec.data.version, rec.data.matchedUpload.version),
             authoritativeMediaIds: rec.data.media_ids,
           });
           return 'saved';
         }
 
-        if (rec.ok && rec.data.version !== sentVersion) {
-          deps.setSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
+        if (recConsistent && rec.data.version !== sentVersion) {
+          applyAuthoritativeSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
           const evalResult = evaluateEditableAndSlot(rec.data, targetReplaceId);
           deps.setHasConflict(true);
           deps.updateQueue((prev) =>
@@ -746,13 +767,13 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
           return 'pause_conflict';
         }
 
-        if (rec.ok) {
-          deps.setSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
+        if (recConsistent) {
+          applyAuthoritativeSnapshot({ version: rec.data.version, media_ids: rec.data.media_ids });
         }
 
         // Reconciliation confirmed our upload did NOT commit and version is unchanged.
         // Wait through bounded backoff WITH itemController.signal so Cancel immediately aborts!
-        if (rec.ok && attempt < maxAutoRetries) {
+        if (recConsistent && attempt < maxAutoRetries) {
           const waitMs =
             result.retryAfterSeconds && result.retryAfterSeconds <= 10
               ? result.retryAfterSeconds * 1000
@@ -783,7 +804,7 @@ export function createUploadQueueController(deps: UploadQueueControllerDeps) {
                   retryAfterSeconds: retryAfterSec,
                   retryAvailableAtMs: retryUntilMs,
                   canRetry: true,
-                  needsReconcile: !rec.ok,
+                  needsReconcile: !recConsistent,
                 }
               : entry,
           ),

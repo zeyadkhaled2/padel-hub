@@ -216,8 +216,37 @@ async function readAuthorizedManifest(
   return { status: 'ok', manifest, serialized: JSON.stringify(response.data) };
 }
 
+const MAX_RECONCILE_CONSISTENCY_REFETCHES = 2;
+
 export function createPhotoHandlers(deps: PhotoHandlerDeps) {
   let inFlightUploads = 0; // Bound memory in this Node process; no background queue.
+
+  async function ensureConsistentListingForReceipt(params: {
+    userClient: SupabaseClient;
+    listingId: string;
+    initialListing: OwnerListingDraftLike;
+    receipt: PhotoUploadReceipt;
+  }): Promise<
+    | { status: 'ok'; listing: OwnerListingDraftLike }
+    | { status: 'not_found' }
+    | { status: 'unavailable' }
+  > {
+    let current = params.initialListing;
+    for (
+      let attempt = 0;
+      attempt < MAX_RECONCILE_CONSISTENCY_REFETCHES && current.version < params.receipt.version;
+      attempt++
+    ) {
+      const refetched = await deps.loadOwnerListing(params.userClient, params.listingId);
+      if (refetched.error) return { status: 'unavailable' };
+      if (!refetched.listing) return { status: 'not_found' };
+      current = refetched.listing;
+    }
+    if (current.version < params.receipt.version) {
+      return { status: 'unavailable' };
+    }
+    return { status: 'ok', listing: current };
+  }
 
   async function uploadPhoto(request: Request, listing: string): Promise<Response> {
     const startedAt = performance.now();
@@ -321,12 +350,26 @@ export function createPhotoHandlers(deps: PhotoHandlerDeps) {
           emitUpload({ outcome: 'rejected', failureCategory: 'conflict', httpStatus: 409 });
           return errorResponse('conflict', 409);
         }
+        const consistent = await ensureConsistentListingForReceipt({
+          userClient: verified.client,
+          listingId: parsed.listingId,
+          initialListing: draft.listing,
+          receipt: rec,
+        });
+        if (consistent.status === 'not_found') {
+          emitUpload({ outcome: 'rejected', failureCategory: 'validation', httpStatus: 404 });
+          return errorResponse('notFound', 404);
+        }
+        if (consistent.status === 'unavailable') {
+          emitUpload({ outcome: 'error', failureCategory: 'database', httpStatus: 503 });
+          return errorResponse('unavailable', 503);
+        }
         emitUpload({ outcome: 'idempotent_replay', failureCategory: 'none', httpStatus: 200 });
         return Response.json(
           {
             id: rec.id,
-            version: rec.version,
-            media_ids: draft.listing.media_ids,
+            version: Math.max(consistent.listing.version, rec.version),
+            media_ids: consistent.listing.media_ids,
             idempotent: true,
           },
           { status: 200, headers: PRIVATE_NO_STORE_HEADERS },
@@ -491,6 +534,7 @@ export function createPhotoHandlers(deps: PhotoHandlerDeps) {
       return errorResponse('notFound', 404);
     }
 
+    let listingSnapshot = draft.listing;
     let matchedUpload: PhotoUploadReceipt | null = null;
     if (parsed.uploadKey) {
       const lookup = await lookupUploadReceipt(
@@ -503,13 +547,30 @@ export function createPhotoHandlers(deps: PhotoHandlerDeps) {
         return errorResponse('unavailable', 503);
       }
       matchedUpload = lookup.receipt;
+      if (matchedUpload) {
+        // An interrupted upload can commit between loadOwnerListing() and lookupUploadReceipt().
+        // Perform a bounded re-fetch so returned listing state is never older than the receipt.
+        const consistent = await ensureConsistentListingForReceipt({
+          userClient: verified.client,
+          listingId: parsed.listingId,
+          initialListing: listingSnapshot,
+          receipt: matchedUpload,
+        });
+        if (consistent.status === 'not_found') {
+          return errorResponse('notFound', 404);
+        }
+        if (consistent.status === 'unavailable') {
+          return errorResponse('unavailable', 503);
+        }
+        listingSnapshot = consistent.listing;
+      }
     }
 
     const payload: PhotoReconcileResponse = {
-      id: draft.listing.id,
-      status: draft.listing.status,
-      version: draft.listing.version,
-      media_ids: draft.listing.media_ids,
+      id: listingSnapshot.id,
+      status: listingSnapshot.status,
+      version: listingSnapshot.version,
+      media_ids: listingSnapshot.media_ids,
       matchedUpload,
     };
     return Response.json(payload, { status: 200, headers: PRIVATE_NO_STORE_HEADERS });

@@ -621,3 +621,75 @@ test('LGPL-3.0 third-party notice and verbatim GPL-3.0 / LGPL-3.0 license texts 
   assert.match(publicLicense, /GNU GENERAL PUBLIC LICENSE/);
   assert.match(publicLicense, /Version 3, 29 June 2007/);
 });
+
+test('delayed idempotent replay cannot regress client confirmed listing version, and inconsistent reconcile snapshots are rejected', async () => {
+  // Part A: Client already confirmed at version 4 with ['m1', 'm2', 'm3']; a delayed idempotent
+  //         replay returning version 2 MUST NOT regress confirmed version or media_ids!
+  const hReplay = createHarness({
+    initialSnapshot: { version: 4, media_ids: ['m1', 'm2', 'm3'] },
+    initialQueue: [makeQueueItem({ localId: 'p-old', uploadKey: 'k-old-replay', status: 'ready' })],
+    sendUpload: async () => ({
+      ok: true,
+      id: 'm1',
+      version: 2, // Older receipt version from delayed replay!
+      media_ids: ['m1'],
+      idempotent: true,
+    }),
+    reconcile: async () =>
+      makeReconcileOk({ version: 4, status: 'draft', media_ids: ['m1', 'm2', 'm3'], matchedUpload: null }),
+  });
+
+  const replayOutcome = await hReplay.controller.runSequentialUploadBatch({
+    specificLocalId: 'p-old',
+    fallbackReplaceId: null,
+  });
+  assert.equal(replayOutcome.savedInRun, 1);
+  assert.equal(hReplay.getItem('p-old')?.status, 'saved');
+  assert.deepEqual(
+    hReplay.getSnapshot(),
+    { version: 4, media_ids: ['m1', 'm2', 'm3'] },
+    'delayed idempotent replay must never regress confirmed version or drop newer media_ids',
+  );
+
+  // Part B: Defensive client guard rejects an inconsistent reconcile payload (version < matchedUpload.version)
+  //         instead of saving stale state or sending a duplicate POST!
+  let duplicatePosts = 0;
+  const hInconsistent = createHarness({
+    initialSnapshot: { version: 1, media_ids: [] },
+    initialQueue: [
+      makeQueueItem({
+        localId: 'p-inc',
+        uploadKey: 'k-inc',
+        status: 'cancelled',
+        canRetry: true,
+        needsReconcile: true,
+      }),
+    ],
+    reconcile: async () =>
+      makeReconcileOk({
+        version: 1, // Stale snapshot older than matchedUpload.version!
+        status: 'draft',
+        media_ids: [],
+        matchedUpload: {
+          id: 'm-committed',
+          version: 2,
+          expected_version: 1,
+          replace_photo_id: null,
+        },
+      }),
+    sendUpload: async () => {
+      duplicatePosts++;
+      throw new Error('Must not POST when reconcile snapshot is inconsistent');
+    },
+  });
+
+  const incOutcome = await hInconsistent.controller.runSequentialUploadBatch({
+    specificLocalId: 'p-inc',
+    fallbackReplaceId: null,
+  });
+  assert.equal(incOutcome.encounteredError, true);
+  assert.equal(duplicatePosts, 0);
+  assert.equal(hInconsistent.getItem('p-inc')?.status, 'failed');
+  assert.equal(hInconsistent.getItem('p-inc')?.needsReconcile, true);
+  assert.equal(hInconsistent.getItem('p-inc')?.canRetry, true);
+});
