@@ -37,13 +37,14 @@ Feature freeze status: **FROZEN** after Admin C merge (`2b78c5c`). No Admin D–
 ## 3. Prioritized Remaining Tasks (P0 / P1 / P2)
 
 ### P0 — Must Complete Before Onboarding Real Sellers
-1. **Approve & apply hosted migrations `027`–`030` on `padelhub-staging` (`sxghreukdkxclymysryp`)** and run the full hosted staging launch smoke suite (`smoke` + `smoke-phase2b` + `verify-revoked-admin`). *(Dry run already verified cleanly.)*
-2. **Choose & provision production web host** (Railway Hobby \$5/mo recommended for commercial compliance, or Vercel Pro \$20/mo) and **dedicated production Supabase project** (`eu-central-1`, isolated from `padelhub-staging`), then apply migrations `001`–`030` (with `006` superseded repair) + create private `media-private` bucket + set the 4 server-only `PADELHUB_*` env vars.
+1. **Approve & apply hosted migrations `027`–`031` on `padelhub-staging` (`sxghreukdkxclymysryp`)** and run the full hosted staging launch smoke suite (`smoke` + `smoke-phase2b` + `verify-revoked-admin`). *(027–030 were previously dry-run; 031 is locally tested only. No hosted changes authorized in this correction.)*
+2. **Choose & provision production web host** (Railway Hobby \$5/mo recommended for commercial compliance, or Vercel Pro \$20/mo) and **dedicated production Supabase project** (`eu-central-1`, isolated from `padelhub-staging`), then apply migrations `001`–`031` (with `006` superseded repair) + create private `media-private` bucket + set the 4 server-only `PADELHUB_*` env vars.
 3. **Configure custom domain + Resend Custom SMTP**: add SPF, DKIM, MX, DMARC DNS records for `auth.<domain>`, turn **OFF** Resend Click & Open Tracking, paste SMTP settings + Raketna bilingual templates (`supabase/templates/`) into Supabase Auth, configure exact 4 Redirect URLs (`/(en|ar)/auth/(callback|recovery)`), and verify real external inbox signup & password recovery end-to-end.
 4. **Harden operator accounts & provision production admin**: enable 2FA on Vercel, GitHub, Supabase, and Resend accounts; register your production admin account, grant `private.admin_roles`, enroll TOTP MFA (`aal2`), and confirm non-admin/revoked access fails closed.
 5. **Run production backup + restore smoke check**: take first production DB dump + `scripts/backup-supabase.mjs media-backup` + `media-verify` and confirm recoverability off-host.
 6. **Complete Physical-Device Launch Checklist (Section 4 below)** on real iPhone Safari and Android Chrome (including real HEIC camera photo upload and WhatsApp tap-to-chat).
-7. **Flip SEO `robots` indexing decision (if desired)**: keep `noindex` during invite-only pilot OR remove `noindex` on public browse/detail/profile/legal pages only when explicitly ready for public search indexing (never index `/auth`, `/account`, or `/admin`).
+### Optional indexing decision (not a launch blocker)
+- **Flip SEO `robots` indexing decision (if desired)**: keep `noindex` during invite-only pilot OR remove `noindex` on public browse/detail/profile/legal pages only when explicitly ready for public search indexing (never index `/auth`, `/account`, or `/admin`).
 
 ### P1 — Can Complete During the Controlled Pilot
 1. **Colocate Vercel Functions to `fra1`** (`"regions": ["fra1"]` in `vercel.json`) if using Vercel, eliminating ~160–220 ms transatlantic RTT to Frankfurt Supabase.
@@ -79,3 +80,10 @@ Run these quick end-to-end checks on **physical devices** against the hosted tar
 | --- | --- | --- | --- | --- |
 | iPhone — iOS Safari | Pending | Pending | Not tested | |
 | Android — Chrome | Pending | Pending | Not tested | |
+
+## PR #14 review corrections — 2026-11-26
+
+- Migration 031 serializes account deletion with owner profile/listing/media mutations using the Auth row, including accounts without profiles. Pending requests reject profile creation/republication/contact consent and new listing/media mutations; status, reads and sign-out stay accessible. Saved records remain until authorized operator deletion.
+- Operator removal takes the same account lock first; upload ingress must be paused/drained and a durable Storage-key manifest saved before database deletion. Local integration verifies failed Storage removal after DB commit, manifest-based retry and repeated removal.
+- Recovery now fails on pg_restore errors, retains owners/grants/policies and compares the complete security catalog. Both full archive restoration and migration-based reconstruction are exercised locally, with anonymous/owner/admin authorization checks. The new hosted platform still needs its own authorized recovery rehearsal.
+- No new feature, hosted migration, purchase, deployment or merge is part of these corrections. The six P0 owner actions above remain; optional indexing/Google OAuth are not launch blockers. Exact local test results are recorded in PROGRESS.md.

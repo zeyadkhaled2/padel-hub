@@ -65,7 +65,7 @@ create function pg_temp.review_manifest(p_listing_id uuid) returns jsonb languag
 $$;
 
 -- 2. Unverified and recovery sessions are denied (42501)
-grant usage on schema extensions to anon, authenticated;
+grant usage on schema extensions to anon, authenticated, service_role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","aal":"aal1","session_id":"00000000-0000-4000-8000-000000000003","amr":[{"method":"password","timestamp":1795000000}]}';
 select throws_ok($$select public.request_account_deletion('unverified')$$, '42501', null, 'unverified user cannot request deletion');
@@ -95,6 +95,11 @@ select is(
  'pending',
  'bare user reads own pending deletion request'
 );
+reset role;
+
+set local role authenticated;
+select throws_ok($$select public.create_seller_profile('blocked_bare','Blocked','cairo')$$,'42501',null,'pending bare account cannot create profile');
+select throws_ok($$select public.create_listing_draft('rackets')$$,'42501',null,'pending bare account cannot create listing');
 reset role;
 
 -- 4. Verified Seller 1 with public storefront, active/reserved/sold/traded listings, photos, avatar, idempotency receipt, report, metrics
@@ -167,6 +172,20 @@ select is(public.get_listing_contact('bbbbbbbb-0000-4000-8000-000000000001'), nu
 select is(public.get_photo_delivery('aaaaaaaa-0000-4000-8000-000000000002', null, 'bbbbbbbb-0000-4000-8000-000000000001'), null, 'public photo immediately hidden after deletion request');
 select is((select count(*)::integer from public.media_assets where owner_id = '11111111-1111-4111-8111-111111111111'), 5, 'no photos auto-deleted by request_account_deletion');
 
+set local role authenticated;
+select throws_ok($$select public.update_seller_profile(4,'{"is_public":true}')$$,'42501',null,'pending owner cannot republish');
+select throws_ok($$select public.update_my_contact(4,2,'+201000000091',true)$$,'42501',null,'pending owner cannot renew contact consent');
+select throws_ok($$select public.create_listing_draft('rackets')$$,'42501',null,'pending owner cannot create listing');
+select throws_ok($$select public.update_listing_draft('bbbbbbbb-0000-4000-8000-000000000001',1,'{}')$$,'42501',null,'pending owner cannot edit listing');
+select throws_ok($$select public.change_listing_status('bbbbbbbb-0000-4000-8000-000000000001',1,'archive')$$,'42501',null,'pending owner cannot change listing status');
+select is(public.get_my_account_deletion_request()->>'status','pending','status stays accessible');
+select lives_ok($$select public.get_my_profile_bundle()$$,'saved profile stays readable');
+reset role;
+set local role service_role;
+select throws_ok($$select public.consume_photo_upload('11111111-1111-4111-8111-111111111111')$$,'42501',null,'pending owner cannot start upload');
+select throws_ok($$select public.save_listing_photo('11111111-1111-4111-8111-111111111111','bbbbbbbb-0000-4000-8000-000000000001',1,gen_random_uuid(),gen_random_uuid(),'image/jpeg',768,800,600,repeat('a',64),'{}')$$,'42501',null,'in-flight upload cannot save after request');
+reset role;
+
 -- 5. Verify exact documented Manual Account Deletion Operator SQL handles all ON DELETE RESTRICT FKs cleanly
 select lives_ok($$
 do $op$
@@ -177,6 +196,7 @@ declare
  v_req private.account_deletion_requests;
  v_public_id uuid;
 begin
+ perform private.lock_account(v_user_id);
  select * into v_req from private.account_deletion_requests where user_id = v_user_id and status = 'pending' for update;
  if not found then raise exception 'no pending request' using errcode = 'PT404'; end if;
  select public_id into v_public_id from public.seller_profiles where user_id = v_user_id for update;

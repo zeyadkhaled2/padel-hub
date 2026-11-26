@@ -580,6 +580,8 @@ test.describe('local verified accounts', () => {
     await expect(page.locator('#account-deletion').getByRole('status')).toContainText('Account deletion request received');
     expect((await request.get(`/en/@${username}`)).status()).toBe(404);
     expect((await request.get(qrTarget, { maxRedirects: 0 })).status()).toBe(404);
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await expect(page).toHaveURL(/\/en(?:\/auth\/signin)?$/);
   });
 });
 

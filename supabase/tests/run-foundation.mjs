@@ -61,7 +61,7 @@ async function concurrentRace(firstSql, secondSql, expectedState) {
     if (!blocked) throw new Error("Concurrent contender did not demonstrably wait on a database lock.");
     first.child.stdin.end("commit;\n");
     const [winner, loser] = await Promise.all([first.done, second.done]);
-    if (winner.code !== 0 || loser.code === 0 || !loser.stderr.includes(expectedState)) {
+    if (winner.code !== 0 || (expectedState === null ? loser.code !== 0 : loser.code === 0 || !loser.stderr.includes(expectedState))) {
       throw new Error(`Unexpected race result: winner ${winner.code}; loser ${loser.code}: ${loser.stderr}`);
     }
   } finally {
@@ -376,6 +376,40 @@ try {
     "42501",
   );
   console.log("PASS: concurrent seller suspension vs listing submission: lock wait observed, submission denied (42501).");
+
+  // Pending deletion must serialize even before a seller profile exists.
+  const deletionOwner = 'de111111-1111-4111-8111-111111111111';
+  sql(`insert into auth.users(id,email_confirmed_at) values ('${deletionOwner}',now());`);
+  await concurrentRace(
+    `${asCaller(deletionOwner)} select public.request_account_deletion('race');`,
+    `${asCaller(deletionOwner)} select public.create_seller_profile('deletion_race','Blocked','cairo');`,
+    '42501',
+  );
+  console.log('PASS: deletion vs profile-less creation: observed lock wait and 42501.');
+  sql(`update private.account_deletion_requests set status='cancelled' where user_id='${deletionOwner}';`);
+  await concurrentRace(
+    `${asCaller(deletionOwner)} select public.request_account_deletion('fixed snapshot');`,
+    `begin isolation level repeatable read; set local role authenticated; set local request.jwt.claims='{"sub":"${deletionOwner}","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}'; select public.create_seller_profile('deletion_snapshot','Blocked','cairo');`,
+    '40001',
+  );
+  console.log('PASS: deletion invalidates fixed-snapshot profile creation after lock wait (40001).');
+  await concurrentRace(
+    `begin; select private.lock_account('${deletionOwner}'); delete from auth.users where id='${deletionOwner}';`,
+    `${asCaller(deletionOwner)} select public.request_account_deletion('concurrent operator removal');`,
+    '42501',
+  );
+  console.log('PASS: operator removal vs account request: observed lock wait and missing-account denial.');
+
+  const mutationFirst = 'de222222-2222-4222-8222-222222222222';
+  sql(`insert into auth.users(id,email_confirmed_at) values ('${mutationFirst}',now());`);
+  await concurrentRace(
+    `${asCaller(mutationFirst)} select public.create_seller_profile('before_deletion','Synthetic','cairo'); select public.update_seller_profile(1,'{"is_public":true}');`,
+    `${asCaller(mutationFirst)} select public.request_account_deletion('after mutation');`,
+    null,
+  );
+  sql(`do $$ begin if (select is_public from public.seller_profiles where user_id='${mutationFirst}') then raise exception 'deletion did not hide concurrent profile'; end if; end $$;`);
+  console.log('PASS: creation/publication wins first; deletion waits then hides the newly committed profile.');
+
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

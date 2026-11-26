@@ -7,7 +7,7 @@
 //   node scripts/backup-supabase.mjs db-drill-local [--out <dir>]
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { loadStagingEnv, requireHostedStagingConfig } from './staging-env.mjs';
@@ -241,6 +241,9 @@ function runLocalDbRestoreDrill() {
     dockerExec([LOCAL_DB_CONTAINER, 'psql', '-U', 'postgres', '-d', 'postgres', '-tA', '-c', countQuery]).trim(),
   );
 
+  const permissionsQuery = readFileSync(new URL('../supabase/tests/recovery-permissions.sql', import.meta.url), 'utf8');
+  const sourcePermissions = dockerExec([LOCAL_DB_CONTAINER, 'psql', '-X', '-U', 'postgres', '-d', 'postgres', '-tA', '-c', permissionsQuery]).trim();
+
   // 2. Logical pg_dump (-Fc) of auth, public, and private schemas (cleanly portable to a fresh Supabase DB).
   const dumpBytes = dockerExec(
     [
@@ -251,7 +254,6 @@ function runLocalDbRestoreDrill() {
       '-d',
       'postgres',
       '-Fc',
-      '--no-owner',
       '--schema=auth',
       '--schema=public',
       '--schema=private',
@@ -275,7 +277,7 @@ function runLocalDbRestoreDrill() {
       '-d',
       scratchDb,
       '-c',
-      'CREATE SCHEMA IF NOT EXISTS extensions; CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions; CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;',
+      'DROP SCHEMA public; CREATE SCHEMA IF NOT EXISTS extensions; CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions; CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;',
     ]);
     const copyRes = spawnSync('docker', ['cp', dumpFile, `${LOCAL_DB_CONTAINER}:/tmp/${scratchDb}.dump`], {
       encoding: 'utf8',
@@ -291,16 +293,19 @@ function runLocalDbRestoreDrill() {
         LOCAL_DB_CONTAINER,
         'pg_restore',
         '-U',
-        'postgres',
+        'supabase_admin',
         '-d',
         scratchDb,
-        '--no-owner',
-        '--no-privileges',
+        '--exit-on-error',
+        '--single-transaction',
         `/tmp/${scratchDb}.dump`,
       ],
       { encoding: 'utf8', windowsHide: true },
     );
 
+    if (restoreRes.error || restoreRes.status !== 0) {
+      throw new Error(restoreRes.error?.message || `pg_restore failed (${restoreRes.status}): ${restoreRes.stderr}`);
+    }
     const restoredStats = JSON.parse(
       dockerExec([LOCAL_DB_CONTAINER, 'psql', '-U', 'postgres', '-d', scratchDb, '-tA', '-c', countQuery]).trim(),
     );
@@ -313,10 +318,80 @@ function runLocalDbRestoreDrill() {
       }
     }
 
+    // pg_dump assumes initdb's PUBLIC USAGE on the public schema; restore that
+    // baseline explicitly only when the source actually grants it.
+    const sourcePublicUsage = dockerExec([LOCAL_DB_CONTAINER, 'psql', '-X', '-U', 'postgres', '-d', 'postgres', '-tA', '-c', "select has_schema_privilege('public','public','USAGE')"]).trim() === 't';
+    dockerExec([LOCAL_DB_CONTAINER, 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', scratchDb, '-c', sourcePublicUsage ? 'grant usage on schema public to public' : 'revoke usage on schema public from public']);
+    const restoredPermissions = dockerExec([LOCAL_DB_CONTAINER, 'psql', '-X', '-U', 'postgres', '-d', scratchDb, '-tA', '-c', permissionsQuery]).trim();
+    if (sourcePermissions !== restoredPermissions) {
+      writeFileSync(join(outDir, 'source-permissions.json'), JSON.stringify(JSON.parse(sourcePermissions), null, 2));
+      writeFileSync(join(outDir, 'restored-permissions.json'), JSON.stringify(JSON.parse(restoredPermissions), null, 2));
+      throw new Error(`Restored ownership, grants, policies or capability roles differ from source; inspect ${outDir}`);
+    }
+    // Reuse rollback-only authorization regression fixtures against the actual restore.
+    let authorizationAssertions = 0;
+    for (const test of ['recovery-authorization.test.sql']) {
+      const input = readFileSync(new URL(`../supabase/tests/${test}`, import.meta.url), 'utf8');
+      const result = spawnSync('docker', ['exec', '-i', LOCAL_DB_CONTAINER, 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', scratchDb], {input, encoding: 'utf8', windowsHide: true});
+      const passed = [...(result.stdout || '').matchAll(/^\s*ok \d+\b/gm)].length;
+      const planned = Number(result.stdout?.match(/^\s*1\.\.(\d+)/m)?.[1]);
+      if (result.error || result.status !== 0 || !planned || passed !== planned || /^\s*not ok /m.test(result.stdout)) {
+        throw new Error(`Restored authorization failed: ${test}\n${result.stderr}\n${result.stdout}`);
+      }
+      authorizationAssertions += passed;
+    }
+    // Also exercise the hosted-style reconstruction: vendor schema + repository
+    // migrations + archive data, rather than relying on restored function owners.
+    const scratchSql = (input, user = 'postgres') => {
+      const result = spawnSync('docker', ['exec', '-i', LOCAL_DB_CONTAINER, 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', user, '-d', scratchDb], {input, encoding: 'utf8', windowsHide: true, maxBuffer: 64 * 1024 * 1024});
+      if (result.error || result.status !== 0) throw new Error(result.error?.message || result.stderr);
+      return result.stdout;
+    };
+    const vendorSchema = dockerExec([LOCAL_DB_CONTAINER, 'pg_dump', '-U', 'postgres', '-d', 'postgres', '--schema-only', '--schema=auth'])
+      .replace(/^CREATE POLICY (?:profile_writer_identity|listing_writer_identity|review_writer_identity) ON auth\.users\b[\s\S]*?;\r?\n/gm, '');
+    scratchSql('DROP SCHEMA private CASCADE; DROP SCHEMA public CASCADE; DROP SCHEMA auth CASCADE; CREATE SCHEMA public AUTHORIZATION pg_database_owner; GRANT USAGE ON SCHEMA public TO PUBLIC;', 'supabase_admin');
+    scratchSql(vendorSchema, 'supabase_admin');
+    // A fresh Supabase project also supplies public-schema grants/default ACLs.
+    // Recreate that vendor baseline from the archive before running migrations.
+    const baselineList = dockerExec([LOCAL_DB_CONTAINER, 'pg_restore', '--list', `/tmp/${scratchDb}.dump`])
+      .split('\n').filter(line => / ACL - SCHEMA public | DEFAULT ACL public /.test(line)).join('\n');
+    const baselineFile = join(outDir, 'platform-baseline.list');
+    writeFileSync(baselineFile, baselineList);
+    execFileSync('docker', ['cp', baselineFile, `${LOCAL_DB_CONTAINER}:/tmp/${scratchDb}.baseline`], {windowsHide: true});
+    scratchSql(dockerExec([LOCAL_DB_CONTAINER, 'pg_restore', '--schema-only', `--use-list=/tmp/${scratchDb}.baseline`, '--file=-', `/tmp/${scratchDb}.dump`]), 'supabase_admin');
+    const migrationsDir = new URL('../supabase/migrations/', import.meta.url);
+    for (const migration of readdirSync(migrationsDir).filter(name => name.endsWith('.sql')).sort()) {
+      scratchSql(readFileSync(new URL(migration, migrationsDir), 'utf8'));
+    }
+    const restoreList = dockerExec([LOCAL_DB_CONTAINER, 'pg_restore', '--list', `/tmp/${scratchDb}.dump`])
+      .split('\n').filter(line => !/ TABLE DATA auth schema_migrations /.test(line)).join('\n');
+    const listFile = join(outDir, 'restore.list');
+    writeFileSync(listFile, restoreList);
+    execFileSync('docker', ['cp', listFile, `${LOCAL_DB_CONTAINER}:/tmp/${scratchDb}.list`], {windowsHide: true});
+    const restoreData = dockerExec([LOCAL_DB_CONTAINER, 'pg_restore', '--data-only', `--use-list=/tmp/${scratchDb}.list`, '--file=-', `/tmp/${scratchDb}.dump`]);
+    scratchSql(`BEGIN; SET LOCAL session_replication_role = replica;
+      DELETE FROM public.username_registry; DELETE FROM public.curated_brands;
+      DELETE FROM public.egypt_governorates; DELETE FROM public.platform_settings;
+      ${restoreData}\nCOMMIT;`);
+    const rebuiltPermissions = dockerExec([LOCAL_DB_CONTAINER, 'psql', '-X', '-U', 'postgres', '-d', scratchDb, '-tA', '-c', permissionsQuery]).trim();
+    if (sourcePermissions !== rebuiltPermissions) {
+      writeFileSync(join(outDir, 'source-permissions.json'), JSON.stringify(JSON.parse(sourcePermissions), null, 2));
+      writeFileSync(join(outDir, 'rebuilt-permissions.json'), JSON.stringify(JSON.parse(rebuiltPermissions), null, 2));
+      throw new Error('Migration-reconstructed permissions differ from source');
+    }
+    const rebuiltStats = JSON.parse(dockerExec([LOCAL_DB_CONTAINER, 'psql', '-X', '-U', 'postgres', '-d', scratchDb, '-tA', '-c', countQuery]).trim());
+    if (JSON.stringify(sourceStats) !== JSON.stringify(rebuiltStats)) throw new Error('Migration-reconstructed row counts differ from source');
+    const authorization = scratchSql(readFileSync(new URL('../supabase/tests/recovery-authorization.test.sql', import.meta.url), 'utf8'));
+    const reconstructedAssertions = [...authorization.matchAll(/^\s*ok \d+\b/gm)].length;
+    if (reconstructedAssertions !== 12 || /^\s*not ok /m.test(authorization)) throw new Error(`Reconstructed authorization failed: ${authorization}`);
     console.log(
       JSON.stringify({
         ok: true,
         mode: 'db-drill-local',
+        permissionCatalogParity: true,
+        authorizationAssertions,
+        migrationReconstructionParity: true,
+        reconstructedAssertions,
         dumpFile,
         dumpBytes: dumpBytes.length,
         dumpSha256,
@@ -327,7 +402,7 @@ function runLocalDbRestoreDrill() {
   } finally {
     spawnSync(
       'docker',
-      ['exec', LOCAL_DB_CONTAINER, 'rm', '-f', `/tmp/${scratchDb}.dump`],
+      ['exec', LOCAL_DB_CONTAINER, 'rm', '-f', `/tmp/${scratchDb}.dump`, `/tmp/${scratchDb}.list`, `/tmp/${scratchDb}.baseline`],
       { windowsHide: true },
     );
     spawnSync(
