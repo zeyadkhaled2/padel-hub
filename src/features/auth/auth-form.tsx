@@ -10,9 +10,11 @@ import type { AuthBannerNotice } from './types';
 export function AuthForm({
   mode,
   bannerNotice = null,
+  googleEnabled = false,
 }: {
   mode: 'signin' | 'signup';
   bannerNotice?: AuthBannerNotice | null;
+  googleEnabled?: boolean;
 }) {
   const t = useTranslations('account');
   const locale = useLocale();
@@ -24,7 +26,7 @@ export function AuthForm({
           {t(bannerNotice.message)}
         </p>
       )}
-      <GoogleAuthButton />
+      {googleEnabled && <GoogleAuthButton />}
       <form action={action} className="account-form">
         <label htmlFor="email">{t('email')}</label>
         <input
@@ -70,6 +72,13 @@ export function AuthForm({
         <button className="button primary" disabled={pending}>
           {t(pending ? 'working' : mode)}
         </button>
+        {mode === 'signup' && (
+          <p className="field-hint auth-legal-hint">
+            {t('legalAgreementPrefix')}{' '}
+            <Link href="/terms">{t('termsLink')}</Link> ·{' '}
+            <Link href="/privacy">{t('privacyLink')}</Link>
+          </p>
+        )}
       </form>
       <p className="account-switch">
         <Link href={`/auth/${mode === 'signin' ? 'signup' : 'signin'}`}>

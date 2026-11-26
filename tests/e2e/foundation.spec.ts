@@ -267,3 +267,48 @@ test('sticky header clears #equipment-heading anchor in LTR and RTL and preserve
     expect(pillGap).toBeLessThanOrEqual(36);
   }
 });
+
+test('privacy policy, terms of use, and baseline HTTP security headers work across EN/AR and narrow themes', async ({
+  page,
+  request,
+}) => {
+  // Baseline HTTP security headers on normal pages & preserved no-referrer on auth callbacks.
+  const homeRes = await request.get('/en/demo');
+  expect(homeRes.status()).toBe(200);
+  expect(homeRes.headers()['x-content-type-options']).toBe('nosniff');
+  expect(homeRes.headers()['x-frame-options']).toBe('DENY');
+  expect(homeRes.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  expect(homeRes.headers()['permissions-policy']).toContain('camera=()');
+
+  // Footer links reach localized Privacy Policy and Terms of Use cleanly.
+  await page.goto('/en/demo');
+  const footer = page.locator('footer.site-footer');
+  await footer.getByRole('link', { name: 'Privacy policy', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/privacy$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Privacy Policy' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Request account deletion', exact: true })).toBeVisible();
+
+  await page.locator('footer.site-footer').getByRole('link', { name: 'Terms of use', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/terms$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Terms of Use' })).toBeVisible();
+
+  // Narrow-screen 320px EN/AR light/dark check with zero horizontal overflow.
+  await page.setViewportSize({ width: 320, height: 780 });
+  for (const route of ['privacy', 'terms'] as const) {
+    for (const locale of ['en', 'ar'] as const) {
+      await page.goto(`/${locale}/${route}`);
+      const themeSelect = page.getByRole('combobox', {
+        name: locale === 'en' ? 'Color theme' : 'مظهر الموقع',
+      });
+      for (const theme of ['light', 'dark']) {
+        await themeSelect.selectOption(theme);
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        ).toBe(true);
+      }
+    }
+  }
+});

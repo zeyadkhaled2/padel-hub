@@ -318,16 +318,18 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert(badCallback.headers.get('referrer-policy') === 'no-referrer', 'Callback must set Referrer-Policy: no-referrer');
       pass('Origin checks, callback open-redirect protection, and no-store headers verified');
 
-      // 4. Homepage / Marketplace EN & AR + noindex + no secret leakage in HTML
-      for (const path of ['/en', '/ar']) {
+      // 4. Homepage / Marketplace & Legal pages EN & AR + noindex + security headers + no secret leakage in HTML
+      for (const path of ['/en', '/ar', '/en/privacy', '/ar/privacy', '/en/terms', '/ar/terms']) {
         const res = await fetch(`${appOrigin}${path}`);
         assert(res.ok, `GET ${path} failed with ${res.status}`);
+        assert(res.headers.get('x-content-type-options') === 'nosniff', `${path} missing X-Content-Type-Options: nosniff`);
+        assert(res.headers.get('x-frame-options') === 'DENY', `${path} missing X-Frame-Options: DENY`);
         const html = await res.text();
         assert(html.includes('noindex'), `${path} must include noindex robots metadata`);
         assert(!html.includes(cfg.serviceRoleKey), `${path} HTML leaked service-role key!`);
         assert(!html.includes('sb_secret_'), `${path} HTML leaked sb_secret_ prefix!`);
       }
-      pass('EN and AR homepage/marketplace render cleanly with noindex and zero secret leakage');
+      pass('EN and AR homepage, privacy, and terms render cleanly with security headers, noindex, and zero secret leakage');
 
       // 5. Unverified user enforcement (Auth API + UI)
       const unverifiedEmail = `staging_unverified_${tag}@example.test`;
@@ -733,14 +735,14 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.getByRole('button', { name: 'Sign in', exact: true }).click();
       await adminPage.waitForURL('**/en/account', { timeout: 25_000 });
 
-      // At aal1, admin photo proxy must fail closed (never 200, never image bytes)
+      // At aal1, admin photo proxy must fail closed with 404 (never 200 or 503, never image bytes)
       const aal1Cookies = (await adminCtx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
       const aal1Photo = await fetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
         headers: { cookie: aal1Cookies },
       });
       assert(
-        aal1Photo.status !== 200 && aal1Photo.headers.get('content-type') !== 'image/webp',
-        `Admin photo proxy at aal1 must fail closed (got ${aal1Photo.status})`,
+        aal1Photo.status === 404 && aal1Photo.headers.get('content-type') !== 'image/webp',
+        `Admin photo proxy at aal1 must return 404 (got ${aal1Photo.status})`,
       );
 
       // Enroll TOTP MFA on /en/admin
@@ -800,7 +802,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       const adminNav = adminPage.getByRole('navigation', { name: 'Admin navigation' });
       const plannedCount = await adminNav.locator('.admin-nav-planned').count();
       const plannedLinks = await adminNav.locator('.admin-nav-planned a').count();
-      assert(plannedCount === 5 && plannedLinks === 0, `Expected 5 non-link planned nav items, got ${plannedCount} (${plannedLinks} links)`);
+      assert(plannedCount === 4 && plannedLinks === 0, `Expected 4 non-link planned nav items (Admin D-F), got ${plannedCount} (${plannedLinks} links)`);
       pass('Admin A overview dashboard KPIs, Needs Attention, Trends, Recent Activity, nav shell and privacy verified on hosted staging (EN)');
 
       // Persist aal2 storage state & TOTP secret ONLY inside gitignored .cache for immediate-revocation verification
@@ -933,6 +935,16 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.setViewportSize({ width: 1280, height: 800 });
       pass('Admin A Arabic RTL 390px mobile overview and live moderation activity feed verified on hosted staging');
 
+      // Verify Admin B listing inventory & Admin C seller management on hosted staging
+      await adminPage.goto(`${appOrigin}/en/admin/listings?q=${encodeURIComponent(tag)}`);
+      await adminPage.getByText(`Staging Racket ${tag}`).waitFor({ timeout: 15_000 });
+      await adminPage.goto(`${appOrigin}/en/admin/sellers?q=${encodeURIComponent(s1Username)}`);
+      await adminPage.getByText(`@${s1Username}`).waitFor({ timeout: 15_000 });
+      await adminPage.locator('a[href*="/admin/sellers/"]').first().click();
+      await adminPage.waitForURL(/\/en\/admin\/sellers\/[0-9a-f-]{36}$/, { timeout: 15_000 });
+      await adminPage.getByText('Staging Smoke Seller').waitFor({ timeout: 15_000 });
+      pass('Admin B listing inventory and Admin C seller management verified on hosted staging');
+
       // Mark approved listing sold, then verify 'reopen' transitions sold -> private draft cleanly (retaining photos & revoking public access)
       const latest = await seller1SessionClient.rpc('get_my_listing', { p_listing_id: createdListingId });
       const markedSold = await seller1SessionClient.rpc('change_listing_status', {
@@ -973,8 +985,16 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminCtx.close();
       adminMfaVerified = true;
 
-      // 11. Logout & session invalidation in browser
+      // 11. Authenticated account deletion request -> immediately hides storefront -> logout & session invalidation
       await page.goto(`${appOrigin}/en/account`);
+      const deletionBox = page.locator('#account-deletion');
+      await deletionBox.getByLabel(/I understand my public profile/i).check();
+      await deletionBox.getByRole('button', { name: 'Request account deletion', exact: true }).click();
+      await deletionBox.getByRole('status').filter({ hasText: 'Account deletion request received' }).waitFor({ timeout: 15_000 });
+      const hiddenAfterDelReq = await fetch(`${appOrigin}/en/@${s1Username}`);
+      assert(hiddenAfterDelReq.status === 404, `Storefront must return 404 immediately after deletion request (got ${hiddenAfterDelReq.status})`);
+      pass('Authenticated account deletion request recorded and public storefront immediately taken offline');
+
       await page.getByRole('button', { name: 'Sign out', exact: true }).click();
       await page.waitForURL('**/en/auth/signin', { timeout: 20_000 });
       await page.goto(`${appOrigin}/en/account`);
@@ -1147,11 +1167,14 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       }
       await mobilePage.goto(`${appOrigin}/en/auth/signin?error=oauth_cancelled`);
       await mobilePage.getByRole('alert').filter({ hasText: /cancelled/i }).waitFor({ timeout: 10_000 });
-      await mobilePage.getByRole('button', { name: 'Continue with Google', exact: true }).waitFor({ timeout: 10_000 });
       await mobilePage.getByRole('link', { name: 'Forgot password?', exact: true }).waitFor({ timeout: 10_000 });
-      if (!googleEnabled) {
-        await mobilePage.getByRole('button', { name: 'Continue with Google', exact: true }).click();
-        await mobilePage.getByRole('alert').filter({ hasText: /Google sign-in is not available/i }).waitFor({ timeout: 15_000 });
+      const googleBtnCount = await mobilePage
+        .getByRole('button', { name: 'Continue with Google', exact: true })
+        .count();
+      if (googleEnabled) {
+        assert(googleBtnCount === 1, 'Continue with Google button must be visible when Google OAuth is enabled');
+      } else {
+        assert(googleBtnCount === 0, 'Continue with Google button must be hidden when Google OAuth is disabled');
       }
       await mobileCtx.close();
       pass('Auth pages (signin/signup/forgot/reset) verified across EN/AR, light/dark, and 390px mobile with zero overflow');

@@ -121,7 +121,7 @@ node scripts/staging-app.mjs verify-revoked-admin
   2. Set only the 4 server-only `PADELHUB_*` variables scoped to **Preview** (or the dedicated staging project), with `PADELHUB_APP_ORIGIN` matching the exact staging HTTPS origin.
   3. Add `<staging-origin>/en/auth/callback` and `<staging-origin>/ar/auth/callback` to `padelhub-staging` Auth Redirect URLs.
   4. Verify `robots: { index: false, follow: false }` remains active (`src/app/[locale]/layout.tsx`).
-  5. **Platform limitation — Vercel 4.5 MB request body cap**: Vercel Serverless Functions reject request bodies above **4.5 MB** (`413 FUNCTION_PAYLOAD_TOO_LARGE`), whereas `POST /api/listings/[listingId]/photos` permits raw images up to **8 MiB**. Photos under ~4.5 MB work on Vercel; supporting 4.5–8 MiB uploads requires either a Node host (e.g. Railway `next start`, ~\$5/month) or a future direct-to-storage/client-resize upload change.
+  5. **Upload limit & commercial-hosting note**: Media Optimization V1 aligns incoming `POST /api/listings/[listingId]/photos` bodies to **4,000,000 bytes** via client-side adaptive resizing/compression, so uploads fit cleanly below Vercel's 4.5 MB serverless cap. However, **Vercel Hobby (\$0/month) is restricted to non-commercial use**; for commercial production pilot hosting, see [LAUNCH_READINESS.md](LAUNCH_READINESS.md) (Railway Hobby \$5/month recommended, or Vercel Pro \$20/month).
 
 ## 6. Safe Rollback & Incident Recovery Procedures
 
@@ -140,11 +140,6 @@ node scripts/staging-app.mjs verify-revoked-admin
 3. **JWT signing keys / sessions**: Rotate JWT signing keys in `Project Settings` → `JWT Keys` (invalidating compromised tokens) and revoke active user sessions if needed.
 4. **Admin account / TOTP compromise**: Immediately execute `UPDATE private.admin_roles SET revoked_at = now() WHERE user_id = '<uuid>';` (takes effect on the next RPC call even for existing `aal2` sessions) and unenroll compromised MFA factors.
 
-## 7. Backup & Restore Readiness (Remaining for Phase 2D)
+## 7. Backup, Monitoring & Account Deletion Operations
 
-- Supabase Free plan does **not** include automatic daily backups or Point-in-Time Recovery (PITR).
-- **Database backups do NOT include Storage object contents** (`media-private` WebP variants must be backed up separately to independent private storage).
-- Before any real-user pilot (Phase 2D), establish:
-  1. Automated daily encrypted logical database backups (`pg_dump`) retaining at least 7 daily copies.
-  2. Separate private media backup/sync covering all `media-private` objects without ever deleting live user photos.
-  3. A documented and executed restore drill verifying target RPO (24h) and RTO (1 working day).
+See [OPERATIONS_AND_BACKUPS.md](OPERATIONS_AND_BACKUPS.md) for the verified daily logical `pg_dump` procedure, separate private `media-private` backup & SHA-256 verification helper (`scripts/backup-supabase.mjs`), isolated restore drill, built-in Supabase/host monitoring & 70% quota thresholds, and the SQL-verified manual account deletion operator runbook.

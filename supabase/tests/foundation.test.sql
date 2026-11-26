@@ -4,8 +4,8 @@ create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
 select no_plan();
-select is((select count(*)::integer from pg_tables where schemaname in ('public','private')),22,'22 domain tables');
-select is((select count(*)::integer from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private') and c.relkind='r' and c.relrowsecurity and c.relforcerowsecurity),22,'all tables enable and force RLS');
+select is((select count(*)::integer from pg_tables where schemaname in ('public','private')),23,'23 domain tables');
+select is((select count(*)::integer from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private') and c.relkind='r' and c.relrowsecurity and c.relforcerowsecurity),23,'all tables enable and force RLS');
 select is((select count(*)::integer from pg_policies where schemaname in ('public','private') and roles && array['public','anon','authenticated']::name[]),0,'no unfinished caller-facing policies');
 select is((select count(*)::integer from public.egypt_governorates),27,'27 governorates');
 select is((select name_ar from public.egypt_governorates where slug='cairo'),'القاهرة','Arabic seed preserved');
@@ -128,6 +128,7 @@ select throws_ok('select * from private.abuse_reports','42501',null,'anonymous d
 select throws_ok('select * from private.audit_logs','42501',null,'anonymous denied private.audit_logs');
 select throws_ok('select * from private.engagement_events','42501',null,'anonymous denied private.engagement_events');
 select throws_ok('select * from private.rate_limit_windows','42501',null,'anonymous denied private.rate_limit_windows');
+select throws_ok('select * from private.account_deletion_requests','42501',null,'anonymous denied private.account_deletion_requests');
 select throws_ok($$insert into public.listings(seller_id,category) values('11111111-1111-4111-8111-111111111111','rackets')$$,'42501',null,'direct write denied');
 reset role;
 set local role authenticated;
@@ -152,6 +153,7 @@ select throws_ok('select * from private.abuse_reports','42501',null,'owner denie
 select throws_ok('select * from private.audit_logs','42501',null,'owner denied private.audit_logs');
 select throws_ok('select * from private.engagement_events','42501',null,'owner denied private.engagement_events');
 select throws_ok('select * from private.rate_limit_windows','42501',null,'owner denied private.rate_limit_windows');
+select throws_ok('select * from private.account_deletion_requests','42501',null,'owner denied private.account_deletion_requests');
 select throws_ok($$insert into public.listings(seller_id,category) values('11111111-1111-4111-8111-111111111111','rackets')$$,'42501',null,'direct write denied');
 reset role;
 set local role authenticated;
@@ -176,6 +178,7 @@ select throws_ok('select * from private.abuse_reports','42501',null,'admin aal2 
 select throws_ok('select * from private.audit_logs','42501',null,'admin aal2 denied private.audit_logs');
 select throws_ok('select * from private.engagement_events','42501',null,'admin aal2 denied private.engagement_events');
 select throws_ok('select * from private.rate_limit_windows','42501',null,'admin aal2 denied private.rate_limit_windows');
+select throws_ok('select * from private.account_deletion_requests','42501',null,'admin aal2 denied private.account_deletion_requests');
 select throws_ok($$insert into public.listings(seller_id,category) values('11111111-1111-4111-8111-111111111111','rackets')$$,'42501',null,'direct write denied');
 reset role;
 -- Separate privilege denial from actual RLS behavior under accidental SELECT grants.
@@ -201,6 +204,7 @@ select is((select count(*)::integer from private.abuse_reports),0,'RLS anon retu
 select is((select count(*)::integer from private.audit_logs),0,'RLS anon returns no private.audit_logs rows');
 select is((select count(*)::integer from private.engagement_events),0,'RLS anon returns no private.engagement_events rows');
 select is((select count(*)::integer from private.rate_limit_windows),0,'RLS anon returns no private.rate_limit_windows rows');
+select is((select count(*)::integer from private.account_deletion_requests),0,'RLS anon returns no private.account_deletion_requests rows');
 reset role;
 set local role authenticated;
 select is((select count(*)::integer from public.platform_settings),0,'RLS authenticated returns no public.platform_settings rows');
@@ -222,6 +226,7 @@ select is((select count(*)::integer from private.abuse_reports),0,'RLS authentic
 select is((select count(*)::integer from private.audit_logs),0,'RLS authenticated returns no private.audit_logs rows');
 select is((select count(*)::integer from private.engagement_events),0,'RLS authenticated returns no private.engagement_events rows');
 select is((select count(*)::integer from private.rate_limit_windows),0,'RLS authenticated returns no private.rate_limit_windows rows');
+select is((select count(*)::integer from private.account_deletion_requests),0,'RLS authenticated returns no private.account_deletion_requests rows');
 reset role;
 -- FORCE RLS must also constrain a nonsuperuser table owner.
 create role padelhub_test_owner nologin nobypassrls;

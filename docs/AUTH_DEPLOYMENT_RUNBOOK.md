@@ -1,23 +1,23 @@
-# PadelHub — Authentication, Custom SMTP, Google OAuth & Admin MFA Recovery Runbook (Phase 2B)
+# Raketna — Authentication, Custom SMTP, Google OAuth & Admin MFA Recovery Runbook
 
-Last updated: 2026-11-21  
-Target staging project: `padelhub-staging` (`ref: sxghreukdkxclymysryp`, `eu-central-1`, Free plan)  
-Scope: **Phase 2B staging authentication hardening** (not public production launch).
+Last updated: 2026-11-26
+Target staging project: `padelhub-staging` (`ref: sxghreukdkxclymysryp`, `eu-central-1`, Free plan)
+Scope: **MVP Launch Readiness authentication configuration** (custom SMTP required for real sellers; Google OAuth optional and automatically hidden when disabled).
 
 ---
 
 ## 1. Custom Transactional Email (Resend SMTP)
 
-Supabase's built-in email service is limited to **2 emails/hour** and delivers only to organization team members. Real users require custom SMTP.
+Supabase's built-in email service is limited to **2 emails/hour** and delivers only to organization team members. Real sellers require custom SMTP.
 
 ### 1.1 Provider Choice, Costs & Limits
-- **Preferred provider**: **Resend** (Free plan: **\$0/month**, up to **3,000 emails/month** and **100 emails/day**; Pro \$20/month only if pilot volume exceeds limits).
+- **Preferred provider**: **Resend** (Free plan: **\$0/month**, commercial use permitted, up to **3,000 emails/month** and **100 emails/day**; Pro \$20/month only if pilot volume exceeds limits).
 - **Supabase Auth rate limits after enabling Custom SMTP**: Supabase imposes an initial safety rate limit of **30 emails/hour** (`Authentication → Rate Limits`) and a **60-second** per-user cooldown on signup confirmation and password-recovery emails.
 
 ### 1.2 Sender Identity & Required DNS Records
 Use a dedicated transactional subdomain (never mix auth emails with future marketing mail):
 - Recommended sender address: `no-reply@auth.<your-domain>` (or `no-reply@<your-domain>`)
-- Sender display name: `PadelHub`
+- Sender display name: `Raketna`
 
 Configure these DNS records at your domain registrar after adding the domain in Resend:
 
@@ -34,10 +34,10 @@ In Resend Domain Settings, **turn OFF Click Tracking and Open Tracking** for the
 ### 1.4 Configuring Supabase Custom SMTP (Dashboard — Owner Action)
 Never store SMTP credentials in Git, `.env.example`, or Next.js application runtime variables:
 1. In Resend, create a sending-only API key restricted to the verified sending domain.
-2. In Supabase Dashboard (`padelhub-staging` → `Authentication → Emails → SMTP Settings`):
+2. In Supabase Dashboard (`<target-project>` → `Authentication → Emails → SMTP Settings`):
    - Enable **Custom SMTP**.
    - **Sender email**: `no-reply@auth.<your-domain>`
-   - **Sender name**: `PadelHub`
+   - **Sender name**: `Raketna`
    - **Host**: `smtp.resend.com`
    - **Port**: `465` (SSL/TLS) or `587` (STARTTLS)
    - **Username**: `resend`
@@ -45,12 +45,12 @@ Never store SMTP credentials in Git, `.env.example`, or Next.js application runt
 3. Keep **Confirm email** ON (`mailer_autoconfirm = false`) and **Anonymous sign-ins** OFF.
 
 ### 1.5 Auth Email Templates
-Repository templates live in `supabase/templates/` and use bilingual English + Arabic copy with zero external images, zero marketing copy, zero link tracking, and zero echoed user input:
+Repository templates live in `supabase/templates/` and use bilingual English + Arabic Raketna copy with zero external images, zero marketing copy, zero link tracking, and zero echoed user input:
 - **Confirm signup** ([confirmation.html](../supabase/templates/confirmation.html)):
-  - Suggested subject: `Confirm your PadelHub email / تأكيد بريدك الإلكتروني على PadelHub`
+  - Suggested subject: `Confirm your Raketna email / تأكيد بريدك الإلكتروني على راكتنا`
   - Link format: `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=signup`
 - **Reset password** ([recovery.html](../supabase/templates/recovery.html)):
-  - Suggested subject: `Reset your PadelHub password / إعادة تعيين كلمة مرور PadelHub`
+  - Suggested subject: `Reset your Raketna password / إعادة تعيين كلمة مرور راكتنا`
   - Link format: `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`
 - **Password changed notification** ([password_changed.html](../supabase/templates/password_changed.html)) (optional security notification in `Authentication → Notifications`).
 
@@ -94,9 +94,11 @@ In Supabase Dashboard (`padelhub-staging` → `Authentication → URL Configurat
 
 ---
 
-## 3. Continue with Google (Google Cloud + Supabase OAuth)
+## 3. Continue with Google (Optional for Pilot — Google Cloud + Supabase OAuth)
 
-### 3.1 Google Cloud Console Setup (Owner Action)
+Google OAuth is **optional for the controlled pilot** and does not block launch. Whenever Google is disabled in Supabase Auth (`external.google !== true`), `AuthPage` checks `/auth/v1/settings` server-side and **automatically hides** the `Continue with Google` button on `/[locale]/auth/signin` and `/[locale]/auth/signup` so users never encounter a broken sign-in button. The `continueWithGoogle` Server Action also remains fail-closed if invoked directly. Enable Google later without code changes using the steps below.
+
+### 3.1 Google Cloud Console Setup (Optional Owner Action)
 1. Open [Google Auth Platform Console](https://console.cloud.google.com/auth/overview) in a dedicated staging/app Google Cloud project.
 2. **Branding**: Set App name (`PadelHub Staging`), User support email, and Developer contact email.
 3. **Audience**: Choose **External**. While in **Testing** publishing status on staging, add explicit authorized test Gmail addresses under **Test users** (no Google app verification is required in Testing mode; publish & complete brand verification before public launch).
@@ -179,7 +181,7 @@ For any production or pilot admin MFA recovery (and as standard discipline on st
 
 ## 5. Safe Rollback & Provider-Disable Procedures
 
-- **Disable Google Login immediately**: Toggle **Google** OFF in `Authentication → Sign In / Providers` on Supabase Dashboard. PadelHub checks `/auth/v1/settings` server-side before redirecting, so users immediately see a clean localized notice directing them to email/password sign-in without broken redirects or redeploying code.
+- **Disable Google Login immediately**: Toggle **Google** OFF in `Authentication → Sign In / Providers` on Supabase Dashboard. PadelHub checks `/auth/v1/settings` server-side on every render of `/[locale]/auth/signin` and `/[locale]/auth/signup` and immediately hides the `Continue with Google` button without redeploying code (while `continueWithGoogle` stays fail-closed).
 - **Disable/rotate Custom SMTP**: Rotate the Resend API key or swap SMTP credentials in `Authentication → Emails → SMTP Settings`. **Never** turn off `Confirm email` (`mailer_autoconfirm`) as a workaround for SMTP issues — signup intentionally fails closed if confirmation is disabled.
 - **Rollback application code**: Reverting the Git commit or promoting the previous deployment rolls back the Next.js UI/routes safely, while forward-only migrations `020`–`021` (`private.confirmed_signup_sessions` and `private.is_active_account_session`) remain strictly backwards-compatible with primary `password`/`oauth` sessions (never drop or edit applied migrations).
 

@@ -67,7 +67,7 @@ test.describe('local verified accounts', () => {
     await expect(page).toHaveURL(new RegExp(`/${signupLocale}/account$`));
     await page.goto('/en/account');
     await expect(page.getByRole('heading', { name: 'Create profile' })).toBeVisible();
-    await expect(page.locator('input[type="checkbox"]')).toHaveCount(0);
+    await expect(page.locator('form.account-form').first().locator('input[type="checkbox"]')).toHaveCount(0);
     await page.getByLabel('Username', { exact: true }).fill(username);
     await page.getByLabel('Display name').fill('Synthetic T03 Player');
     await page.getByLabel('Governorate').selectOption('cairo');
@@ -456,8 +456,9 @@ test.describe('local verified accounts', () => {
     await expect(page.locator('main').getByRole('alert')).toContainText('confirmation link');
 
     // Password recovery end-to-end via local Mailpit: unknown email, valid reset, reuse rejection, old vs new password, profile preserved.
+    // Google OAuth is disabled in local Supabase, so the nonfunctional Continue with Google button stays hidden.
     await page.goto('/en/auth/signin');
-    await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toHaveCount(0);
     await page.getByRole('link', { name: 'Forgot password?', exact: true }).click();
     await expect(page).toHaveURL(/\/en\/auth\/forgot-password$/);
 
@@ -567,6 +568,18 @@ test.describe('local verified accounts', () => {
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(/\/en\/account$/);
     await expect(page.getByLabel('Display name')).toHaveValue('Latest saved player');
+
+    // Authenticated account deletion request: immediately hides public profile/WhatsApp and persists pending state.
+    const deletionSection = page.locator('#account-deletion');
+    await expect(deletionSection).toBeVisible();
+    await deletionSection.getByLabel(/Reason for leaving/i).fill('Finished testing local pilot account');
+    await deletionSection.getByLabel(/I understand my public profile/i).check();
+    await deletionSection.getByRole('button', { name: 'Request account deletion', exact: true }).click();
+    await expect(deletionSection.getByRole('status')).toContainText('Account deletion request received');
+    await page.reload();
+    await expect(page.locator('#account-deletion').getByRole('status')).toContainText('Account deletion request received');
+    expect((await request.get(`/en/@${username}`)).status()).toBe(404);
+    expect((await request.get(qrTarget, { maxRedirects: 0 })).status()).toBe(404);
   });
 });
 
