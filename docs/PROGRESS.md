@@ -416,3 +416,14 @@ Updated: 2026-11-21. Isolated hosted Supabase staging (`padelhub-staging`, `eu-c
 - Migration 028 applied only to local Supabase after confirming 027. Hosted 027 verification and physical-device media tests remain separate release gates; hosted 028 migration/smoke tests require owner authorization. No hosted migrations, deployment command, billing, service provisioning, or merge performed. No Admin C work.
 - Decisions: direct removal applies only when the existing shared predicate confirms a public detail page (including eligible reserved/sold/traded states); pending approval/rejection remains unchanged. No additional indexes are justified for the pilot; inventory matching is bounded and server-side. Nonpublic incomplete-media inspection is read-only and never substitutes a decision snapshot.
 - Next: review the focused Admin B PR; authorize hosted migration verification separately, then complete outstanding pilot release gates. Stop before Admin C.
+
+
+## PR #12 final pre-merge validation — 2026-11-26
+
+- Final implementation commit: `4f9955354bf55fccfe94a22965d505b06ac6bf84`. Added `listing.removed` → `listingRemoved` to Admin A's existing activity mapping with EN “Removed listing” and AR “إزالة الإعلان”. Added one targeted unit test with five assertions covering the mapping, both labels, and distinction from report-based removal.
+- `npm run check`: passed — lint 0 errors/0 warnings, TypeScript and production build (31 generated routes).
+- `npm run test:unit`: **64/64 passed**, 0 failed, 0 skipped.
+- `node scripts/local-app.mjs test --workers=1`: **30/30 passed in one clean run (4.5 minutes)**, 0 failed, 0 skipped, no retries. Ran against the rebuilt production app with local Supabase and synthetic fixtures, covering desktop/mobile accounts, admin approvals/rejections/removal/revocation, buyer/seller/report workflows, EN/AR/RTL/themes/layouts, and Media Optimization V1. This supersedes the earlier combined-run result.
+- `git diff --check`: passed. Database contracts are unchanged by this follow-up; the previous 798/798 SQL assertions and concurrency/isolation passes remain the database evidence, not a newly rerun DB suite.
+- Remote checks on the final implementation: [GitHub Foundation checks #99](https://github.com/zeyadkhaled2/padel-hub/actions/runs/45788783946) **success**; [Vercel preview](https://vercel.com/zeyadkhaled2s-projects/padel-hub/7rb7kM3VtkWoeXaxhwP5GNbr4jAR) **success**. PR description records the latest documentation-only head checks as well.
+- [PR #12](https://github.com/zeyadkhaled2/padel-hub/pull/12) remains open and unmerged. No dependencies, hosted migrations, infrastructure changes or Admin C work. Hosted migration 027 verification, authorized hosted 028 rollout and physical-device media testing remain separate release gates. Pre-existing ignore-file edits remain untouched.
