@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   checkPhotoSlotEligibility,
   parseDeliveryParams,
@@ -32,6 +33,16 @@ const ASSET_ID = '22222222-2222-4222-8222-222222222222';
 const ATTEMPT_ID = '33333333-3333-4333-8333-333333333333';
 const SELLER_ID = '44444444-4444-4444-8444-444444444444';
 const HASH = 'a'.repeat(64);
+
+test('direct listing removal has its own EN/AR Admin A activity label', () => {
+  const key = getActivityActionTranslationKey('listing.removed');
+  assert.equal(key, 'listingRemoved');
+  for (const [locale, label] of [['en', 'Removed listing'], ['ar', 'إزالة الإعلان']]) {
+    const messages = JSON.parse(readFileSync(new URL(`../../messages/${locale}.json`, import.meta.url), 'utf8'));
+    assert.equal(messages.admin.overview.actions[key], label);
+    assert.notEqual(messages.admin.overview.actions[key], messages.admin.overview.actions.reportRemoved);
+  }
+});
 
 const validManifest = {
   thumb: { key: `processed/${ASSET_ID}/${ATTEMPT_ID}/thumb.webp`, bytes: 1000, sha256: HASH },

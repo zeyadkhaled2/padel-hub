@@ -707,6 +707,7 @@
         "listingWithdrawn": "Withdrew listing to draft",
         "listingApproved": "Approved listing",
         "listingRejected": "Rejected listing",
+        "listingRemoved": "Removed listing",
         "listingSold": "Marked listing as sold",
         "listingTraded": "Marked listing as traded",
         "listingArchived": "Archived listing",

@@ -187,6 +187,7 @@ const KNOWN_ACTIVITY_ACTIONS = {
   'listing.withdraw': 'listingWithdrawn',
   'listing.approved': 'listingApproved',
   'listing.rejected': 'listingRejected',
+  'listing.removed': 'listingRemoved',
   'listing.sold': 'listingSold',
   'listing.traded': 'listingTraded',
   'listing.archive': 'listingArchived',
