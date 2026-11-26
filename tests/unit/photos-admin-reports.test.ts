@@ -16,6 +16,7 @@ import {
   parsePendingListingsPage,
   parseReviewDecision,
   parseReviewSnapshot,
+  parseReadOnlyInspection,
   parseTotpVerification,
 } from '@/features/admin/validation';
 import {
@@ -219,6 +220,10 @@ test('admin review snapshot, TOTP and decision validators preserve manifest and 
   });
 
   assert.ok(snapshot);
+  assert.equal(parseReadOnlyInspection({ ...snapshot, media_manifest: [null] }), null);
+  const incomplete = { ...snapshot, listing: { ...snapshot.listing, status: 'draft' }, media_manifest: [...snapshot.media_manifest, { media_id: ASSET_ID, variants: null }] };
+  assert.equal(parseReviewSnapshot(incomplete), null);
+  assert.equal(parseReadOnlyInspection(incomplete)?.media_manifest.length, 1);
   // Raw reference preserved for exact Postgres JSONB equality comparison.
   assert.strictEqual(snapshot.media_manifest, rawManifest);
 

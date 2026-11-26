@@ -74,7 +74,7 @@ export async function NeedsAttentionPanel({
               ? t('oldestWaiting', { date: oldestPending })
               : t('noPendingWaiting')}
           </p>
-          <Link href="/admin#pending-queue" className="admin-card-action">
+          <Link href="/admin/listings?status=pending&sort=pending" className="admin-card-action">
             {t('goPendingQueue')}
           </Link>
         </article>
@@ -191,7 +191,7 @@ export async function KpiSummaryGrid({ kpis }: { kpis: AdminOverviewKpis }) {
               <strong className="admin-kpi-value">
                 {kpis.listings_pending.toLocaleString(locale)}
               </strong>
-              <Link href="/admin#pending-queue" className="admin-kpi-link">
+              <Link href="/admin/listings?status=pending&sort=pending" className="admin-kpi-link">
                 {t('reviewQueueLink')}
               </Link>
             </article>

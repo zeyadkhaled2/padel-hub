@@ -9,6 +9,12 @@ test.skip(process.env.PADELHUB_AUTH_E2E !== '1', 'Local Auth and Storage require
 function operator(sql:string) {
   execFileSync('docker',['exec','-i','supabase_db_padelhub-local','psql','-X','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],{input:sql,stdio:['pipe','pipe','pipe']});
 }
+function reportPageFor(details: string) {
+  if (!/^Synthetic (profile )?report [0-9]+[dm]$/.test(details)) throw new Error('Synthetic fixture required');
+  const result=execFileSync('docker',['exec','-i','supabase_db_padelhub-local','psql','-X','-At','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],{input:`select ((position-1)/24)+1 from (select details,row_number() over(order by created_at,id) position from private.abuse_reports where status='open') q where details='${details}';`,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();
+  if(!/^[1-9][0-9]*$/.test(result))throw new Error('Synthetic report page unavailable');
+  return result;
+}
 function totp(secret:string) {
   const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   const bits=[...secret.toUpperCase().replace(/=+$/,'')].map(c=>alphabet.indexOf(c).toString(2).padStart(5,'0')).join('');
@@ -18,7 +24,7 @@ function totp(secret:string) {
   return String((digest.readUInt32BE(offset)&0x7fffffff)%1000000).padStart(6,'0');
 }
 test('real TOTP session, review photos, rejection, stale decision, approval and revocation', async ({page,browser},info)=>{
-  test.setTimeout(120000);
+  test.setTimeout(240000);
   const url=process.env.PADELHUB_SUPABASE_URL!;
   if(!['127.0.0.1','localhost'].includes(new URL(url).hostname))throw new Error('Local test only');
   const service=createClient(url,process.env.PADELHUB_SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
@@ -69,8 +75,11 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
   const login=async(p:typeof page,address:string)=>{await p.goto('/en/auth/signin');await p.getByLabel('Email address').fill(address);await p.getByLabel('Password',{exact:true}).fill(password);await p.getByRole('button',{name:'Sign in',exact:true}).click();await expect(p).toHaveURL(/\/account$/);};
   try {
     expect((await page.request.get(photoUrl)).status()).not.toBe(200);
+    await page.goto('/en/admin/listings');await expect(page).toHaveURL(/auth\/signin/);
     await login(sellerPage,ownerEmail);
     expect((await sellerPage.goto('/en/admin'))?.status()).toBe(404);
+    expect((await sellerPage.goto('/en/admin/listings'))?.status()).toBe(404);
+    expect((await sellerPage.request.get(photoUrl)).status()).not.toBe(200);
     await login(page,email);await page.goto('/en/admin');
     await expect(page.getByRole('heading',{name:'Admin verification'})).toBeVisible();
     expect((await page.request.get(photoUrl)).status()).not.toBe(200);
@@ -109,38 +118,61 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
       const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
       for(const width of [320,390,768,1440])for(const locale of ['en','ar'])for(const theme of ['light','dark']) {
         await page.setViewportSize({width,height:900});
-        for(const view of ['queue','review']) {
-          await page.goto(view==='queue'?`/${locale}/admin`:`/${locale}/admin/listings/${id}`);
+        for(const view of ['queue','review','inventory']) {
+          await page.goto(view==='queue'?`/${locale}/admin`:view==='inventory'?`/${locale}/admin/listings?q=${suffix}`:`/${locale}/admin/listings/${id}`);
+          await expect(page.locator(view==='inventory'?'.inventory-table:visible':view==='review'?'.listing-detail-fields':'.admin-kpi-card').first()).toBeVisible();
           await page.getByRole('combobox',{name:locale==='en'?'Color theme':'مظهر الموقع'}).selectOption(theme);
           expect(await page.evaluate(()=>document.documentElement.dir)).toBe(locale==='ar'?'rtl':'ltr');
           expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
           if(view==='queue' && ((width===390&&locale==='ar'&&theme==='dark')||(width===1440&&locale==='en'&&theme==='light')))await page.screenshot({path:`.cache/admin-overview-${locale}-${theme}.png`,fullPage:true});
+          if(view==='inventory') {
+            await page.locator('.inventory-table:visible').scrollIntoViewIfNeeded();
+            await expect.poll(()=>page.locator('.inventory-table:visible img').evaluateAll(images=>images.every(image=>(image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth>0))).toBe(true);
+            await page.evaluate(()=>window.scrollTo(0,0));
+          }
+          if(view==='inventory' && ((width===390&&locale==='ar'&&theme==='dark')||(width===1440&&locale==='en'&&theme==='light')))await page.screenshot({path:`.cache/admin-inventory-${locale}-${theme}.png`,fullPage:true});
           if(view==='review' && ((width===390&&locale==='ar'&&theme==='dark')||(width===1440&&locale==='en'&&theme==='light')))await page.screenshot({path:`.cache/admin-review-${locale}-${theme}.png`,fullPage:true});
         }
       }
       expect(errors).toEqual([]);
       await page.goto(`/en/admin/listings/${id}`);
     }
+    await page.goto(`/en/admin/listings?q=${suffix}&status=pending&category=balls&account=individual&governorate=cairo&sort=pending`);
+    await expect(page.getByRole('heading',{name:'Listing management',exact:true})).toBeVisible();
+    await expect(page.locator('.inventory-table:visible tbody tr')).toHaveCount(1);
+    await expect(page.locator('.inventory-table:visible')).toContainText(`Admin test balls ${suffix}`);
+    expect(await page.content()).not.toContain(`processed/${asset}/`);
+    expect(await page.content()).not.toContain('+201000000001');
+    const thumb=await page.request.get(`${photoUrl}?variant=thumb`,{headers:{'if-none-match':'"old"'}});
+    expect(thumb.status()).toBe(200);expect(thumb.headers()['cache-control']).toContain('no-store');expect(thumb.headers().etag).toBeUndefined();
+    await page.getByRole('searchbox',{name:'Search listings',exact:true}).fill('no-match-synthetic-unknown');
+    await page.getByRole('button',{name:'Apply filters'}).click();
+    await expect(page.getByRole('main').getByText('No listings match this view.',{exact:false})).toBeVisible();
+    await page.goto('/en/admin/listings?status=unsafe');
+    await expect(page.getByRole('main').getByRole('alert')).toContainText('invalid');
+    await page.goto(`/en/admin/listings?q=${id}`);
+    await page.locator('.inventory-table:visible').getByRole('link',{name:'Review listing'}).click();
     const stale=await page.context().newPage();await stale.goto(`/en/admin/listings/${id}`);
     await page.getByLabel('Reason for rejection').fill('Please provide a clearer condition description.');
     await page.getByRole('button',{name:'Reject listing',exact:true}).click();await expect(page.getByRole('status')).toContainText('saved');
+    await expect(page).toHaveURL(new RegExp(`/en/admin/listings\\?q=${id}`));
     await stale.getByRole('button',{name:'Approve listing',exact:true}).click();await expect(stale.locator('main').getByRole('alert')).toContainText('changed');await stale.close();
     await sellerPage.goto(`/en/account/listings/${id}`);await expect(sellerPage.getByText('Please provide a clearer condition description.',{exact:true})).toBeVisible();
     await sellerPage.getByRole('button',{name:'Submit for approval',exact:true}).click();await expect(sellerPage.getByRole('status')).toContainText('Submitted');
     await page.goto(`/en/admin/listings/${id}`);await page.getByRole('button',{name:'Approve listing',exact:true}).click();await expect(page.getByRole('status')).toContainText('saved');
     // Verify optional racket specifications and translated shape appear cleanly in EN & AR admin review.
     await page.goto(`/en/admin/listings/${racketId}`);
-    await expect(page.locator('.review-details')).toContainText('Model year');
-    await expect(page.locator('.review-details')).toContainText('2025');
-    await expect(page.locator('.review-details')).toContainText('Weight (grams)');
-    await expect(page.locator('.review-details')).toContainText('370');
-    await expect(page.locator('.review-details')).toContainText('Racket shape');
-    await expect(page.locator('.review-details')).toContainText('Diamond');
+    await expect(page.locator('.listing-detail-fields')).toContainText('Model year');
+    await expect(page.locator('.listing-detail-fields')).toContainText('2025');
+    await expect(page.locator('.listing-detail-fields')).toContainText('Weight (grams)');
+    await expect(page.locator('.listing-detail-fields')).toContainText('370');
+    await expect(page.locator('.listing-detail-fields')).toContainText('Racket shape');
+    await expect(page.locator('.listing-detail-fields')).toContainText('Diamond');
     await page.goto(`/ar/admin/listings/${racketId}`);
-    await expect(page.locator('.review-details')).toContainText('سنة الموديل');
-    await expect(page.locator('.review-details')).toContainText('الوزن (جرام)');
-    await expect(page.locator('.review-details')).toContainText('شكل المضرب');
-    await expect(page.locator('.review-details')).toContainText('ماسي');
+    await expect(page.locator('.listing-detail-fields')).toContainText('سنة الموديل');
+    await expect(page.locator('.listing-detail-fields')).toContainText('الوزن (جرام)');
+    await expect(page.locator('.listing-detail-fields')).toContainText('شكل المضرب');
+    await expect(page.locator('.listing-detail-fields')).toContainText('ماسي');
     await page.goto(`/en/admin/listings/${racketId}`);
     await page.getByRole('button',{name:'Approve listing',exact:true}).click();
     await expect(page.getByRole('status')).toContainText('saved');
@@ -181,17 +213,18 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await page.getByLabel('Details (optional)').fill(`Synthetic report ${suffix}`);
     await page.getByRole('button',{name:'Send report',exact:true}).click();
     await expect(page.getByRole('status')).toContainText('Report received');
-    await page.goto('/en/admin/reports');
+    const reportPage=reportPageFor(`Synthetic report ${suffix}`);
+    await page.goto(`/en/admin/reports?page=${reportPage}`);
     if(info.project.name==='desktop') {
       for(const locale of ['en','ar'])for(const theme of ['light','dark'])for(const width of [390,768,1440]) {
         await page.setViewportSize({width,height:1000});
-        await page.goto(`/${locale}/admin/reports`);
+        await page.goto(`/${locale}/admin/reports?page=${reportPage}`);
         await page.locator('header select').selectOption(theme);
         await expect(page.locator('section').filter({hasText:`Synthetic report ${suffix}`})).toBeVisible();
         expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
         if(width===390 && theme==='dark' && locale==='ar') await page.screenshot({path:'.cache/reports-ar-dark.png',fullPage:true});
       }
-      await page.goto('/en/admin/reports');
+      await page.goto(`/en/admin/reports?page=${reportPage}`);
     }
     const report=page.locator('section').filter({hasText:`Synthetic report ${suffix}`});
     await report.getByLabel('Decision note (required)').fill('Synthetic moderation removal');
@@ -199,12 +232,41 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await expect(page.getByRole('status')).toContainText('Report resolved');
     expect((await sellerPage.request.get(`/en/equipment/${id}`)).status()).toBe(404);
     expect((await sellerPage.request.get(`/api/contact/${id}`,{maxRedirects:0})).status()).toBe(404);
+    // Direct Admin B removal of the other approved fixture; no manufactured report.
+    await page.goto(`/en/admin/listings/${racketId}`);
+    await expect(page.getByRole('heading',{name:'Inspect listing',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:'Approve listing',exact:true})).toHaveCount(0);
+    const publicMediaPath=await page.locator('.photo-grid img').first().getAttribute('src');
+    const mediaId=publicMediaPath!.split('/photos/')[1].split('?')[0];
+    const publicUrl=`/api/media/${mediaId}?listing=${racketId}`;
+    const beforeRemoval=await sellerPage.request.get(publicUrl);
+    expect(beforeRemoval.status()).toBe(200);
+    const etag=beforeRemoval.headers().etag;expect(etag).toBeTruthy();
+    const staleRemoval=await page.context().newPage();await staleRemoval.goto(`/en/admin/listings/${racketId}`);
+    await page.getByRole('button',{name:'Confirm removal'}).click();
+    await expect(page.getByLabel('Reason for removal')).toBeFocused();
+    await page.getByLabel('Reason for removal').fill('Synthetic direct removal');
+    await page.getByRole('button',{name:'Confirm removal'}).click();
+    await expect(page.getByRole('status')).toContainText('saved');
+    await staleRemoval.getByLabel('Reason for removal').fill('Stale synthetic decision');
+    await staleRemoval.getByRole('button',{name:'Confirm removal'}).click();
+    await expect(staleRemoval.getByRole('main').getByRole('alert')).toContainText('changed');
+    await expect(staleRemoval.getByRole('button',{name:'Confirm removal'})).toBeDisabled();await staleRemoval.close();
+    const anonymousMedia=await browser.newContext({baseURL:'http://127.0.0.1:3100'});
+    const afterRemoval=await anonymousMedia.request.get(publicUrl,{headers:{'if-none-match':etag}});
+    await anonymousMedia.close();
+    expect(afterRemoval.status()).toBe(404);expect(afterRemoval.headers()['cache-control']).toContain('no-store');
+    expect((await sellerPage.request.get(`/en/equipment/${racketId}`)).status()).toBe(404);
+    expect((await page.request.get(publicMediaPath!)).status()).toBe(200);
+    await page.goto(`/en/admin/listings/${racketId}`);
+    await expect(page.getByText('Synthetic direct removal',{exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:'Confirm removal'})).toHaveCount(0);
     await page.goto(`/en/@a_${suffix}`);
     await page.getByText('Report content',{exact:true}).click();
     await page.getByLabel('Details (optional)').fill(`Synthetic profile report ${suffix}`);
     await page.getByRole('button',{name:'Send report',exact:true}).click();
     await expect(page.getByRole('status')).toContainText('Report received');
-    await page.goto('/en/admin/reports');
+    await page.goto(`/en/admin/reports?page=${reportPageFor(`Synthetic profile report ${suffix}`)}`);
     const profileReport=page.locator('section').filter({hasText:`Synthetic profile report ${suffix}`});
     await profileReport.getByLabel('Decision note (required)').fill('Synthetic profile suspension');
     await profileReport.getByRole('button',{name:'Suspend profile',exact:true}).click();
@@ -222,6 +284,8 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     expect((await page.request.get(photoUrl)).status()).not.toBe(200);
     operator(`update private.admin_roles set revoked_at=now() where user_id='${actor}';`);
     expect((await page.goto('/en/admin'))?.status()).toBe(404);
+    expect((await page.goto('/en/admin/listings'))?.status()).toBe(404);
+    expect((await page.goto(`/en/admin/listings/${id}`))?.status()).toBe(404);
     expect((await page.request.get(photoUrl)).status()).not.toBe(200);
   } finally {
     operator(`update private.admin_roles set revoked_at=now() where user_id='${actor}';`);

@@ -592,7 +592,7 @@
     "unavailable": "Unable to load admin services. Try again.",
     "invalidCode": "That code could not be verified. Use a current six-digit code and try again.",
     "alreadyEnrolled": "An authenticator is already connected. Reload this page to verify it.",
-    "reasonRequired": "Enter a rejection reason of 1–1,000 characters.",
+    "reasonRequired": "Enter a moderation reason of 1–1,000 characters.",
     "conflict": "This listing or profile changed after you opened it. Reload and review it again.",
     "decisionFailed": "Could not save the decision. Check listing completeness, profile/contact eligibility and limits, then retry.",
     "reload": "Reload review",
@@ -718,6 +718,71 @@
         "reportSuspended": "Suspended reported seller",
         "other": "Recorded activity"
       }
+    },
+    "inventory": {
+      "title": "Listing management",
+      "description": "Search your inventory, inspect eligibility and photos, and moderate individual listings.",
+      "counts": "All inventory counts by status",
+      "search": "Search listings",
+      "searchHint": "Title, brand, model, seller or exact listing ID",
+      "status": "Status",
+      "category": "Category",
+      "account": "Seller account type",
+      "governorate": "Governorate",
+      "sort": "Sort by",
+      "sorts": {
+        "created": "Most recently created",
+        "updated": "Recently updated",
+        "pending": "Oldest pending submission first"
+      },
+      "all": "All",
+      "apply": "Apply filters",
+      "clear": "Clear filters",
+      "results": "{count} listings · Page {page}",
+      "invalid": "These filters are invalid. Clear them and try again.",
+      "noResults": "No listings match this view. Change the filters or return to the first page.",
+      "empty": "No listings yet. New drafts and submissions will appear here.",
+      "listing": "Listing",
+      "seller": "Seller",
+      "price": "Price / offer",
+      "dates": "Dates",
+      "action": "Action",
+      "noPhoto": "No photo available",
+      "unknownSeller": "Seller unavailable",
+      "active": "Active",
+      "visible": "Publicly visible",
+      "private": "Not publicly visible",
+      "created": "Created",
+      "updated": "Updated",
+      "submitted": "Submitted",
+      "inspect": "Inspect listing",
+      "pages": "Listing inventory pages",
+      "inspectionHint": "Inspection mode. Lifecycle status does not guarantee public visibility. Only eligible public listings can be removed.",
+      "removeHint": "Removal immediately hides this listing and its public photos. Saved photos are retained. This workspace does not offer restoration. Enter a reason before confirming.",
+      "removeReason": "Reason for removal (required)",
+      "remove": "Confirm removal",
+      "noActions": "No moderation action is available in this state.",
+      "created_at": "Created",
+      "updated_at": "Last updated",
+      "approved_at": "Approved",
+      "published_at": "First published",
+      "decision": "Latest moderation decision",
+      "decisions": {
+        "listing": {
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "removed": "Removed"
+        },
+        "report": {
+          "remove": "Removed after a report"
+        }
+      },
+      "accounts": {
+        "active": "Active",
+        "hidden": "Hidden",
+        "suspended": "Suspended"
+      },
+      "unavailablePhotos": "Some attached photos are unavailable. Available photos are shown below."
     }
   },
   "publicProfile": {

@@ -35,7 +35,7 @@ export async function AdminShell({
 
   const liveItems: LiveNavItem[] = [
     { id: 'overview', href: '/admin' },
-    { id: 'listings', href: '/admin#pending-queue', count: pendingCount },
+    { id: 'listings', href: '/admin/listings', count: pendingCount },
     { id: 'reports', href: '/admin/reports', count: openReportsCount },
   ];
 

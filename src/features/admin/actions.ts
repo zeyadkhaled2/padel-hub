@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { localeValue } from '@/features/auth/types';
 import { verifiedClient } from '@/server/supabase/server';
+import { inventoryReturnHref } from './inventory';
+import { MODERATION_NOTE_MAX_LENGTH } from '@/lib/domain/equipment';
 import type { MfaState, ReviewDecisionState, ReviewSnapshot } from './types';
 import {
   mapAdminDecisionRpcError,
@@ -89,6 +91,7 @@ export async function decideListing(
   snapshot: ReviewSnapshot,
   _previous: ReviewDecisionState,
   form: FormData,
+  returnTo = '/admin/listings?status=pending&sort=pending',
 ): Promise<ReviewDecisionState> {
   const client = await verifiedClient();
   if (!client) return { message: 'signin' };
@@ -118,5 +121,21 @@ export async function decideListing(
     };
   }
 
-  redirect(`/${localeValue(locale)}/admin?done=${parsed.intent}`);
+  const destination = inventoryReturnHref(returnTo);
+  redirect(`/${localeValue(locale)}${destination}${destination.includes('?') ? '&' : '?'}done=1`);
+}
+
+export async function removeListing(locale: string, snapshot: ReviewSnapshot, _state: ReviewDecisionState, form: FormData, returnTo: string): Promise<ReviewDecisionState> {
+  const reason = String(form.get('reason') ?? '').trim();
+  if (!reason || reason.length > MODERATION_NOTE_MAX_LENGTH) return { message: 'reasonRequired', reason };
+  const client = await verifiedClient();
+  if (!client) return { message: 'signin', reason };
+  const result = await client.rpc('admin_remove_listing', {
+    p_listing_id: snapshot.listing.id, p_expected_listing_version: snapshot.listing.version,
+    p_expected_content_version: snapshot.listing.content_version, p_expected_profile_version: snapshot.profile.version,
+    p_reviewed_manifest: snapshot.media_manifest, p_reason: reason,
+  });
+  if (result.error) return { message: mapAdminDecisionRpcError(result.error), reason };
+  const destination = inventoryReturnHref(returnTo);
+  redirect(`/${localeValue(locale)}${destination}${destination.includes('?') ? '&' : '?'}done=1`);
 }

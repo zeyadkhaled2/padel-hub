@@ -50,8 +50,10 @@ export function MfaForm({ factor }: { factor?: string }) {
 
 export function ReviewForm({
   action,
+  removal = false,
 }: {
   action: (state: ReviewDecisionState, form: FormData) => Promise<ReviewDecisionState>;
+  removal?: boolean;
 }) {
   const t = useTranslations('admin');
   const [state, submit, busy] = useActionState(action, {});
@@ -60,29 +62,31 @@ export function ReviewForm({
     <form action={submit} className="account-form">
       {state.message && <p role="alert">{t(state.message)}</p>}
       {state.message === 'conflict' && <a href="">{t('reload')}</a>}
-      <label htmlFor="reason">{t('reason')}</label>
+      {removal && <p className="form-notice">{t('inventory.removeHint')}</p>}
+      <label htmlFor="reason">{t(removal ? 'inventory.removeReason' : 'reason')}</label>
       <textarea
         id="reason"
         name="reason"
         defaultValue={state.reason}
         maxLength={MODERATION_NOTE_MAX_LENGTH}
         rows={3}
+        required={removal}
       />
-      <button
+      {!removal && <button
         name="intent"
         value="approve"
         disabled={busy || state.message === 'conflict'}
         className="button primary"
       >
         {t('approve')}
-      </button>
+      </button>}
       <button
         name="intent"
-        value="reject"
+        value={removal ? 'remove' : 'reject'}
         disabled={busy || state.message === 'conflict'}
         className="button secondary"
       >
-        {t('reject')}
+        {t(removal ? 'inventory.remove' : 'reject')}
       </button>
     </form>
   );

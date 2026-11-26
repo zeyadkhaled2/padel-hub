@@ -37,7 +37,7 @@ do $$ declare review jsonb; item uuid; begin
  select id into item from admin_fixture; review:=public.admin_get_listing_review(item);
  perform public.admin_reject_listing(item,1,1,1,review->'media_manifest','Please clarify the condition.');
 end $$;
-select ok((select public.admin_photo_delivery(id,asset) is null from admin_fixture),'review photo denied after decision');
+select ok((select public.admin_photo_delivery(id,asset) is not null from admin_fixture),'authorized inspection retained after decision');
 select is(public.admin_pending_listings()->>'total','0','decided item leaves queue');
 set local request.jwt.claims='{"sub":"11111111-1111-4111-8111-111111111111","aal":"aal1","session_id":"00000000-0000-4000-8000-000000000001","amr":[{"method":"password","timestamp":1795000000}]}';
 select is((select public.get_my_listing_decision(id)->>'reason' from admin_fixture),'Please clarify the condition.','owner sees rejection reason');
