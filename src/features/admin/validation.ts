@@ -187,6 +187,7 @@ const KNOWN_ACTIVITY_ACTIONS = {
   'listing.withdraw': 'listingWithdrawn',
   'listing.approved': 'listingApproved',
   'listing.rejected': 'listingRejected',
+  'listing.removed': 'listingRemoved',
   'listing.sold': 'listingSold',
   'listing.traded': 'listingTraded',
   'listing.archive': 'listingArchived',
@@ -273,6 +274,25 @@ export function parseReviewSnapshot(raw: unknown): ReviewSnapshot | null {
     listing: parsed.data.listing,
     profile: parsed.data.profile,
     media_manifest: rawManifest,
+  };
+}
+
+// Inspection may include an unfinished/failed draft asset. Such a snapshot must
+// never be used for a moderation action; pending/public snapshots stay strict.
+export function parseReadOnlyInspection(raw: unknown): ReviewSnapshot | null {
+  const candidate = z.object({
+    listing: reviewListingSchema,
+    profile: reviewProfileSchema,
+    media_manifest: z.array(z.unknown()),
+  }).safeParse(raw);
+  if (!candidate.success || candidate.data.listing.status === 'pending') return null;
+  return {
+    listing: candidate.data.listing,
+    profile: candidate.data.profile,
+    media_manifest: candidate.data.media_manifest.flatMap(item => {
+      const parsed = reviewMediaItemSchema.safeParse(item);
+      return parsed.success ? [parsed.data] : [];
+    }),
   };
 }
 

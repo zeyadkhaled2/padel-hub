@@ -3,17 +3,18 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { notFound, redirect } from 'next/navigation';
 import { localeValue } from '@/features/auth/types';
 import { verifiedClient } from '@/server/supabase/server';
+import { inspectionSchema } from './inventory';
 import type {
   AdminAccess,
   AdminDashboardOverview,
   PendingListingsPage,
-  ReviewSnapshot,
 } from './types';
 import {
   parseAdminAccess,
   parseAdminDashboardOverview,
   parsePendingListingsPage,
   parseReviewSnapshot,
+  parseReadOnlyInspection,
 } from './validation';
 
 export type AdminGateResult =
@@ -63,12 +64,14 @@ export async function fetchPendingListings(
 export async function fetchListingReviewSnapshot(
   client: SupabaseClient,
   listingId: string,
-): Promise<{ snapshot: ReviewSnapshot | null; error: boolean }> {
-  const { data, error } = await client.rpc('admin_get_listing_review', {
+) {
+  const { data, error } = await client.rpc('admin_listing_inspection', {
     p_listing_id: listingId,
   });
-  if (error) return { snapshot: null, error: true };
-  const snapshot = parseReviewSnapshot(data);
-  if (!snapshot) return { snapshot: null, error: true };
-  return { snapshot, error: false };
+  if (error) return { snapshot: null, inspection: null, error: true };
+  const inspection = inspectionSchema.safeParse(data?.inspection);
+  const exactSnapshot = parseReviewSnapshot(data);
+  const snapshot = exactSnapshot ?? (inspection.success && !inspection.data.public_visible ? parseReadOnlyInspection(data) : null);
+  if (!snapshot || !inspection.success) return { snapshot: null, inspection: null, error: true };
+  return { snapshot, inspection: inspection.data, incompleteMedia: !exactSnapshot, error: false };
 }

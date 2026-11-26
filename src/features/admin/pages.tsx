@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element -- Review photos bypass the shared image optimizer. */
 import { Suspense } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getTranslations } from 'next-intl/server';
@@ -6,7 +5,8 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { PAGE_SIZE } from '@/lib/domain/equipment';
 import { parsePageParam, uuidSchema } from '@/lib/validation/shared';
-import { decideListing } from './actions';
+import { inventoryReturnHref, type InventoryParams } from './inventory';
+import { decideListing, removeListing } from './actions';
 import { MfaForm, ReviewForm } from './forms';
 import { AdminOverviewDashboard, RecentActivitySection } from './overview-sections';
 import {
@@ -16,6 +16,7 @@ import {
   requireAdminAccess,
 } from './server';
 import { AdminShell } from './shell';
+import { AdminPhotoPreview } from './photo-preview';
 import type { ReviewDecisionState } from './types';
 import { getReviewListingDisplayRows } from './validation';
 
@@ -184,10 +185,14 @@ export async function AdminPage({
 
 export async function AdminReviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<InventoryParams>;
 }) {
   const { locale, id } = await params;
+  const returnTo = inventoryReturnHref((await searchParams).returnTo);
+  const inventory = await getTranslations('admin.inventory');
   if (!uuidSchema.safeParse(id).success) notFound();
 
   const gate = await requireAdminAccess(locale, { requireMfa: true });
@@ -202,15 +207,15 @@ export async function AdminReviewPage({
     );
   }
 
-  const { snapshot, error } = await fetchListingReviewSnapshot(gate.client, id);
-  if (error || !snapshot) {
+  const { snapshot, inspection, incompleteMedia, error } = await fetchListingReviewSnapshot(gate.client, id);
+  if (error || !snapshot || !inspection) {
     return (
       <AdminShell active="listings">
         <p role="alert" className="admin-alert">
           {t('unavailable')}
         </p>
-        <Link href="/admin" className="text-link">
-          {t('queue')}
+        <Link href={returnTo} className="text-link">
+          {inventory('title')}
         </Link>
       </AdminShell>
     );
@@ -220,19 +225,32 @@ export async function AdminReviewPage({
   // than serialize storage manifest keys as ordinary bound client arguments.
   async function submitReview(state: ReviewDecisionState, form: FormData) {
     'use server';
-    return decideListing(locale, snapshot!, state, form);
+    return decideListing(locale, snapshot!, state, form, returnTo);
   }
 
+  async function submitRemoval(state: ReviewDecisionState, form: FormData) {
+    'use server';
+    return removeListing(locale, snapshot!, state, form, returnTo);
+  }
+
+  const profileText = await getTranslations('profile');
+  const photoText = await getTranslations('photos');
   const detailRows = getReviewListingDisplayRows(snapshot.listing);
 
   return (
     <AdminShell active="listings">
       <div className="admin-subpage">
-        <Link href="/admin" className="text-link">
-          {t('queue')}
+        <Link href={returnTo} className="text-link">
+          {inventory('title')}
         </Link>
-        <h1>{t('review')}</h1>
-        <p className="form-notice">{t('reviewHint')}</p>
+        <h1>{snapshot.listing.status === 'pending' ? t('review') : inventory('inspect')}</h1>
+        <p className="form-notice">{snapshot.listing.status === 'pending' ? t('reviewHint') : inventory('inspectionHint')}</p>
+        <p><strong>{snapshot.listing.status === 'active' ? inventory('active') : e(snapshot.listing.status)}</strong> · {inventory(inspection.public_visible ? 'visible' : 'private')}</p>
+        <dl className="review-details inspection-timestamps">
+          {(['created_at', 'updated_at', 'approved_at', 'published_at'] as const).map(key => inspection[key] && <div key={key}><dt>{inventory(key)}</dt><dd><time dateTime={inspection[key]}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(inspection[key]))}</time></dd></div>)}
+          {snapshot.listing.submitted_at && <div><dt>{inventory('submitted')}</dt><dd>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(snapshot.listing.submitted_at))}</dd></div>}
+        </dl>
+        {inspection.decision && <section className="admin-status-banner"><h2>{inventory('decision')}</h2><p>{inventory(`decisions.${inspection.decision.action}`)} · {new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(inspection.decision.created_at))}</p>{inspection.decision.reason && <p><bdi>{inspection.decision.reason}</bdi></p>}</section>}
         <p>
           <bdi>
             {snapshot.profile.display_name} · @{snapshot.profile.username}
@@ -245,16 +263,19 @@ export async function AdminReviewPage({
               snapshot.profile.public_contact_consent && snapshot.profile.has_contact
                 ? t('yes')
                 : t('no'),
-            status: snapshot.profile.account_status,
+            status: inventory(`accounts.${snapshot.profile.account_status}`),
           })}
         </p>
-        <dl className="review-details">
+        <dl className="review-details listing-detail-fields">
           {detailRows.map(({ key, value }) => (
             <div key={key}>
               <dt>{e.has(key) ? e(key) : t(key)}</dt>
               <dd>
                 <bdi>
-                  {key === 'racket_shape'
+                  {key === 'category' ? photoText(String(value))
+                    : key === 'governorate_slug' ? profileText(`governorates.${value}`)
+                    : key === 'condition' || key === 'offer_type' ? e(String(value))
+                    : key === 'racket_shape'
                     ? e(`shapes.${String(value)}`)
                     : typeof value === 'boolean'
                       ? t(value ? 'yes' : 'no')
@@ -264,8 +285,8 @@ export async function AdminReviewPage({
             </div>
           ))}
         </dl>
-        {snapshot.listing.status === 'pending' ? (
-          <>
+        <>
+            {incompleteMedia && <p role="status">{inventory('unavailablePhotos')}</p>}
             <div className="photo-grid">
               {snapshot.media_manifest.map((item, index) => (
                 <figure key={item.media_id}>
@@ -274,22 +295,19 @@ export async function AdminReviewPage({
                     target="_blank"
                     rel="noreferrer"
                   >
-                    <img
-                      src={`/api/admin/listings/${id}/photos/${item.media_id}`}
+                    <AdminPhotoPreview
+                      fallback={inventory('noPhoto')}
+                      src={`/api/admin/listings/${id}/photos/${item.media_id}?variant=card`}
                       alt={t('photo', { number: index + 1 })}
-                      width={640}
-                      height={480}
                     />
                   </a>
                   <figcaption>{t('photo', { number: index + 1 })}</figcaption>
                 </figure>
               ))}
             </div>
-            <ReviewForm action={submitReview} />
+            {snapshot.media_manifest.length === 0 && <p>{inventory('noPhoto')}</p>}
+            {snapshot.listing.status === 'pending' ? <ReviewForm action={submitReview} /> : inspection.public_visible ? <ReviewForm action={submitRemoval} removal /> : <p role="status">{inventory('noActions')}</p>}
           </>
-        ) : (
-          <p role="status">{t('notPending')}</p>
-        )}
       </div>
     </AdminShell>
   );

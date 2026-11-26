@@ -268,6 +268,26 @@ try {
   );
   sql("update public.platform_settings set individual_active_pending_limit=5;");
   console.log("PASS: settings cap cut wins observed lock race; approval recount rejects over-cap state.");
+  // Admin B direct removal uses the same profile -> listing -> media lock order.
+  for (const name of ["remove_race", "remove_owner_first"]) {
+    sql(`begin; insert into test_fixtures.reviews(name,id) values('${name}',test_fixtures.listing('${reviewOwner}','pending')); commit;`);
+    sql(`${asReviewer()} update test_fixtures.reviews set snapshot=public.admin_get_listing_review(id) where name='${name}'; ${currentApprove(name)} commit;`);
+  }
+  const remove = (name) => `select public.admin_remove_listing(${reviewId(name)},2,1,5,(select snapshot->'media_manifest' from test_fixtures.reviews where name='${name}'),'Synthetic race removal');`;
+  for (const isolation of ["repeatable read", "serializable"]) {
+    sql(`begin isolation level ${isolation}; set local role authenticated;
+      set local request.jwt.claims='{"sub":"${reviewer}","aal":"aal2","session_id":"00000000-0000-4000-8000-000000000002","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';
+      do $$ begin begin perform public.admin_remove_listing(${reviewId('remove_race')},2,1,5,(select snapshot->'media_manifest' from test_fixtures.reviews where name='remove_race'),'Synthetic reason');
+      raise exception 'Fixed-snapshot removal unexpectedly accepted'; exception when sqlstate '25001' then null; end; end $$; rollback;`);
+  }
+  console.log("PASS: two fixed-snapshot removal attempts denied before mutation.");
+  await concurrentRace(`${asReviewer()} ${remove('remove_race')}`, `${asReviewer()} ${remove('remove_race')}`, "PT409");
+  sql(`do $$ begin if (select count(*) from private.audit_logs where target_id=${reviewId('remove_race')}::text and action='listing.removed')<>1
+    or (select status from public.listings where id=${reviewId('remove_race')})<>'removed'
+    then raise exception 'removal race audit invalid'; end if; end $$;`);
+  console.log("PASS: concurrent removal decisions: observed lock wait, one removal/audit, one stale rejection.");
+  await concurrentRace(`${asCaller(reviewOwner)} select public.withdraw_listing(${reviewId('remove_owner_first')},2);`, `${asReviewer()} ${remove('remove_owner_first')}`, "PT409");
+  console.log("PASS: owner withdrawal wins observed lock race; stale removal denied.");
   await concurrentRace(
     `begin; update private.admin_roles set revoked_at=now() where user_id='${reviewer}';`,
     `${asReviewer()} ${currentApprove("revocation_first")}`, "42501",
