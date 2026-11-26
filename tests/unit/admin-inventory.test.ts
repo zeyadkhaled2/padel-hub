@@ -4,19 +4,21 @@ import { inventoryHref, inventoryReturnHref, parseInventoryQuery, inventoryPageS
 import { LISTING_STATUSES } from '../../src/lib/domain/equipment';
 
 test('admin inventory validates bounded and repeated URL parameters', () => {
-  for (const bad of [{ q: 'x'.repeat(121) }, { status: 'published' }, { page: '0' }, { page: '10001' }, { page: '1.5' }, { page: ['1','2'] }, { category: 'other' }, { account: 'admin' }, { governorate: 'unknown' }, { sort: 'price' }]) {
+  for (const bad of [{ q: 'x'.repeat(121) }, { status: 'published' }, { page: '0' }, { page: '10001' }, { page: '1.5' }, { page: ['1','2'] }, { category: 'other' }, { account: 'admin' }, { governorate: 'unknown' }, { seller: 'not-a-uuid' }, { sort: 'price' }]) {
     assert.equal(parseInventoryQuery(bad).success, false);
   }
   assert.equal(parseInventoryQuery({ q: '  Vertex  ' }).data?.q, 'Vertex');
+  assert.equal(parseInventoryQuery({ seller: '11111111-1111-4111-8111-111111111111' }).success, true);
   for (const status of LISTING_STATUSES) assert.equal(parseInventoryQuery({ status }).success, true);
 });
 test('admin inventory preserves filters and resets pagination explicitly', () => {
-  const query = parseInventoryQuery({ q: 'عربي & racket', status: 'pending', category: 'rackets', account: 'business', governorate: 'cairo', sort: 'pending', page: '3' });
+  const query = parseInventoryQuery({ q: 'عربي & racket', status: 'pending', category: 'rackets', account: 'business', governorate: 'cairo', seller: '11111111-1111-4111-8111-111111111111', sort: 'pending', page: '3' });
   assert.ok(query.success);
   const href = inventoryHref(query.data);
   assert.equal(inventoryReturnHref(href), href);
   assert.equal(new URLSearchParams(inventoryHref(query.data, 1).split('?')[1]).has('page'), false);
   assert.equal(new URLSearchParams(href.split('?')[1]).get('q'), 'عربي & racket');
+  assert.equal(new URLSearchParams(href.split('?')[1]).get('seller'), '11111111-1111-4111-8111-111111111111');
 });
 test('admin return links cannot redirect externally or retain unsafe query values', () => {
   for (const bad of ['https://evil.test', '//evil.test', '/admin/reports', '/admin/listings?status=unsafe', '/admin/listings?page=1&page=2', ['invalid']]) assert.equal(inventoryReturnHref(bad), '/admin/listings');

@@ -47,3 +47,65 @@ All new RPCs are owned by the existing NOLOGIN/NOINHERIT/NOBYPASSRLS review capa
 Pending approval/rejection still calls the original RPCs with the exact reviewed snapshot. Conflicts disable resubmission until explicit reload. Read-only nonpublic draft inspection can omit invalid/unavailable asset manifests with a notice; pending/public decision snapshots never use that fallback. Filters are preserved through validated internal return links.
 
 Apply 028 after 027 before serving this app version. This session applied 028 locally only. Hosted migration 027 verification, owner-authorized hosted 028 migration/smoke testing, physical-device media checks, and the other pilot release gates remain outstanding. See PROGRESS.md for exact local results. Admin C–F are separate phases.
+
+## Admin C — Seller management and listing allowances (2026-11-26)
+
+`/[locale]/admin/sellers` and `/[locale]/admin/sellers/[id]` provide the MFA-protected seller management workspace, activated in `AdminShell` and linked from Admin A's Suspended sellers card and Admin B's listing rows/inspection view. All URLs and RPC contracts use the seller's immutable `public_id` (never `auth.users.id`) and never expose passwords, authentication secrets, or private WhatsApp numbers.
+
+Summary counts explicitly represent created rows in `public.seller_profiles` (total, personal, business, active, suspended, hidden), not total registered authentication accounts. Search is bounded (<= 120 chars), literal, case-insensitive across display name, username (`@username` supported), and exact `public_id`. Filters (`account`, `status`, `governorate`, `visibility`), sorting (`newest`, `updated`, `activity` = active+pending descending, then total listings, then updated_at, then `public_id`), and 24-row pagination execute server-side. Admin B's `/[locale]/admin/listings` now also accepts an exact validated `?seller=<public_id>` filter with a filtered-seller banner.
+
+### Migration `029` contracts & capability separation
+- **Defense-in-depth capability boundary**: `padelhub_review_writer` retains `moderation_profile_update` restricted to `account_status in ('suspended', 'hidden')` and still cannot write `account_status = 'active'` (`42501`). A separate hosted-safe capability role `padelhub_seller_admin` (`NOLOGIN NOINHERIT NOBYPASSRLS`, zero `auth` schema `USAGE`, zero `account_status`/`seller_contacts` privileges) owns account-type and listing-allowance updates (`UPDATE(account_type, listing_limit_override, version, updated_at)` only). Neither capability can ever reactivate a suspended or hidden seller.
+- `admin_seller_inventory(query, account_type, account_status, governorate, visibility, sort, page)` (owned by `padelhub_review_writer`): privacy-safe paginated summaries, global counts, and live `platform_settings` defaults.
+- `admin_seller_detail(seller_public_id)` (owned by `padelhub_review_writer`): profile/eligibility/consent indicators, dynamic defaults/override/effective allowance/usage/remaining capacity, full 9-status listing counts + live `public_visible` count, open report count, 30-day UTC approximate views & WhatsApp clicks (explicitly caveated as approximate clicks only, never verified sales/revenue), and up to 12 recent admin/moderator profile and listing audit entries.
+- `admin_update_seller_account_type(seller_public_id, expected_version, account_type, reason)` (owned by `padelhub_seller_admin`): `READ COMMITTED`, `platform_settings FOR SHARE` → `seller_profiles FOR UPDATE`, expected version check, mandatory 1–1,000-char reason, transactional active+pending capacity validation against resulting effective allowance, atomic `profile.account_type_updated` audit record. Business classification never implies verification or legal registration; owners may still select their own account type under existing policy unless changed by owner approval.
+- `admin_update_seller_listing_limit(seller_public_id, expected_version, limit_override, reason)` (owned by `padelhub_seller_admin`): `READ COMMITTED`, `platform_settings FOR SHARE` → `seller_profiles FOR UPDATE`, accepts `0..500` (including valid `0` when active+pending usage is `0`) or `NULL` (reset to live `platform_settings` default), rejects reductions below current active+pending usage (`PT409`) without auto-unpublishing listings, atomic `profile.listing_limit_updated` or `profile.listing_limit_reset` audit record.
+- `admin_moderate_seller_status(seller_public_id, expected_version, account_status, reason)` (owned by `padelhub_review_writer`): `READ COMMITTED`, `seller_profiles FOR UPDATE`, supports `active -> hidden`, `active -> suspended`, and `hidden -> suspended` (explicitly rejecting `'active'` reactivation and `suspended -> hidden` softening), requires explicit UI confirmation + mandatory 1–1,000-char reason, writes `profile.hidden` or `profile.suspended` audit record. Immediately revokes marketplace listings, `/@username` profiles, `/api/profiles/[id]` QR redirects, `/api/contact/[id]` WhatsApp redirects, and `/api/media/[mediaId]?listing=...` public media delivery (including conditional `If-None-Match` requests), while preserving all saved listings, listing statuses, contact consent, and historical photos intact.
+- `admin_listing_inventory(..., p_seller_public_id uuid default null)` & `admin_listing_inspection(p_listing_id)`: backwards-compatible extensions exposing exact seller filtering and `seller_public_id` navigation.
+
+All 5 new audit actions (`profile.account_type_updated`, `profile.listing_limit_updated`, `profile.listing_limit_reset`, `profile.hidden`, `profile.suspended`) are registered with distinct EN/AR labels in Admin A's Recent Activity feed.
+
+### Safe operator procedure — Manual seller restoration (deferred from UI)
+Self-service or admin-UI seller restoration and appeal workflows are **intentionally deferred** and must not be added without explicit owner approval (see outstanding owner decision below). When an authorized incident review approves restoring a previously `hidden` or `suspended` seller account:
+
+1. **Pre-restoration review**:
+   - Inspect the seller's profile (`public_id`, `version`, `account_status`, `is_public`, `public_contact_consent`) and open reports (`private.abuse_reports`), plus recent `private.audit_logs` entries for `target_type = 'profile'` and `target_id = '<public_id>'`.
+   - **Important**: Because hiding/suspending preserves `listings.status` (including previously approved `active` listings), setting `account_status = 'active'` will make any still-`active`, approved listings publicly visible again if `is_public = true` and `public_contact_consent = true`. Before restoring, confirm every `active` listing on the account is safe to republish (or transition offending listings to `removed` with a separate audit record first).
+2. **Atomic operator SQL transaction** (executed as database operator, never through app capability roles):
+   ```sql
+   BEGIN;
+   -- Lock profile and verify expected version & current non-active status
+   SELECT user_id, public_id, account_status, version
+   FROM public.seller_profiles
+   WHERE public_id = '<seller-public-id>'
+   FOR UPDATE;
+
+   -- Only after verifying version = <expected-version> and offending listings are removed:
+   UPDATE public.seller_profiles
+   SET account_status = 'active',
+       version = version + 1,
+       updated_at = now()
+   WHERE public_id = '<seller-public-id>'
+     AND version = <expected-version>
+     AND account_status IN ('hidden', 'suspended');
+
+   INSERT INTO private.audit_logs (
+     actor_user_id, actor_role, action, target_type, target_id, before_state, after_state, reason
+   ) VALUES (
+     '<operator-or-approver-user-id>',
+     'admin',
+     'profile.restored',
+     'profile',
+     '<seller-public-id>',
+     jsonb_build_object('account_status', '<previous-status>', 'version', <expected-version>),
+     jsonb_build_object('account_status', 'active', 'version', <expected-version> + 1),
+     '<documented approval reference and reason>'
+   );
+   COMMIT;
+   ```
+3. **Post-restoration verification**: Confirm `/[locale]/admin/sellers/<public_id>` shows `active`, verify expected public storefront and listing visibility, and log the action in the operator incident record.
+
+### Rollout & outstanding owner decisions
+- Apply migration `029` strictly after `028` before serving this app version (`027` → `028` → `029` remain pending owner-authorized rollout on hosted `padelhub-staging`).
+- **Owner decision required**: Whether to introduce an explicit admin-UI restoration/reactivation workflow (and whether restoration should automatically withdraw previously `active` listings to `draft` for fresh review, or preserve them) and whether owners should retain self-service Personal/Business switching after pilot launch.
+- Feature development is frozen after Admin C; Admin D–F wait until after production readiness and the controlled pilot.

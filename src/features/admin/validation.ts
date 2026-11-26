@@ -197,6 +197,11 @@ const KNOWN_ACTIVITY_ACTIONS = {
   'report.dismiss': 'reportDismissed',
   'report.remove': 'reportRemoved',
   'report.suspend': 'reportSuspended',
+  'profile.account_type_updated': 'profileAccountTypeUpdated',
+  'profile.listing_limit_updated': 'profileListingLimitUpdated',
+  'profile.listing_limit_reset': 'profileListingLimitReset',
+  'profile.suspended': 'profileSuspended',
+  'profile.hidden': 'profileHidden',
 } as const;
 
 export type AdminActivityActionKey =

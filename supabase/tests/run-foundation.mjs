@@ -293,6 +293,89 @@ try {
     `${asReviewer()} ${currentApprove("revocation_first")}`, "42501",
   );
   console.log("PASS: admin-role revocation wins observed lock race; approval denied.");
+
+  // Admin C concurrency & isolation checks: fixed-snapshot rejection + concurrent
+  // submissions, approvals, allowance cuts, account-type changes, and seller moderation.
+  const sellerRaceOwner = "99999999-7777-4777-8777-777777777777";
+  const sellerAdmin = "88888888-8888-4888-8888-888888888888";
+  const asSellerAdmin = () => `begin; set local role authenticated; set local request.jwt.claims='{"sub":"${sellerAdmin}","aal":"aal2","session_id":"00000000-0000-4000-8000-000000000008","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';`;
+  sql(`insert into auth.users(id,email_confirmed_at) values ('${sellerRaceOwner}',now()),('${sellerAdmin}',now());
+    insert into private.admin_roles(user_id,role) values('${sellerAdmin}','admin');`);
+  sql(`${asCaller(sellerRaceOwner)}
+    select public.create_seller_profile('admin_c_race_owner','Synthetic Admin C race','cairo','business');
+    select public.update_seller_profile(1,'{"is_public":true}');
+    select public.update_my_contact(2,1,'+201000000088',true); commit;`);
+  const sellerPublicId = sql(`select public_id from public.seller_profiles where user_id='${sellerRaceOwner}';`).match(/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/)?.[0];
+  if (!sellerPublicId) throw new Error("Missing Admin C race seller public_id");
+
+  // Seed 2 pending listings + 2 ready drafts so usage=2.
+  sql(`begin;
+    insert into test_fixtures.reviews(name,id) values('c_pending_1',test_fixtures.listing('${sellerRaceOwner}','pending'));
+    insert into test_fixtures.reviews(name,id) values('c_pending_2',test_fixtures.listing('${sellerRaceOwner}','pending'));
+    insert into test_fixtures.reviews(name,id) values('c_draft_1',test_fixtures.listing('${sellerRaceOwner}','draft'));
+    insert into test_fixtures.reviews(name,id) values('c_draft_2',test_fixtures.listing('${sellerRaceOwner}','draft'));
+    commit;`);
+  sql(`${asSellerAdmin()} update test_fixtures.reviews set snapshot=public.admin_get_listing_review(id) where name='c_pending_1'; commit;`);
+
+  // Fixed-snapshot isolation checks for all 3 Admin C mutating RPCs.
+  for (const isolation of ["repeatable read", "serializable"]) {
+    sql(`begin isolation level ${isolation}; set local role authenticated;
+      set local request.jwt.claims='{"sub":"${sellerAdmin}","aal":"aal2","session_id":"00000000-0000-4000-8000-000000000008","amr":[{"method":"password","timestamp":1795000000},{"method":"totp","timestamp":1795000001}]}';
+      do $$ begin
+        begin perform public.admin_update_seller_account_type('${sellerPublicId}',3,'individual','iso'); raise exception 'accepted'; exception when sqlstate '25001' then null; end;
+        begin perform public.admin_update_seller_listing_limit('${sellerPublicId}',3,4,'iso'); raise exception 'accepted'; exception when sqlstate '25001' then null; end;
+        begin perform public.admin_moderate_seller_status('${sellerPublicId}',3,'hidden','iso'); raise exception 'accepted'; exception when sqlstate '25001' then null; end;
+      end $$; rollback;`);
+  }
+  console.log("PASS: Admin C mutation RPCs reject fixed-snapshot isolation before mutation.");
+
+  // Race 1: Admin cuts listing allowance to 2 (v3->v4) while seller concurrently tries to submit 3rd listing -> submit fails PT409!
+  await concurrentRace(
+    `${asSellerAdmin()} select public.admin_update_seller_listing_limit('${sellerPublicId}',3,2,'Cap at current usage');`,
+    `${asCaller(sellerRaceOwner)} select public.submit_listing(${reviewId("c_draft_1")},1);`,
+    "PT409",
+  );
+  sql(`do $$ begin
+    if (select listing_limit_override from public.seller_profiles where public_id='${sellerPublicId}')<>2
+      or (select version from public.seller_profiles where public_id='${sellerPublicId}')<>4
+      or (select count(*) from public.listings where seller_id='${sellerRaceOwner}' and status in ('active','pending'))<>2
+    then raise exception 'allowance-vs-submit race invalid'; end if;
+  end $$;`);
+  console.log("PASS: concurrent allowance cap vs listing submission: lock wait observed, submission rejected at new cap.");
+
+  // Race 2: Raise cap to 3 (v4->v5), then seller submits c_draft_1 (usage 2->3) while admin tries to cut allowance back to 2 -> cut fails PT409!
+  sql(`${asSellerAdmin()} select public.admin_update_seller_listing_limit('${sellerPublicId}',4,3,'Allow one more'); commit;`);
+  await concurrentRace(
+    `${asCaller(sellerRaceOwner)} select public.submit_listing(${reviewId("c_draft_1")},1);`,
+    `${asSellerAdmin()} select public.admin_update_seller_listing_limit('${sellerPublicId}',5,2,'Late reduction below usage');`,
+    "PT409",
+  );
+  console.log("PASS: concurrent submission wins lock race; allowance reduction below updated usage rejected (PT409).");
+
+  // Race 3: Concurrent allowance/type update vs pending listing approval -> approval rejected on stale profile version (PT409).
+  sql(`${asSellerAdmin()} update test_fixtures.reviews set snapshot=public.admin_get_listing_review(id) where name='c_pending_1'; commit;`);
+  await concurrentRace(
+    `${asSellerAdmin()} select public.admin_update_seller_account_type('${sellerPublicId}',5,'individual','Switch to personal');`,
+    `${asSellerAdmin()} select public.admin_approve_listing(${reviewId("c_pending_1")},1,1,5,(select snapshot->'media_manifest' from test_fixtures.reviews where name='c_pending_1'));`,
+    "PT409",
+  );
+  console.log("PASS: concurrent account-type change vs approval: lock wait observed, stale approval rejected (PT409).");
+
+  // Race 4: Concurrent admin account-type change vs concurrent admin allowance change on same version (v6) -> one commits, one PT409.
+  await concurrentRace(
+    `${asSellerAdmin()} select public.admin_update_seller_listing_limit('${sellerPublicId}',6,null,'Reset to individual default 5');`,
+    `${asSellerAdmin()} select public.admin_update_seller_account_type('${sellerPublicId}',6,'business','Stale concurrent type change');`,
+    "PT409",
+  );
+  console.log("PASS: concurrent allowance reset vs account-type change: lock wait observed, stale version rejected (PT409).");
+
+  // Race 5: Concurrent seller suspension (v7->v8) vs seller submitting c_draft_2 -> submission denied (42501).
+  await concurrentRace(
+    `${asSellerAdmin()} select public.admin_moderate_seller_status('${sellerPublicId}',7,'suspended','Concurrent suspension');`,
+    `${asCaller(sellerRaceOwner)} select public.submit_listing(${reviewId("c_draft_2")},1);`,
+    "42501",
+  );
+  console.log("PASS: concurrent seller suspension vs listing submission: lock wait observed, submission denied (42501).");
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

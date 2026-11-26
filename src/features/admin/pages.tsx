@@ -233,7 +233,7 @@ export async function AdminReviewPage({
     return removeListing(locale, snapshot!, state, form, returnTo);
   }
 
-  const profileText = await getTranslations('profile');
+  const profileText = await getTranslations('account');
   const photoText = await getTranslations('photos');
   const detailRows = getReviewListingDisplayRows(snapshot.listing);
 
@@ -252,9 +252,17 @@ export async function AdminReviewPage({
         </dl>
         {inspection.decision && <section className="admin-status-banner"><h2>{inventory('decision')}</h2><p>{inventory(`decisions.${inspection.decision.action}`)} · {new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(inspection.decision.created_at))}</p>{inspection.decision.reason && <p><bdi>{inspection.decision.reason}</bdi></p>}</section>}
         <p>
-          <bdi>
-            {snapshot.profile.display_name} · @{snapshot.profile.username}
-          </bdi>
+          {inspection.seller_public_id ? (
+            <Link href={`/admin/sellers/${inspection.seller_public_id}`} className="text-link">
+              <bdi>
+                {snapshot.profile.display_name} · @{snapshot.profile.username}
+              </bdi>
+            </Link>
+          ) : (
+            <bdi>
+              {snapshot.profile.display_name} · @{snapshot.profile.username}
+            </bdi>
+          )}
         </p>
         <p className="field-hint">
           {t('eligibility', {

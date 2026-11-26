@@ -33,19 +33,25 @@ Updated 2026-11-21. Earlier day estimates were not measured and are withdrawn. T
 
 - **Phase Admin A — Overview Dashboard:** reusable `AdminShell` navigation (Overview, Listings, Reports live; Sellers, Analytics, Audit log, Settings, Operations labeled Planned), MFA-enforced `admin_dashboard_overview()` RPC (migration `023`), 11 live DB-derived KPIs (including seller-reported sold/traded and caveated WhatsApp clicks), Needs Attention queue highlights, genuine 7-day/30-day UTC trends and 7-day daily engagement breakdown, and privacy-safe recent audit activity feed across EN/AR, RTL, light/dark, and mobile/desktop layouts.
 
-- **Phase Admin B — Listing Management (local implementation; PR review pending):** Dedicated server-paginated inventory, all lifecycle states, search and combined filters, exact review snapshot reuse, private photo inspection and reasoned/version-checked direct removal. Forward-only migration 028; no new infrastructure. See PROGRESS.md for validation and remaining hosted/physical-device gates.
+- **Phase Admin B — Listing Management (merged on `main` @ `23f5dec`, PR #12):** Dedicated server-paginated inventory, all lifecycle states, search and combined filters, exact review snapshot reuse, private photo inspection and reasoned/version-checked direct removal. Forward-only migration `028`; no new infrastructure.
 
-## Remaining, in order
-1. **Phase 2B — External transactional email & auth recovery (application, server-side recovery boundary & runbooks merged on `main`; external provider setup pending owner action):** Forgot-password/reset-password (`/[locale]/auth/forgot-password`, `/[locale]/auth/recovery`, `/[locale]/auth/reset-password`), server-side recovery-session isolation (`migrations 020–022`), Continue with Google UI & server-side PKCE flow, bilingual email templates (`supabase/templates/`), and tested admin MFA recovery runbook (`docs/AUTH_DEPLOYMENT_RUNBOOK.md`) are implemented and verified on staging. Remaining owner-blocked gates: Resend custom SMTP/DNS live inbox delivery verification and Google Cloud OAuth staging credentials + live OAuth sign-in verification.
-2. **Phases Admin C–F — Full Admin Dashboard sequence:** After review of Admin B, complete Seller Management (C), Reports/Moderation Enhancements (D), Analytics & Audit Log (E), Settings & Operations (F), one independently reviewed PR per phase.
-3. **Phase 2C/2D — Production readiness:** account deletion flows (Phase 2E), rate-limiting/abuse review (Phase 2C), automated DB + separate private media backups, restore drill, monitoring, and final accessibility/privacy/security checks (Phase 2D). Configurable-limit screens remain optional for launch.
-4. **Hosted pilot:** user-approved production hosting/costs, secrets/domain/config, migrations, smoke tests and rollback readiness; recruit 5–10 willing sellers with permissioned inventory.
+- **Phase Admin C — Seller Management (local implementation; PR review pending):** Dedicated `/[locale]/admin/sellers` and `/[locale]/admin/sellers/[id]` workspace (activated in `AdminShell`), server-side search/filters/sorting/pagination, dynamic `platform_settings` defaults, per-seller account-type and `listing_limit_override` management with transactional active+pending capacity enforcement, reasoned/confirmed hide & suspend moderation (preserving saved listings/photos, immediately revoking public profile/QR/marketplace/contact/conditional-media eligibility; restoration deferred to manual operator procedure), exact Admin B `?seller=` filtering, and 5 localized EN/AR audit labels in Admin A. Forward-only migration `029` with separated `padelhub_seller_admin` / `padelhub_review_writer` least-privilege capabilities.
 
-**Frontend on hold:** Ziad is working on `v2`. Review/integration and admin visual refinement wait until he explicitly says it is ready. This does not block independent functional work.
+## Feature freeze — Production readiness before pilot (December 2–5, 2026 target)
 
-No new specialist orchestration or handoff reports. Keep one dependent feature in progress. No checkout, payments, automatic expiry or automatic deletion of saved photos. Seller-reported deal counts still require a product decision.
+Feature development is **frozen after Admin C**. Admin D–F are deferred until after the controlled pilot. Remaining work, in order:
+1. **Phase 2B external provider completion (owner-blocked gates):** Configure Resend custom SMTP + DNS (SPF/DKIM/DMARC, link tracking off) with live inbox signup/recovery tests, and Google Cloud OAuth staging credentials + live OAuth sign-in tests.
+2. **Hosted migration & media readiness:** Owner-authorized rollout and smoke verification of migrations `027`–`029` on `padelhub-staging`, plus physical iPhone/Android media verification (`docs/MEDIA_PHYSICAL_DEVICE_CHECKLIST.md`).
+3. **Phase 2C/2D — Production readiness:** rate-limiting/abuse review, automated daily encrypted DB backups + separate private `media-private` backups, verified restore drill, monitoring/alerting, and final accessibility/privacy/security checks.
+4. **Controlled pilot launch (target Dec 2–5, 2026, subject to all mandatory release checks passing):** user-approved production hosting/secrets/domain/migrations, smoke checks, rollback readiness, and onboarding the first 10 real sellers (independent coaches, Instagram retailers, Facebook resellers).
 
-Current next functional milestone: Phase 2B (external transactional email via custom SMTP & auth recovery on hosted staging); frontend review/merge waits for Ziad. Detailed progress/checks: PROGRESS.md. Staging setup/rollback: STAGING_SETUP.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
+**Deferred past pilot:** Admin D–F (reports enhancements, analytics/audit log explorer, settings/operations UI), account deletion UI (Phase 2E), seller restoration/appeal UI, reservations, payments/checkout, ratings/reviews, internal messaging, and subscriptions.
+
+**Frontend on hold:** Ziad's independent `v2` direction remains retired (`archive/v2-final`); do not reintroduce it.
+
+No new specialist orchestration or handoff reports. No checkout, payments, automatic expiry or automatic deletion of saved photos. Seller-reported deal counts and any future self-service seller restoration controls require explicit owner approval.
+
+Current next milestone: **Production readiness** (external SMTP/OAuth completion, hosted migrations `027`–`029` verification, backups/restore drill, physical-device media checks). Detailed progress/checks: PROGRESS.md. Staging setup/rollback: STAGING_SETUP.md. Local account/photo run instructions: LOCAL_ACCOUNTS.md and PHOTOS.md.
 
 ## After MVP
 - Reservation and available-again controls (deferred by Ziad on 2026-11-18).
