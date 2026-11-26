@@ -17,7 +17,6 @@ type LiveNavItem = {
 };
 
 const PLANNED_SECTIONS: readonly AdminNavSectionId[] = [
-  'sellers',
   'analytics',
   'audit',
   'settings',
@@ -36,6 +35,7 @@ export async function AdminShell({
   const liveItems: LiveNavItem[] = [
     { id: 'overview', href: '/admin' },
     { id: 'listings', href: '/admin/listings', count: pendingCount },
+    { id: 'sellers', href: '/admin/sellers' },
     { id: 'reports', href: '/admin/reports', count: openReportsCount },
   ];
 

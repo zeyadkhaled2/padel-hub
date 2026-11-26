@@ -6191,3 +6191,66 @@ nav a:hover,
   .inventory-filters { grid-template-columns: minmax(0,1fr); }
   .inventory-search { grid-column: auto; }
 }
+
+/* Admin C: Seller management workspace, capacity meter, status badges and moderation controls. */
+.seller-summary-strip { margin-block-end: 1.25rem; }
+.seller-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.seller-stat-link { background: var(--surface); text-decoration: none; transition: border-color 0.18s var(--ease-calm), background-color 0.18s var(--ease-calm); }
+.seller-stat-link:hover { border-color: var(--accent); background: var(--surface-soft); }
+.seller-stat-link.is-current { border-color: var(--accent); background: var(--accent-soft); }
+.seller-cell-primary { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.seller-capacity-cell { font-variant-numeric: tabular-nums; }
+.admin-seller-status { display: inline-flex; align-items: center; padding: 0.2rem 0.55rem; border-radius: var(--radius-sm); font-size: 0.78rem; font-weight: 700; }
+.admin-seller-status.is-active { background: var(--status-new-bg); color: var(--status-new-text); }
+.admin-seller-status.is-hidden { background: var(--status-warn-bg); color: var(--status-warn-text); }
+.admin-seller-status.is-suspended { background: var(--status-danger-bg); color: var(--status-danger-text); }
+.seller-filter-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-block-end: 1rem; }
+.seller-filter-banner-links { display: flex; flex-wrap: wrap; gap: 1rem; }
+.seller-detail-layout { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.seller-detail-topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.seller-detail-quick-links { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+.seller-detail-header h1 { overflow-wrap: anywhere; }
+.seller-detail-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block-end: 0.65rem; }
+.seller-id-line { margin-block-start: 0.35rem; overflow-wrap: anywhere; }
+.seller-id-line code { font-size: 0.82rem; padding: 0.12rem 0.4rem; border-radius: 6px; background: var(--surface-soft); overflow-wrap: anywhere; word-break: break-all; max-width: 100%; }
+.seller-profile-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem 1.5rem; }
+.seller-profile-dl > div { min-width: 0; }
+.seller-profile-dl .seller-dl-wide { grid-column: 1 / -1; }
+.seller-capacity-meter { height: 10px; width: 100%; border-radius: var(--radius-pill); background: var(--surface-soft); overflow: hidden; margin-block: 1rem 1.25rem; border: 1px solid var(--border); }
+.seller-capacity-fill { height: 100%; background: var(--accent); border-radius: var(--radius-pill); }
+.seller-capacity-fill.is-over { background: var(--status-danger-text); }
+.seller-sub-heading { margin-block-start: 0.25rem; }
+.seller-controls-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.seller-admin-form { max-width: none; min-width: 0; }
+.seller-admin-form input, .seller-admin-form textarea { width: 100%; min-width: 0; max-width: 100%; }
+.seller-admin-form input[type="radio"], .seller-admin-form input[type="checkbox"] { width: auto; }
+.seller-form-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-block-start: 0.25rem; }
+.seller-moderation-section { border-inline-start: 4px solid var(--status-danger-text); }
+.seller-consequence-box { padding: 14px 16px; border-radius: var(--radius-control); background: var(--status-warn-bg); color: var(--status-warn-text); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.9rem; min-width: 0; overflow-wrap: anywhere; }
+.seller-consequence-box .field-hint { color: inherit; opacity: 0.92; }
+.seller-moderation-choices { border: 1px solid var(--border); border-radius: var(--radius-control); padding: 12px 14px; display: flex; flex-direction: column; gap: 0.75rem; margin: 0; min-width: 0; max-width: 100%; }
+.seller-moderation-choices legend { padding-inline: 0.35rem; font-weight: 650; font-size: 0.9rem; }
+.seller-choice-row { display: flex; align-items: start; gap: 0.65rem; min-height: 44px; padding: 0.35rem 0; cursor: pointer; min-width: 0; }
+.seller-choice-row input { margin-block-start: 0.2rem; flex: 0 0 auto; }
+.seller-choice-row > span { min-width: 0; overflow-wrap: anywhere; }
+.seller-choice-row small { display: block; color: var(--muted); margin-block-start: 0.2rem; font-size: 0.82rem; }
+.seller-confirm-check { display: flex; align-items: start; gap: 0.65rem; min-height: 44px; padding: 0.5rem 0; font-size: 0.9rem; cursor: pointer; min-width: 0; }
+.seller-confirm-check input { margin-block-start: 0.2rem; flex: 0 0 auto; }
+.seller-confirm-check > span { min-width: 0; overflow-wrap: anywhere; }
+.seller-danger-button { background: #8b261d; color: #ffffff; border: 1px solid #8b261d; }
+[data-theme="dark"] .seller-danger-button { background: #b9382c; color: #ffffff; border-color: #d9574b; }
+.seller-danger-button:hover:not(:disabled) { opacity: 0.92; }
+.seller-moderation-locked { display: flex; flex-direction: column; gap: 0.6rem; }
+@media (max-width: 900px) {
+  .seller-controls-grid { grid-template-columns: minmax(0, 1fr); }
+  .seller-profile-dl { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .seller-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .seller-detail-layout .admin-section { padding: 16px; }
+}
+@media (max-width: 360px) {
+  .seller-summary-grid { grid-template-columns: minmax(0, 1fr); }
+}

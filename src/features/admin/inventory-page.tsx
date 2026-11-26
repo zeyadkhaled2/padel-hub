@@ -26,7 +26,7 @@ async function AdminInventoryContent({ locale, raw, client }: { locale: string; 
   const t = await getTranslations('admin.inventory');
   const a = await getTranslations('admin');
   const e = await getTranslations('listingEditor');
-  const p = await getTranslations('profile');
+  const p = await getTranslations('account');
   const photos = await getTranslations('photos');
   const parsed = parseInventoryQuery(raw);
   if (!parsed.success) return <AdminShell active="listings"><p role="alert">{t('invalid')}</p><Link href="/admin/listings">{t('clear')}</Link></AdminShell>;
@@ -34,6 +34,7 @@ async function AdminInventoryContent({ locale, raw, client }: { locale: string; 
   const result = await client.rpc('admin_listing_inventory', {
     p_query: query.q, p_status: query.status, p_category: query.category,
     p_account_type: query.account, p_governorate: query.governorate, p_sort: query.sort, p_page: query.page,
+    p_seller_public_id: query.seller || null,
   });
   const data = result.error ? null : inventoryPageSchema.safeParse(result.data);
   const inventory = data?.success ? data.data : null;
@@ -48,10 +49,22 @@ async function AdminInventoryContent({ locale, raw, client }: { locale: string; 
   return <AdminShell active="listings" pendingCount={inventory?.counts?.pending ?? 0}>
     <header className="admin-page-header"><div><h1>{t('title')}</h1><p className="field-hint">{t('description')}</p></div></header>
     {raw.done === '1' && <p role="status" className="admin-status-banner">{a('saved')}</p>}
+    {query.seller && <div className="admin-status-banner seller-filter-banner">
+      <span>
+        {inventory?.filtered_seller
+          ? t('filteredSeller', { name: inventory.filtered_seller.display_name, username: inventory.filtered_seller.username })
+          : t('filteredSellerId', { id: query.seller })}
+      </span>
+      <span className="seller-filter-banner-links">
+        <Link href={`/admin/sellers/${query.seller}`} className="text-link">{t('openSellerDetails')}</Link>
+        <Link href={inventoryHref({ ...query, seller: '' }, 1)} className="text-link">{t('clearSellerFilter')}</Link>
+      </span>
+    </div>}
     {inventory && <nav className="inventory-counts" aria-label={t('counts')}>
       {LISTING_STATUSES.map(status => <Link key={status} href={inventoryHref({ ...query, status }, 1)} aria-current={query.status === status ? 'page' : undefined}>{statusLabel(status)} <strong>{(inventory.counts?.[status] ?? 0).toLocaleString(locale)}</strong></Link>)}
     </nav>}
     <form action={`/${locale}/admin/listings`} method="get" className="inventory-filters">
+      {query.seller && <input type="hidden" name="seller" value={query.seller} />}
       <label className="inventory-search">{t('search')}<input name="q" defaultValue={query.q} maxLength={120} type="search" placeholder={t('searchHint')} /></label>
       {fields.map(field => <label key={field.name}>{t(field.name)}<select name={field.name} defaultValue={query[field.name]}><option value="">{t('all')}</option>{field.values.map(value => <option key={value} value={value}>{field.label(value)}</option>)}</select></label>)}
       <label>{t('sort')}<select name="sort" defaultValue={query.sort}>{INVENTORY_SORTS.map(sort => <option key={sort} value={sort}>{t(`sorts.${sort}`)}</option>)}</select></label>
@@ -63,7 +76,7 @@ async function AdminInventoryContent({ locale, raw, client }: { locale: string; 
         <table className="inventory-table"><caption className="sr-only">{t('title')}</caption><thead><tr>{['listing','seller','price','status','dates','action'].map(key => <th key={key} scope="col">{t(key)}</th>)}</tr></thead><tbody>
           {inventory.items.map(item => <tr key={item.id}>
             <td><div className="inventory-listing">{item.cover_media_id ? <AdminPhotoPreview thumbnail fallback={t('noPhoto')} src={`/api/admin/listings/${item.id}/photos/${item.cover_media_id}?variant=thumb`} alt="" /> : <span className="inventory-no-photo">{t('noPhoto')}</span>}<div><bdi>{item.title || a('overview.untitledListing')}</bdi><small>{photos(item.category)}</small></div></div></td>
-            <td><bdi>{item.display_name || t('unknownSeller')}</bdi>{item.username && <small><bdi>@{item.username}</bdi></small>}</td>
+            <td>{item.seller_public_id ? <Link href={`/admin/sellers/${item.seller_public_id}`} className="text-link"><bdi>{item.display_name || t('unknownSeller')}</bdi></Link> : <bdi>{item.display_name || t('unknownSeller')}</bdi>}{item.username && <small><bdi dir="ltr">@{item.username}</bdi></small>}</td>
             <td>{item.price_egp === null ? (item.offer_type === 'swap' ? e('swap') : '—') : new Intl.NumberFormat(locale, { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 }).format(item.price_egp)}{item.offer_type === 'both' && <small>{e('both')}</small>}</td>
             <td><span className="inventory-status">{statusLabel(item.status)}</span><small>{t(item.public_visible ? 'visible' : 'private')}</small></td>
             <td><small>{t(item.submitted_at ? 'submitted' : 'created')}: <time dateTime={item.submitted_at || item.created_at}>{date(item.submitted_at || item.created_at)}</time></small><small>{t('updated')}: <time dateTime={item.updated_at}>{date(item.updated_at)}</time></small></td>

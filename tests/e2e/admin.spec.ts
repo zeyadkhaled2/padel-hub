@@ -101,8 +101,9 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     const adminNav=page.getByRole('navigation',{name:'Admin navigation'});
     await expect(adminNav.getByRole('link',{name:'Overview'})).toBeVisible();
     await expect(adminNav.getByRole('link',{name:/Listings/})).toBeVisible();
+    await expect(adminNav.getByRole('link',{name:'Sellers'})).toBeVisible();
     await expect(adminNav.getByRole('link',{name:/Reports/})).toBeVisible();
-    await expect(adminNav.locator('.admin-nav-planned')).toHaveCount(5);
+    await expect(adminNav.locator('.admin-nav-planned')).toHaveCount(4);
     await expect(adminNav.locator('.admin-nav-planned a')).toHaveCount(0);
     for(const kpiLabel of ['Total seller profiles','Active sellers','Suspended sellers','Total listings','Active listings','Pending listings','Rejected listings','Sold or traded (seller-reported)','Open reports','Approximate views','WhatsApp clicks']) {
       await expect(page.locator('.admin-kpi-card .admin-kpi-label',{hasText:kpiLabel}).first()).toBeVisible();

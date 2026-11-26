@@ -10,6 +10,7 @@ const querySchema = z.object({
   category: z.union([z.literal(''), equipmentCategorySchema]).default(''),
   account: z.union([z.literal(''), accountTypeSchema]).default(''),
   governorate: z.union([z.literal(''), governorateSlugSchema]).default(''),
+  seller: z.union([z.literal(''), uuidSchema]).default(''),
   sort: z.enum(INVENTORY_SORTS).default('created'),
   page: z.string().regex(/^[1-9]\d*$/).default('1').transform(Number).pipe(z.number().int().max(MAX_PAGE)),
 });
@@ -19,7 +20,7 @@ export function parseInventoryQuery(params: InventoryParams) {
 }
 export function inventoryHref(query: InventoryQuery, page = query.page) {
   const params = new URLSearchParams();
-  for (const key of ['q', 'status', 'category', 'account', 'governorate', 'sort'] as const) {
+  for (const key of ['q', 'status', 'category', 'account', 'governorate', 'seller', 'sort'] as const) {
     if (query[key]) params.set(key, query[key]);
   }
   if (page > 1) params.set('page', String(page));
@@ -37,10 +38,16 @@ const count = z.number().int().nonnegative();
 export const inventoryPageSchema = z.object({
   total: count,
   counts: z.partialRecord(listingStatusSchema, count).nullable(),
+  filtered_seller: z.object({
+    public_id: uuidSchema,
+    display_name: z.string(),
+    username: z.string(),
+  }).nullable().optional(),
   items: z.array(z.object({
     id: uuidSchema, title: z.string().nullable(), category: equipmentCategorySchema,
     status: listingStatusSchema, offer_type: offerTypeSchema.nullable(), price_egp: z.number().nullable(),
     swap_preference: z.string().nullable(), display_name: z.string().nullable(), username: z.string().nullable(),
+    seller_public_id: uuidSchema.nullable().optional(),
     created_at: z.string(), updated_at: z.string(), submitted_at: z.string().nullable(),
     public_visible: z.boolean(), cover_media_id: uuidSchema.nullable(),
   })).max(PAGE_SIZE),
@@ -48,5 +55,6 @@ export const inventoryPageSchema = z.object({
 export const inspectionSchema = z.object({
   created_at: z.string(), updated_at: z.string(), approved_at: z.string().nullable(), published_at: z.string().nullable(),
   public_visible: z.boolean(),
+  seller_public_id: uuidSchema.nullable().optional(),
   decision: z.object({ action: z.enum(['listing.approved', 'listing.rejected', 'listing.removed', 'report.remove']), reason: z.string().nullable(), created_at: z.string() }).nullable(),
 });

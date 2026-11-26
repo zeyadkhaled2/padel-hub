@@ -106,6 +106,9 @@ export async function NeedsAttentionPanel({
             </span>
           </div>
           <p className="field-hint">{t('suspendedHint')}</p>
+          <Link href="/admin/sellers?status=suspended" className="admin-card-action">
+            {t('goSuspendedSellers')}
+          </Link>
         </article>
       </div>
     </section>
