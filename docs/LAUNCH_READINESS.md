@@ -12,7 +12,7 @@ Owner decision: **Vercel Hobby, Supabase Free, Resend Free through Supabase cust
 
 Vercel Hobby is retained for eligible non-commercial validation. Resolve real-seller pilot eligibility before inviting sellers; a free marketplace is not automatically non-commercial under [Vercel's terms](https://vercel.com/legal/terms). Do not silently change plans.
 
-Vercel project inspection on 2026-11-27 confirmed Hobby plan (`padel-hub`, Node.js `26.x`, Fluid Compute enabled, 2048 MB memory, 0 env vars) currently deploys functions to **`iad1`** (`dpl_DQoNKB7Xvfk6wTBHebKA3CGxCVav` at `a977117`). Frankfurt single-region colocation (`"regions": ["fra1"]`) is configured in `vercel.json` and will be verified on the dedicated PR preview deployment. See [STAGING_SETUP.md](STAGING_SETUP.md) and [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md) for current staging evidence, quotas, and owner steps. Historical results below are dated evidence, not proof of current deployment.
+Vercel Hobby Preview deployment on branch `staging` (`https://padel-hub-git-staging-zeyadkhaled2s-projects.vercel.app`, `dpl_GYAKq4kihpbzYbZG78kmnhVMaa8M`) is **live and verified in `fra1` (Frankfurt)** (`nodejs26.x`, Fluid Compute `true`, `2,048 MB` provisioned, `244–289 MB` observed peak, `0` HTTP `5xx` across 200 sampled invocations) connected exclusively to `padelhub-staging` (`sxghreukdkxclymysryp`, `eu-central-1`), while Production (`main`, `padel-hub-beta.vercel.app`) retains **0** env vars. See [STAGING_SETUP.md](STAGING_SETUP.md) and [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md) for current staging evidence, quotas, and owner steps.
 
 ---
 
@@ -33,22 +33,21 @@ Vercel project inspection on 2026-11-27 confirmed Hobby plan (`padel-hub`, Node.
 ## 3. Prioritized Remaining Tasks (P0 / P1 / P2)
 
 ### P0 - Must complete before onboarding real sellers
-1. **Resolve Vercel Hobby eligibility for the real-seller pilot.** Keep the owner-selected free tier for eligible non-commercial validation. No paid plan or migration is authorized.
-2. **Connect and verify an actual hosted staging frontend.** Staging migrations 027–031, Security/Performance Advisors (`0` errors), and full synthetic smoke suites (`smoke`, `smoke-phase2b`, deletion guards, Admin B removal, Admin C moderation, `verify-revoked-admin`) passed via a local production Next.js server connected to hosted Frankfurt Supabase. Set isolated Preview env vars on Vercel, confirm `fra1` deployment, and rerun against the staging HTTPS origin.
-3. **Domain and real SMTP delivery.** Configure Resend/DNS (`auth.<domain>`), exact redirects, and bilingual templates; verify real-inbox confirmation/recovery. Synthetic generated-link tests do not satisfy this gate.
-4. **Separate production approval and provisioning.** Use a dedicated clean Supabase Free project in `eu-central-1`, migrations 001–031 with documented 006 repair, private Storage, and isolated Production variables. Follow [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md); do not provision until separately approved.
+1. **Resolve Vercel Hobby eligibility for the real-seller pilot.** Keep the owner-selected free tier for eligible non-commercial validation and private demonstration. No paid plan or migration is authorized.
+2. **Update `padelhub-staging` Auth Redirect URLs for the hosted staging URL** (owner Supabase Dashboard step): add the exact 4 `https://padel-hub-git-staging-zeyadkhaled2s-projects.vercel.app/{en,ar}/auth/{callback,recovery}` URLs and update Site URL so browser-initiated staging signup/recovery redirects land on Vercel rather than `http://127.0.0.1:3100`.
+3. **Domain and real SMTP delivery (deferred until domain purchase).** Configure Resend/DNS (`auth.<domain>`), exact redirects, and bilingual templates; verify real-inbox confirmation/recovery. Generated token-hash link tests do **not** satisfy this gate.
+4. **Separate production approval and provisioning.** Use a dedicated clean Supabase Free project in `eu-central-1`, migrations `001–031` with documented `006` repair, private `media-private` Storage, and isolated Production variables. Follow [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md); do not provision until separately approved.
 5. **Operator security and recovery.** Confirm provider 2FA (GitHub, Vercel, Supabase, Resend), production admin TOTP/non-admin/revoked denial, backup operator, encrypted independent DB/media backups, and an actual hosted restore/authorization rehearsal.
-6. **Physical-device sign-off.** iPhone Safari and Android Chrome camera/HEIC, retry/cancel, account deletion, and WhatsApp remain unverified on real devices.
+6. **Physical-device sign-off.** iPhone Safari and Android Chrome camera/HEIC, interrupted-connection retry/cancel, account deletion, Arabic RTL/dark mode, and WhatsApp handoff remain unverified on real devices.
 
 ### Optional indexing decision (not a launch blocker)
 - **Flip SEO `robots` indexing decision (if desired)**: keep `noindex` during invite-only pilot OR remove `noindex` on public browse/detail/profile/legal pages only when explicitly ready for public search indexing (never index `/auth`, `/account`, or `/admin`).
 
-### P1 - Complete during staging validation
-1. Review and deploy the dedicated readiness PR, including pending-deletion controls, `fra1` config, and corrected hosted smoke assertions.
-2. Confirm `fra1` deployment and connected-host cold/warm browse, detail, storefront, and upload performance with Vercel Runtime Logs duration/memory/invocation/query/egress evidence.
-3. Repeat browser HEIC fallback, upload cancellation, and retry checks against the connected hosted HTTPS preview origin (locally verified in 36/36 E2E; JPEG/PNG/WebP + idempotency + Admin B removal + Admin C moderation verified against hosted staging).
-4. Record actual Vercel/Supabase/Resend/GitHub usage baselines and 50/70/90% operator actions from [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md).
-5. Optional during pilot: Google OAuth (auto-surfaces once enabled) and Supabase HIBP leaked-password protection (currently flagged as `WARN` on Free tier).
+### P1 - Staging follow-up & optional during pilot
+1. Review and merge the hosted-validation PR (origin-scoped OIDC smoke support + updated hosted staging documentation).
+2. Repeat browser HEIC fallback and interrupted upload cancellation/retry on physical devices against `https://padel-hub-git-staging-zeyadkhaled2s-projects.vercel.app` (automated JPEG/PNG/WebP uploads, idempotency, ETag/304, Admin A/B/C, deletion guards, and revocation all passed on Vercel `fra1`).
+3. Record initial dashboard usage baselines and follow 50/70/90% operator actions from [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md).
+4. Optional during pilot: Google OAuth (auto-surfaces once enabled) and Supabase HIBP leaked-password protection (currently flagged as `WARN` on Free tier).
 
 ### P2 — Post-Pilot Improvements (Strictly Out of Scope Before Pilot)
 - Admin D–F (reports enhancements, analytics/audit log explorer, platform settings & operations UI).
