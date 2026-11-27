@@ -59,8 +59,8 @@ Admin: review/approve/reject with reasons, handle reports, suspend users/hide pr
 Conduct manual pilot deal follow-up. Do not introduce verified-sale/reputation badges until a defensible verification process exists.
 
 ## 4. Engineering architecture and operations
-Single modular Next.js/TypeScript app with server-side domain logic. Supabase PostgreSQL/Auth/Storage; Railway Node hosting. Resend custom SMTP. Tailwind, accessible UI primitives, next-intl, Zod, Vitest, Playwright and GitHub Actions.
-Start Supabase Free for pilot. Railway hosting is separate from Supabase database/auth/storage. Reaching Supabase limits is not a simple switch to Railway: compare upgrading with a planned migration. Maintain versioned SQL migrations and documented media export/manifest to preserve portability.
+Single modular Next.js/TypeScript app with server-side domain logic. Supabase PostgreSQL/Auth/Storage; Vercel Hobby for eligible non-commercial validation (owner decision 2026-11-27; real-seller eligibility remains a release gate). Resend custom SMTP. Tailwind, accessible UI primitives, next-intl, Zod, Vitest, Playwright and GitHub Actions.
+Start Supabase Free for pilot. Frontend hosting is separate from Supabase database/auth/storage. Reaching Supabase limits is not a simple switch to Railway: compare upgrading with a planned migration. Maintain versioned SQL migrations and documented media export/manifest to preserve portability.
 
 Data domains: private account/contact details, public profiles and username aliases, category-specific listings, image/upload records, reports/moderation audit, approximate view/contact events. Versioned mutation interfaces for profiles, listings, uploads, contact, reports and moderation. Return only approved/public fields publicly. Enforce server authorization and database RLS; transactional writes and version/conflict checks prevent races/stale overwrites.
 

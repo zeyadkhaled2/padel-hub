@@ -54,10 +54,12 @@ function matchesStatusFilter(status: ListingStatus, filter: StatusFilter): boole
 }
 
 export function SellerListingsBoard({
+  readOnly = false,
   initialItems,
   hasProfile,
   profileReadyForPublic,
 }: {
+  readOnly?: boolean;
   initialItems: OwnerListingSummary[];
   hasProfile: boolean;
   profileReadyForPublic: boolean;
@@ -116,6 +118,7 @@ export function SellerListingsBoard({
     item: OwnerListingSummary,
     intent: 'withdraw' | 'sold' | 'traded' | 'archive' | 'relist' | 'reopen',
   ) {
+    if (readOnly) return;
     setBusyListingId(item.id);
     setFeedback(null);
     const form = new FormData();
@@ -264,7 +267,7 @@ export function SellerListingsBoard({
               </div>
             </li>
           </ol>
-          {(!hasProfile || !profileReadyForPublic) && (
+          {(!hasProfile || !profileReadyForPublic) && !readOnly && (
             <div className="seller-empty-cta">
               <Link href="/account" className="button secondary">
                 <span>{hasProfile ? t('onboardingConfigureProfile') : t('onboardingCreateProfile')}</span>
@@ -449,11 +452,11 @@ export function SellerListingsBoard({
                       <div className="seller-listing-actions">
                         <Link
                           href={`/account/listings/${item.id}`}
-                          className={`button ${item.status === 'rejected' ? 'primary' : 'secondary'} seller-card-btn`}
+                          className={`button ${item.status === 'rejected' && !readOnly ? 'primary' : 'secondary'} seller-card-btn`}
                         >
                           <FileEdit size={15} aria-hidden />
                           <span>
-                            {item.status === 'rejected'
+                            {readOnly ? t('dashboardManage') : item.status === 'rejected'
                               ? t('dashboardFixResubmit')
                               : editable
                                 ? t('dashboardEdit')
@@ -486,7 +489,7 @@ export function SellerListingsBoard({
                           <button
                             type="button"
                             className="button secondary seller-card-btn"
-                            disabled={busy}
+                            disabled={busy || readOnly}
                             onClick={() => triggerLifecycleAction(item, 'sold')}
                           >
                             <Tag size={15} aria-hidden />
@@ -498,7 +501,7 @@ export function SellerListingsBoard({
                           <button
                             type="button"
                             className="button secondary seller-card-btn"
-                            disabled={busy}
+                            disabled={busy || readOnly}
                             onClick={() => triggerLifecycleAction(item, 'traded')}
                           >
                             <RotateCcw size={15} aria-hidden />
@@ -510,7 +513,7 @@ export function SellerListingsBoard({
                           <button
                             type="button"
                             className="button secondary seller-card-btn"
-                            disabled={busy}
+                            disabled={busy || readOnly}
                             onClick={() => triggerLifecycleAction(item, 'withdraw')}
                           >
                             <span>{t('withdraw')}</span>
@@ -521,7 +524,7 @@ export function SellerListingsBoard({
                           <button
                             type="button"
                             className="button secondary seller-card-btn"
-                            disabled={busy}
+                            disabled={busy || readOnly}
                             onClick={() => triggerLifecycleAction(item, 'archive')}
                           >
                             <Archive size={15} aria-hidden />
@@ -534,7 +537,7 @@ export function SellerListingsBoard({
                             <button
                               type="button"
                               className="button primary seller-card-btn"
-                              disabled={busy}
+                              disabled={busy || readOnly}
                               onClick={() => triggerLifecycleAction(item, 'relist')}
                             >
                               <RotateCcw size={15} aria-hidden />
@@ -543,7 +546,7 @@ export function SellerListingsBoard({
                             <button
                               type="button"
                               className="button secondary seller-card-btn"
-                              disabled={busy}
+                              disabled={busy || readOnly}
                               onClick={() => triggerLifecycleAction(item, 'reopen')}
                             >
                               <FileEdit size={15} aria-hidden />
@@ -556,7 +559,7 @@ export function SellerListingsBoard({
                           <button
                             type="button"
                             className="button primary seller-card-btn"
-                            disabled={busy}
+                            disabled={busy || readOnly}
                             onClick={() => triggerLifecycleAction(item, 'reopen')}
                           >
                             <RotateCcw size={15} aria-hidden />

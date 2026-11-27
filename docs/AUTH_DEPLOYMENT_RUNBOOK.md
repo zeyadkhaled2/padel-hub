@@ -26,7 +26,7 @@ Configure these DNS records at your domain registrar after adding the domain in 
 | **SPF (`TXT`)** | `send.auth.<your-domain>` (per Resend UI) | Authorizes Resend's mail servers to send on behalf of the sending domain (`v=spf1 include:amazonses.com ~all` / Resend-provided value). |
 | **DKIM (`TXT` or `CNAME`)** | `resend._domainkey.auth.<your-domain>` (exact name from Resend) | Cryptographically signs outgoing emails to prove authenticity and prevent spoofing. |
 | **MX (`MX`)** | `send.auth.<your-domain>` (per Resend UI) | Handles bounce/feedback notifications for sending reputation. |
-| **DMARC (`TXT`)** | `_dmarc.<your-domain>` | Enforces alignment & reporting (start with `v=DMARC1; p=quarantine; rua=mailto:dmarc@<your-domain>; adkim=s; aspf=s;`, then tighten to `p=reject` after verifying delivery). |
+| **DMARC (`TXT`)** | `_dmarc.auth.<your-domain>` | Enforces alignment & reporting (start with `v=DMARC1; p=none;` during alignment validation; add reporting only to an operator-owned inbox, then tighten after real delivery checks). |
 
 ### 1.3 Critical Resend Setting — Disable Link & Open Tracking
 In Resend Domain Settings, **turn OFF Click Tracking and Open Tracking** for the authentication sending domain. Link-tracking wrappers rewrite and prefetch single-use Supabase authentication links, causing `token_hash` verification to fail with expired/invalid errors.
@@ -198,3 +198,12 @@ Audited across all Phase 2B changes:
 - **Token leakage**: `code` and `token_hash` are exchanged server-side in Route Handlers and stripped via redirect with `Cache-Control: private, no-store` and `Referrer-Policy: no-referrer`; zero tokens logged or printed.
 - **Admin MFA & privilege escalation**: Verified empirically on `padelhub-staging` that password recovery on an MFA-enrolled admin enforces TOTP (`aal2`), never removes the factor, blocks `/admin` bypass, and immediate role revocation denies active `aal2` sessions.
 - **No directly exploitable security issues remain in the implemented authentication code.** Remaining external-service verification items (live Resend SMTP inbox delivery & real Google Cloud OAuth consent flow) are explicitly tracked as blocked pending owner provider/DNS credentials.
+
+
+## Free-tier preparation update — 2026-11-27
+
+Resend Free remains selected. SMTP/DNS and real-inbox delivery are owner-dependent and unverified in this session. Use the exact Resend-generated SPF, DKIM and bounce MX values; do not guess region-specific hosts or publish a second SPF record at the same name. The sending domain is `auth.<domain>`; bounce records commonly sit beneath `send.auth.<domain>`. DKIM must verify for the sending domain. Check DMARC alignment using received headers before tightening enforcement; strict SPF alignment can fail with a distinct bounce subdomain.
+
+The EN/AR redirects remain `<origin>/en/auth/callback`, `<origin>/ar/auth/callback`, `<origin>/en/auth/recovery`, `<origin>/ar/auth/recovery`. Do not mix staging and production Site URLs or add wildcard redirects. Disable both open and click tracking, and keep recovery tokens out of logs. Test real inbox signup and recovery separately from admin-generated synthetic links. Monitor both daily and monthly quotas at 50/70/90% as detailed in [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md).
+
+Provider instructions checked: [Resend Supabase SMTP](https://resend.com/docs/send-with-supabase-smtp), [Resend pricing](https://resend.com/pricing). Dashboard setup, DNS ownership, API key creation and real inbox access require the owner; no live delivery is claimed.

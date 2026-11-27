@@ -592,6 +592,25 @@ test.describe('local verified accounts', () => {
         }
       }
     }
+    // Direct navigation remains readable, with every mutation control unavailable.
+    for (const locale of ['en', 'ar']) {
+      await page.goto(`/${locale}/account/listings`);
+      await expect(page.locator('.seller-feedback-banner a[href$="/account#account-deletion"]')).toBeVisible();
+      await expect(page.locator('.seller-create-card')).toHaveCount(0);
+      await expect(page.locator('.seller-listing-actions button:enabled')).toHaveCount(0);
+      await page.goto(`/${locale}/account/listings/${listingId}`);
+      await expect(page.locator('.seller-feedback-banner a[href$="/account#account-deletion"]')).toBeVisible();
+      await expect(page.locator('.editor-page fieldset[disabled]')).toBeVisible();
+      if (locale === 'ar') await page.screenshot({ path: info.outputPath('pending-editor-ar-dark.png'), fullPage: true });
+      await expect(page.locator('.editor-page input:enabled:not([type="hidden"]), .editor-page select:enabled, .editor-page textarea:enabled, .editor-page button:enabled')).toHaveCount(0);
+      await page.goto(`/${locale}/account/photos?listing=${listingId}`);
+      await expect(page.locator('.seller-feedback-banner a[href$="/account#account-deletion"]')).toBeVisible();
+      await expect(page.locator('input[type="file"]')).toHaveCount(0);
+      await expect(page.locator('.photo-draft-controls form[action]')).toHaveCount(0);
+      await expect(page.locator('.photo-manager-page img')).not.toHaveCount(0);
+      if (locale === 'ar') await page.screenshot({ path: info.outputPath('pending-photos-ar-dark.png'), fullPage: true });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    }
     await page.goto('/en/account');
     expect((await request.get(`/en/@${username}`)).status()).toBe(404);
     expect((await request.get(qrTarget, { maxRedirects: 0 })).status()).toBe(404);
@@ -612,6 +631,15 @@ test.describe('local verified accounts', () => {
     await page.reload();
     await expect(deletionSection.getByRole('status')).toContainText('Account deletion request received');
     await expect(page.locator('.seller-profile-page input:not([type="hidden"]), .seller-profile-page textarea')).toHaveCount(0);
+    await page.goto('/en/account/listings');
+    await expect(page.locator('.seller-feedback-banner a[href$="/account#account-deletion"]')).toBeVisible();
+    await expect(page.locator('.seller-create-card')).toHaveCount(0);
+    await expect(page.locator('.seller-profile-needed')).toHaveCount(0);
+    await page.goto('/en/account/photos');
+    await expect(page.locator('.seller-feedback-banner a[href$="/account#account-deletion"]')).toBeVisible();
+    await expect(page.locator('.photo-draft-controls form[action]')).toHaveCount(0);
+    await expect(page.locator('input[type="file"]')).toHaveCount(0);
+    await page.goto('/en/account');
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await expect(page).toHaveURL(/\/en(?:\/auth\/signin)?$/);
   });

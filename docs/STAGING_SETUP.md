@@ -47,7 +47,7 @@ For local staging testing, keep values only in gitignored `.env.staging.local` (
 
 ## 4. Applying & Verifying Database Migrations
 
-All migrations live in `supabase/migrations/` (`001` through `019`). Always test new migrations locally first via `npm run test:db` (disposable scratch database) — **never run destructive database tests (`npm run test:db`) against hosted staging**.
+All migrations live in `supabase/migrations/` (`001` through `031`). Always test new migrations locally first via `npm run test:db` (disposable scratch database) — **never run destructive database tests (`npm run test:db`) against hosted staging**.
 
 ### Hosted Bootstrap Procedure (Fresh Project)
 
@@ -75,11 +75,11 @@ For subsequent incremental migrations on an already-bootstrapped staging project
 
 ### Verifying Migration Success
 
-1. Confirm all 19 versions (`20261116000100` .. `20261121001900`) appear in `supabase_migrations.schema_migrations`.
+1. Confirm all 31 versions (`20261116000100` .. `20261126003100`) appear in `supabase_migrations.schema_migrations`.
 2. Verify schema invariants (read-only SQL):
-   - All 20 tables in `public` and `private` have `ENABLE` and `FORCE ROW LEVEL SECURITY`.
+   - All 23 tables in `public` and `private` have `ENABLE` and `FORCE ROW LEVEL SECURITY`.
    - Zero `public`/`private` RLS policies reference `auth.*` directly.
-   - All 7 `padelhub_*` roles have `rolcanlogin = false`, `rolinherit = false`, `rolbypassrls = false`, `rolsuper = false`.
+   - All `padelhub_*` roles have `rolcanlogin = false`, `rolinherit = false`, `rolbypassrls = false`, `rolsuper = false`.
    - Zero direct `anon`, `authenticated`, or `PUBLIC` table grants exist on `public.*` or `private.*`.
    - Reference seed counts match (`platform_settings = 1`, `egypt_governorates = 27`, `curated_brands = 14`, reserved usernames `= 71`).
 3. Run Supabase Security Advisors (`get_advisors` / Dashboard Advisors) and confirm zero `ERROR`-level security issues, zero mutable-search-path functions, and zero exposed `private` helpers.
@@ -121,7 +121,7 @@ node scripts/staging-app.mjs verify-revoked-admin
   2. Set only the 4 server-only `PADELHUB_*` variables scoped to **Preview** (or the dedicated staging project), with `PADELHUB_APP_ORIGIN` matching the exact staging HTTPS origin.
   3. Add `<staging-origin>/en/auth/callback` and `<staging-origin>/ar/auth/callback` to `padelhub-staging` Auth Redirect URLs.
   4. Verify `robots: { index: false, follow: false }` remains active (`src/app/[locale]/layout.tsx`).
-  5. **Upload limit & commercial-hosting note**: Media Optimization V1 aligns incoming `POST /api/listings/[listingId]/photos` bodies to **4,000,000 bytes** via client-side adaptive resizing/compression, so uploads fit cleanly below Vercel's 4.5 MB serverless cap. However, **Vercel Hobby (\$0/month) is restricted to non-commercial use**; for commercial production pilot hosting, see [LAUNCH_READINESS.md](LAUNCH_READINESS.md) (Railway Hobby \$5/month recommended, or Vercel Pro \$20/month).
+  5. **Upload limit & commercial-hosting note**: Media Optimization V1 aligns incoming `POST /api/listings/[listingId]/photos` bodies to **4,000,000 bytes** via client-side adaptive resizing/compression, so uploads fit cleanly below Vercel's 4.5 MB serverless cap. However, **Vercel Hobby (\$0/month) is restricted to non-commercial use**; for commercial production pilot hosting, see [LAUNCH_READINESS.md](LAUNCH_READINESS.md) (retain the selected Vercel Hobby for eligible non-commercial validation; resolve pilot eligibility separately).
 
 ## 6. Safe Rollback & Incident Recovery Procedures
 
@@ -143,3 +143,12 @@ node scripts/staging-app.mjs verify-revoked-admin
 ## 7. Backup, Monitoring & Account Deletion Operations
 
 See [OPERATIONS_AND_BACKUPS.md](OPERATIONS_AND_BACKUPS.md) for the verified daily logical `pg_dump` procedure, separate private `media-private` backup & SHA-256 verification helper (`scripts/backup-supabase.mjs`), isolated restore drill, built-in Supabase/host monitoring & 70% quota thresholds, and the SQL-verified manual account deletion operator runbook.
+
+
+## Hosted verification and free-tier preparation — 2026-11-27
+
+The owner authorized staging migrations and synthetic smoke tests. Migrations 027–031 are now applied in sequence to `sxghreukdkxclymysryp`; historical migrations were unchanged. Before migration, a 496,760-byte custom-format database archive (auth/public/private/migration history), readable archive index and permission snapshot were saved under ignored `.cache/backups/staging-pre-027-031`. SHA-256: `ebd4682030436047dc728187b96bb36a2ef85d24c2a72e44f913232eb240607d`. Archive readability/hash checks are **not** a hosted restore rehearsal. This local synthetic staging backup is not yet an encrypted independent production backup.
+
+Post-migration SQL: 31 migration versions, latest 20261126003100; 23 tables with zero RLS failures, unsafe capability roles, direct client table grants, private-helper client execution grants or mutable definer search paths. Storage: private `media-private`, 8,388,608-byte limit, WebP only, zero Storage table policies. Separate media backup: 207/207 objects, 61,070 bytes, SHA-256 verified. Later smoke fixtures increase staging counts.
+
+Supabase Security & Performance Advisors were executed via Management API post-031 on 2026-11-27: **0 `ERROR`-level issues**, 0 mutable-search-path functions, and 0 exposed `private` helpers (expected `WARN` on intentionally exposed least-privilege `SECURITY DEFINER` RPCs and Free-tier HIBP disabled; expected `INFO` on 7 deny-by-default tables with `FORCE RLS` and no policies). Vercel CLI inspection confirmed Hobby plan (`padel-hub`, Fluid Compute enabled, Node `26.x`, 0 env vars) currently deploys functions to `iad1`; `vercel.json` prepares `"regions": ["fra1"]` for verification on the dedicated PR preview deployment. Post-smoke staging state verified `active_admins = 0`, `visible_or_pending_listings = 0`, DB `16,127,667` bytes, `384` media objects (`123,896` bytes). No production project, domain, SMTP, or billing was configured. Current owner dashboard steps, monitoring thresholds, and production checklist: [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md). Exact smoke/regression outcomes: latest [PROGRESS.md](PROGRESS.md) entry.

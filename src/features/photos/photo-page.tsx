@@ -1,3 +1,6 @@
+/* eslint-disable @next/next/no-img-element -- Owner photos use the private proxy. */
+import { MutationNotice } from '@/features/profile/mutation-notice';
+import { fetchMyAccountDeletionRequest } from '@/features/profile/server';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { AlertTriangle, ArrowLeft, FileEdit, FolderOpen, Plus } from 'lucide-react';
@@ -25,15 +28,18 @@ export default async function Page({
   const client = await verifiedClient();
   if (!client) redirect(`/${localeValue(locale)}/auth/signin`);
 
-  const [t, editor, draftsResult] = await Promise.all([
+  const [t, editor, draftsResult, deletion] = await Promise.all([
     getTranslations('photos'),
     getTranslations('listingEditor'),
     fetchOwnerPhotoDrafts(client),
+    fetchMyAccountDeletionRequest(client),
   ]);
 
   const { items, error } = draftsResult;
   const selected = items.find((item) => item.id === query.listing) ?? items[0];
   const listingResult = selected ? await fetchOwnerListing(client, selected.id) : null;
+
+  const readOnly = deletion.error || deletion.request?.status === 'pending';
 
   return (
     <main id="main" className="container seller-page photo-manager-page">
@@ -86,7 +92,7 @@ export default async function Page({
             </form>
           )}
 
-          <form action={createPhotoDraft.bind(null, locale)} className="photo-control-form">
+          {!readOnly && <form action={createPhotoDraft.bind(null, locale)} className="photo-control-form">
             <div className="form-field">
               <label htmlFor="category">{t('category')}</label>
               <select id="category" name="category">
@@ -101,7 +107,7 @@ export default async function Page({
               <Plus size={15} aria-hidden />
               <span>{t('create')}</span>
             </button>
-          </form>
+          </form>}
         </div>
       </div>
 
@@ -112,8 +118,28 @@ export default async function Page({
         </div>
       )}
 
+      {readOnly && <MutationNotice error={deletion.error} />}
       {listingResult?.listing ? (
-        <PhotoForm key={selected!.id} listing={listingResult.listing} />
+        readOnly ? (
+          listingResult.listing.media_ids.length > 0 ? (
+            <div className="photo-grid">
+              {listingResult.listing.media_ids.map((id, index) => (
+                <figure key={id}>
+                  <img
+                    src={`/api/media/${id}?variant=card`}
+                    alt={t('photoAlt', { number: index + 1 })}
+                  />
+                </figure>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>{t('empty')}</p>
+            </div>
+          )
+        ) : (
+          <PhotoForm key={selected!.id} listing={listingResult.listing} />
+        )
       ) : (
         !error && (
           <div className="empty-state">

@@ -98,7 +98,7 @@ export async function requestAccountDeletion(
     };
   }
 
-  revalidatePath(`/${localeValue(locale)}/account`);
+  revalidatePath(`/${localeValue(locale)}/account`, 'layout');
   return {
     request: saved,
     message: 'requested',
