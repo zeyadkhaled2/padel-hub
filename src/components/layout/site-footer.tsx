@@ -24,6 +24,8 @@ export async function SiteFooter() {
             <Link href="/account/listings" prefetch={false}>
               {t('sell')}
             </Link>
+            <Link href="/privacy">{t('privacy')}</Link>
+            <Link href="/terms">{t('terms')}</Link>
             <Link href="/about#open-source-notices">{t('openSourceNotices')}</Link>
           </div>
           <Link href="/demo" className="footer-demo-link">

@@ -15,6 +15,7 @@ import {
 } from '@/lib/validation/shared';
 import {
   PROFILE_TEXT_LIMITS,
+  type AccountDeletionRequest,
   type Profile,
   type ProfileFieldErrorKey,
   type ProfileFieldErrors,
@@ -233,8 +234,38 @@ export function parseProfileBundle(raw: unknown): Profile | null {
   return parsed.success ? parsed.data : null;
 }
 
+const accountDeletionRequestSchema = z.object({
+  status: z.enum(['pending', 'completed', 'cancelled']),
+  requested_at: z.string().min(1),
+  updated_at: z.string().min(1),
+});
+
+export const ACCOUNT_DELETION_REASON_MAX = 500;
+
 export function parsePublicProfile(raw: unknown): PublicProfile | null {
   if (raw === null || raw === undefined) return null;
   const parsed = publicProfileSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
+}
+
+export function parseAccountDeletionRequest(raw: unknown): AccountDeletionRequest | null {
+  if (raw === null || raw === undefined) return null;
+  const parsed = accountDeletionRequestSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+export function parseAccountDeletionInput(
+  form: FormData,
+):
+  | { ok: true; reason: string }
+  | { ok: false; message: 'confirmRequired' | 'reasonTooLong'; reason: string } {
+  const reason = String(form.get('reason') ?? '').trim();
+  const confirmed = form.get('confirm') === 'on';
+  if (!confirmed) {
+    return { ok: false, message: 'confirmRequired', reason };
+  }
+  if (reason.length > ACCOUNT_DELETION_REASON_MAX) {
+    return { ok: false, message: 'reasonTooLong', reason };
+  }
+  return { ok: true, reason };
 }

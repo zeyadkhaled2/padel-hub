@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   mapProfileRpcError,
+  parseAccountDeletionInput,
+  parseAccountDeletionRequest,
   parseProfileBundle,
   parseProfileMutation,
 } from '@/features/profile/validation';
@@ -382,5 +384,46 @@ test('password recovery and OAuth callback validators enforce bounds, allowlists
   assert.equal(
     isTrustedOAuthRedirectUrl('javascript:alert(1)', 'https://sxghreukdkxclymysryp.supabase.co'),
     false,
+  );
+});
+
+test('account deletion request input and DTO validators enforce explicit confirmation and length bounds', () => {
+  const unconfirmed = new FormData();
+  unconfirmed.set('reason', 'Done using');
+  assert.deepEqual(parseAccountDeletionInput(unconfirmed), {
+    ok: false,
+    message: 'confirmRequired',
+    reason: 'Done using',
+  });
+
+  const tooLong = new FormData();
+  tooLong.set('confirm', 'on');
+  tooLong.set('reason', 'a'.repeat(501));
+  assert.equal(parseAccountDeletionInput(tooLong).ok, false);
+  const longResult = parseAccountDeletionInput(tooLong);
+  if (!longResult.ok) assert.equal(longResult.message, 'reasonTooLong');
+
+  const valid = new FormData();
+  valid.set('confirm', 'on');
+  valid.set('reason', '  Moving abroad  ');
+  assert.deepEqual(parseAccountDeletionInput(valid), {
+    ok: true,
+    reason: 'Moving abroad',
+  });
+
+  assert.equal(parseAccountDeletionRequest(null), null);
+  assert.equal(parseAccountDeletionRequest({ status: 'bogus' }), null);
+  assert.deepEqual(
+    parseAccountDeletionRequest({
+      status: 'pending',
+      requested_at: '2026-11-26T12:00:00Z',
+      updated_at: '2026-11-26T12:00:00Z',
+      profile_taken_offline: true,
+    }),
+    {
+      status: 'pending',
+      requested_at: '2026-11-26T12:00:00Z',
+      updated_at: '2026-11-26T12:00:00Z',
+    },
   );
 });

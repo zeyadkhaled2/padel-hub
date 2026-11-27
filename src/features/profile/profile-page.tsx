@@ -14,20 +14,22 @@ import { localeValue } from '@/features/auth/types';
 import { Link } from '@/i18n/navigation';
 import { verifiedClient } from '@/server/supabase/server';
 import { ProfileForm } from './profile-form';
-import { fetchMyProfileBundle } from './server';
+import { AccountDeletionCard } from './account-deletion-card';
+import { fetchMyAccountDeletionRequest, fetchMyProfileBundle } from './server';
 
 export async function ProfilePage({ locale }: { locale: string }) {
   const safeLocale = localeValue(locale);
   const client = await verifiedClient();
   if (!client) redirect(`/${safeLocale}/auth/signin`);
 
-  const [t, photos, listings, admin, accessResponse, bundle] = await Promise.all([
+  const [t, photos, listings, admin, accessResponse, bundle, deletion] = await Promise.all([
     getTranslations('account'),
     getTranslations('photos'),
     getTranslations('listingEditor'),
     getTranslations('admin'),
     client.rpc('get_my_admin_access'),
     fetchMyProfileBundle(client),
+    fetchMyAccountDeletionRequest(client),
   ]);
   const adminAccess = accessResponse.error ? null : parseAdminAccess(accessResponse.data);
   const profile = bundle.profile;
@@ -86,7 +88,7 @@ export async function ProfilePage({ locale }: { locale: string }) {
         </div>
       </div>
 
-      {bundle.error ? (
+      {bundle.error || deletion.error ? (
         <div role="alert" className="seller-feedback-banner is-error">
           <AlertTriangle size={16} aria-hidden />
           <div>
@@ -96,9 +98,11 @@ export async function ProfilePage({ locale }: { locale: string }) {
             </a>
           </div>
         </div>
-      ) : (
+      ) : deletion.request?.status !== 'pending' ? (
         <ProfileForm initial={bundle.profile} />
-      )}
+      ) : null}
+
+      <AccountDeletionCard initial={deletion.request} loadError={deletion.error} />
     </main>
   );
 }

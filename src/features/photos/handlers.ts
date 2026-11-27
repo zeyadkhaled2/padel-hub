@@ -207,7 +207,11 @@ async function readAuthorizedManifest(
       });
 
   if (!response) return { status: 'not_found' };
-  if (response.error) return { status: 'unavailable' };
+  if (response.error) {
+    return response.error.code === '42501'
+      ? { status: 'not_found' }
+      : { status: 'unavailable' };
+  }
   if (!response.data) return { status: 'not_found' };
 
   const manifest = parsePhotoManifest(response.data);

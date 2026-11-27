@@ -592,6 +592,46 @@ test('uploadPhoto early idempotent replay re-fetches stale snapshot and never re
   assert.equal(loadCalls, 1);
   assert.equal(bodyB.id, ASSET_ID);
   assert.equal(bodyB.version, 4);
+  assert.equal(bodyB.media_ids.length, 3);
   assert.deepEqual(bodyB.media_ids, [ASSET_ID, ASSET_2, ASSET_3]);
   assert.equal(bodyB.idempotent, true);
+});
+
+test('admin review photo delivery maps Postgres 42501 permission denial to 404 private no-store and keeps real DB errors 503', async () => {
+  let rpcErrorCode = '42501';
+  const mockClient = {
+    rpc: async () => ({ data: null, error: { code: rpcErrorCode, message: 'denied' } }),
+  } as unknown as SupabaseClient;
+
+  const { deliverPhoto } = createPhotoHandlers({
+    getAuthConfig: () => ({ origin: 'http://127.0.0.1:3100' }),
+    getServiceConfig: () => ({ url: 'http://127.0.0.1:54321', key: 'service-key' }),
+    getServiceClient: () => mockClient,
+    getVerifiedUserClient: async () => ({ client: mockClient, user: { id: OWNER_ID } }),
+    loadOwnerListing: async () => ({ listing: null }),
+    readBody: async () => Buffer.alloc(0),
+    processPhoto: async () => {
+      throw new Error('unused');
+    },
+    downloadVariant: async () => null,
+    uploadVariants: async () => {},
+    maxConcurrent: 2,
+  });
+
+  const deniedRes = await deliverPhoto(
+    new Request(`http://127.0.0.1:3100/api/admin/listings/${LISTING_ID}/photos/${ASSET_ID}`),
+    ASSET_ID,
+    LISTING_ID,
+  );
+  assert.equal(deniedRes.status, 404);
+  assert.equal(deniedRes.headers.get('cache-control'), 'private, no-store');
+
+  rpcErrorCode = '08006';
+  const outageRes = await deliverPhoto(
+    new Request(`http://127.0.0.1:3100/api/admin/listings/${LISTING_ID}/photos/${ASSET_ID}`),
+    ASSET_ID,
+    LISTING_ID,
+  );
+  assert.equal(outageRes.status, 503);
+  assert.equal(outageRes.headers.get('cache-control'), 'private, no-store');
 });

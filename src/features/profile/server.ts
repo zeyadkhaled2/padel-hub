@@ -2,8 +2,23 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { usernameSchema } from '@/lib/validation/shared';
 import { anonClient } from '@/server/supabase/clients';
-import type { Profile, PublicProfile } from './types';
-import { parseProfileBundle, parsePublicProfile } from './validation';
+import type { AccountDeletionRequest, Profile, PublicProfile } from './types';
+import {
+  parseAccountDeletionRequest,
+  parseProfileBundle,
+  parsePublicProfile,
+} from './validation';
+
+export async function fetchMyAccountDeletionRequest(
+  client: SupabaseClient,
+): Promise<{ request: AccountDeletionRequest | null; error: boolean }> {
+  const { data, error } = await client.rpc('get_my_account_deletion_request');
+  if (error) return { request: null, error: true };
+  if (data === null || data === undefined) return { request: null, error: false };
+  const request = parseAccountDeletionRequest(data);
+  if (!request) return { request: null, error: true };
+  return { request, error: false };
+}
 
 export async function fetchMyProfileBundle(
   client: SupabaseClient,

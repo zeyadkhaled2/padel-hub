@@ -85,4 +85,23 @@ export type ProfileState = {
   intent?: string;
 };
 
+export type AccountDeletionRequest = {
+  status: 'pending' | 'completed' | 'cancelled';
+  requested_at: string;
+  updated_at: string;
+};
+
+export type AccountDeletionMessage =
+  | 'requested'
+  | 'confirmRequired'
+  | 'reasonTooLong'
+  | 'sessionExpired'
+  | 'failed';
+
+export type AccountDeletionState = {
+  request: AccountDeletionRequest | null;
+  message?: AccountDeletionMessage;
+  reason?: string;
+};
+
 export const governorates = EGYPT_GOVERNORATES;

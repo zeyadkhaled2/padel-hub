@@ -68,42 +68,83 @@ All 5 new audit actions (`profile.account_type_updated`, `profile.listing_limit_
 ### Safe operator procedure — Manual seller restoration (deferred from UI)
 Self-service or admin-UI seller restoration and appeal workflows are **intentionally deferred** and must not be added without explicit owner approval (see outstanding owner decision below). When an authorized incident review approves restoring a previously `hidden` or `suspended` seller account:
 
-1. **Pre-restoration review**:
+1. **Pre-restoration review (all potentially public listing statuses)**:
    - Inspect the seller's profile (`public_id`, `version`, `account_status`, `is_public`, `public_contact_consent`) and open reports (`private.abuse_reports`), plus recent `private.audit_logs` entries for `target_type = 'profile'` and `target_id = '<public_id>'`.
-   - **Important**: Because hiding/suspending preserves `listings.status` (including previously approved `active` listings), setting `account_status = 'active'` will make any still-`active`, approved listings publicly visible again if `is_public = true` and `public_contact_consent = true`. Before restoring, confirm every `active` listing on the account is safe to republish (or transition offending listings to `removed` with a separate audit record first).
-2. **Atomic operator SQL transaction** (executed as database operator, never through app capability roles):
+   - **Critical visibility check**: Because hiding or suspending a seller preserves `listings.status`, restoring `account_status = 'active'` immediately re-exposes **all four potentially public listing statuses — `active`, `reserved`, `sold`, and `traded`** — whenever `is_public = true`, `public_contact_consent = true`, and the listing still matches its last approved snapshot (`private.market_visible()`). `active` listings return to marketplace search and WhatsApp contact; `reserved`, `sold`, and `traded` listings immediately regain public detail pages and public `/api/media/[mediaId]` photo delivery.
+   - Before restoring, query **every** potentially public listing on the account and transition any offending listing to `removed` (with its own audited decision) first:
+     ```sql
+     SELECT id, status, title, version, updated_at
+     FROM public.listings
+     WHERE seller_id = (
+       SELECT user_id FROM public.seller_profiles WHERE public_id = '<seller-public-id>'
+     )
+       AND status IN ('active', 'reserved', 'sold', 'traded')
+     ORDER BY updated_at DESC, id;
+     ```
+2. **Atomic, fail-closed operator SQL transaction** (executed as database operator, never through app capability roles; aborts and rolls back without writing an audit entry if the profile is missing, already `active`, or its `version` does not match):
    ```sql
    BEGIN;
-   -- Lock profile and verify expected version & current non-active status
-   SELECT user_id, public_id, account_status, version
-   FROM public.seller_profiles
-   WHERE public_id = '<seller-public-id>'
-   FOR UPDATE;
+   DO $$
+   DECLARE
+     v_public_id uuid := '<seller-public-id>';
+     v_expected_version integer := <expected-version>;
+     v_operator_id uuid := '<operator-or-approver-user-id>';
+     v_reason text := '<documented approval reference and reason>';
+     v_before public.seller_profiles;
+     v_after public.seller_profiles;
+   BEGIN
+     IF char_length(btrim(coalesce(v_reason, ''))) NOT BETWEEN 1 AND 1000 THEN
+       RAISE EXCEPTION 'Restoration aborted: non-empty reason (1..1000 chars) required'
+         USING ERRCODE = '22023';
+     END IF;
 
-   -- Only after verifying version = <expected-version> and offending listings are removed:
-   UPDATE public.seller_profiles
-   SET account_status = 'active',
-       version = version + 1,
-       updated_at = now()
-   WHERE public_id = '<seller-public-id>'
-     AND version = <expected-version>
-     AND account_status IN ('hidden', 'suspended');
+     SELECT * INTO v_before
+     FROM public.seller_profiles
+     WHERE public_id = v_public_id
+     FOR UPDATE;
 
-   INSERT INTO private.audit_logs (
-     actor_user_id, actor_role, action, target_type, target_id, before_state, after_state, reason
-   ) VALUES (
-     '<operator-or-approver-user-id>',
-     'admin',
-     'profile.restored',
-     'profile',
-     '<seller-public-id>',
-     jsonb_build_object('account_status', '<previous-status>', 'version', <expected-version>),
-     jsonb_build_object('account_status', 'active', 'version', <expected-version> + 1),
-     '<documented approval reference and reason>'
-   );
+     IF NOT FOUND THEN
+       RAISE EXCEPTION 'Restoration aborted: seller profile % not found', v_public_id
+         USING ERRCODE = 'PT404';
+     END IF;
+
+     IF v_before.account_status NOT IN ('hidden', 'suspended')
+        OR v_before.version IS DISTINCT FROM v_expected_version THEN
+       RAISE EXCEPTION 'Restoration aborted: expected hidden/suspended at version %, found % at version %',
+         v_expected_version, v_before.account_status, v_before.version
+         USING ERRCODE = 'PT409';
+     END IF;
+
+     UPDATE public.seller_profiles
+     SET account_status = 'active',
+         version = version + 1,
+         updated_at = now()
+     WHERE user_id = v_before.user_id
+       AND version = v_expected_version
+       AND account_status IN ('hidden', 'suspended')
+     RETURNING * INTO v_after;
+
+     IF NOT FOUND THEN
+       RAISE EXCEPTION 'Restoration aborted: seller profile update affected 0 rows'
+         USING ERRCODE = 'PT409';
+     END IF;
+
+     INSERT INTO private.audit_logs (
+       actor_user_id, actor_role, action, target_type, target_id, before_state, after_state, reason
+     ) VALUES (
+       v_operator_id,
+       'admin',
+       'profile.restored',
+       'profile',
+       v_after.public_id::text,
+       jsonb_build_object('account_status', v_before.account_status, 'version', v_before.version),
+       jsonb_build_object('account_status', v_after.account_status, 'version', v_after.version),
+       btrim(v_reason)
+     );
+   END $$;
    COMMIT;
    ```
-3. **Post-restoration verification**: Confirm `/[locale]/admin/sellers/<public_id>` shows `active`, verify expected public storefront and listing visibility, and log the action in the operator incident record.
+3. **Post-restoration verification**: Confirm `/[locale]/admin/sellers/<public_id>` shows `active`, verify expected public storefront and `active`/`reserved`/`sold`/`traded` listing visibility, confirm the `profile.restored` audit entry exists, and log the action in the operator incident record.
 
 ### Rollout & outstanding owner decisions
 - Apply migration `029` strictly after `028` before serving this app version (`027` → `028` → `029` remain pending owner-authorized rollout on hosted `padelhub-staging`).
