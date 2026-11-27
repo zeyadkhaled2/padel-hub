@@ -114,14 +114,20 @@ node scripts/staging-app.mjs auth-status
 node scripts/staging-app.mjs verify-revoked-admin
 ```
 
-### Deploying to Hosted Staging (Vercel Preview or Dedicated Node Host)
+### Deploying to Hosted Staging (Vercel Preview — Verified 2026-11-27)
 
-- **Vercel Preview / Dedicated Staging Branch (`\$0/month` on Hobby)**:
-  1. Do **not** alter `main` or production DNS. Create/select a dedicated staging branch or separate staging Vercel project.
-  2. Set only the 4 server-only `PADELHUB_*` variables scoped to **Preview** (or the dedicated staging project), with `PADELHUB_APP_ORIGIN` matching the exact staging HTTPS origin.
-  3. Add `<staging-origin>/en/auth/callback` and `<staging-origin>/ar/auth/callback` to `padelhub-staging` Auth Redirect URLs.
-  4. Verify `robots: { index: false, follow: false }` remains active (`src/app/[locale]/layout.tsx`).
-  5. **Upload limit & commercial-hosting note**: Media Optimization V1 aligns incoming `POST /api/listings/[listingId]/photos` bodies to **4,000,000 bytes** via client-side adaptive resizing/compression, so uploads fit cleanly below Vercel's 4.5 MB serverless cap. However, **Vercel Hobby (\$0/month) is restricted to non-commercial use**; for commercial production pilot hosting, see [LAUNCH_READINESS.md](LAUNCH_READINESS.md) (retain the selected Vercel Hobby for eligible non-commercial validation; resolve pilot eligibility separately).
+- **Isolated `staging` branch Preview (`\$0/month` on Hobby)**:
+  - **Stable HTTPS staging URL**: `https://padel-hub-git-staging-zeyadkhaled2s-projects.vercel.app` (branch `staging`, `dpl_GYAKq4kihpbzYbZG78kmnhVMaa8M`, `fra1` Frankfurt).
+  - **Environment isolation**: All 4 server-only `PADELHUB_*` variables are scoped strictly to **`Preview (staging)`** (`PADELHUB_SUPABASE_SERVICE_ROLE_KEY` stored as Secret; the other 3 as Config; `PADELHUB_STAGING_DB_URL` is never stored in Vercel). Production (`main`, `padel-hub-beta.vercel.app`) and other PR previews retain **0** staging env vars.
+  - **Deployment Protection & `noindex`**: Vercel Authentication (`ssoProtection`) remains enabled on Preview deployments and `robots: { index: false, follow: false }` / `X-Robots-Tag: noindex` remains active, keeping staging private and non-indexable.
+  - **Automated smoke against the protected Preview**: Use `vercel env run` to supply a short-lived `VERCEL_OIDC_TOKEN` in memory (attached by `scripts/staging-app.mjs` strictly to `PADELHUB_APP_ORIGIN` via `x-vercel-trusted-oidc-idp-token`, never logged or sent cross-origin):
+    ```bash
+    PADELHUB_APP_ORIGIN=https://padel-hub-git-staging-zeyadkhaled2s-projects.vercel.app \
+      vercel env run -- node scripts/staging-app.mjs smoke
+    ```
+  - **Private demonstrations & physical devices**: Sign into the owner Vercel account once in mobile Safari/Chrome, or generate a Vercel **Shareable Link** in Vercel Dashboard → Deployments → `padel-hub-git-staging-zeyadkhaled2s-projects.vercel.app` → Share. Use `/en/demo` or `/ar/demo` for static demo catalog walkthroughs, or prepare an isolated synthetic account on demand without committing credentials.
+  - **Supabase Auth Redirect URLs (owner dashboard step)**: Add the exact 4 `https://padel-hub-git-staging-zeyadkhaled2s-projects.vercel.app/{en,ar}/auth/{callback,recovery}` URLs (and update Site URL) in `padelhub-staging` → Authentication → URL Configuration.
+  - **Upload limit & commercial-hosting note**: Media Optimization V1 aligns incoming `POST /api/listings/[listingId]/photos` bodies to **4,000,000 bytes** via client-side adaptive resizing/compression, fitting cleanly below Vercel's 4.5 MB cap (`fra1` Sharp upload lambda peaked at `252 MB` / `2,048 MB`). **Vercel Hobby (\$0/month) prohibits commercial use**; resolve real-seller pilot eligibility separately before onboarding commercial sellers ([LAUNCH_READINESS.md](LAUNCH_READINESS.md)).
 
 ## 6. Safe Rollback & Incident Recovery Procedures
 

@@ -39,6 +39,45 @@ if (!VALID_MODES.includes(mode)) {
 const rawEnv = loadStagingEnv();
 const cfg = requireHostedStagingConfig(rawEnv);
 const adminStatePath = resolve(process.cwd(), '.cache', 'staging-admin-smoke.json');
+const appOriginUrl = new URL(cfg.appOrigin);
+const vercelOidcToken =
+  appOriginUrl.hostname.endsWith('.vercel.app') && process.env.VERCEL_OIDC_TOKEN?.trim()
+    ? process.env.VERCEL_OIDC_TOKEN.trim()
+    : '';
+
+function appFetch(url, init = {}) {
+  if (!vercelOidcToken) return fetch(url, init);
+  let targetOrigin = null;
+  try {
+    targetOrigin = new URL(String(url)).origin;
+  } catch {
+    targetOrigin = null;
+  }
+  if (targetOrigin !== appOriginUrl.origin) return fetch(url, init);
+  const headers = new Headers(init.headers || {});
+  headers.set('x-vercel-trusted-oidc-idp-token', vercelOidcToken);
+  return fetch(url, { ...init, headers });
+}
+
+async function newAppContext(browser, options = {}) {
+  const extraHTTPHeaders = vercelOidcToken
+    ? { ...(options.extraHTTPHeaders || {}), 'x-vercel-trusted-oidc-idp-token': vercelOidcToken }
+    : options.extraHTTPHeaders;
+  const ctx = await browser.newContext(
+    extraHTTPHeaders ? { ...options, extraHTTPHeaders } : options,
+  );
+  if (vercelOidcToken) {
+    await ctx.route(
+      (url) => url.origin !== appOriginUrl.origin,
+      async (route) => {
+        const headers = { ...route.request().headers() };
+        delete headers['x-vercel-trusted-oidc-idp-token'];
+        await route.continue({ headers });
+      },
+    );
+  }
+  return ctx;
+}
 
 function runSupabaseCli(cliArgs) {
   // Use spawnSync and redact errors so DB credentials in CLI flags are never printed.
@@ -232,7 +271,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       // Verify in browser using the live aal2 session cookies saved prior to revocation
       browser = await chromium.launch({ channel: 'chrome', headless: true });
-      const ctx = await browser.newContext({ storageState: adminState.storageState });
+      const ctx = await newAppContext(browser, { storageState: adminState.storageState });
       const page = await ctx.newPage();
       const res = await page.goto(`${cfg.appOrigin}/en/admin`);
       assert(res?.status() === 404, `Revoked admin existing aal2 session /en/admin must return 404 (got ${res?.status()})`);
@@ -295,20 +334,20 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       pass('Direct anonymous table reads and restricted RPC calls all denied');
 
       // 3. Origin & callback security checks against live Next.js staging app
-      const badAnalytics = await fetch(`${appOrigin}/api/analytics/listings/00000000-0000-4000-8000-000000000000`, {
+      const badAnalytics = await appFetch(`${appOrigin}/api/analytics/listings/00000000-0000-4000-8000-000000000000`, {
         method: 'POST',
         headers: { origin: 'https://evil.example' },
       });
       assert(badAnalytics.status === 400, `Cross-origin analytics POST must return 400 (got ${badAnalytics.status})`);
 
-      const badUpload = await fetch(`${appOrigin}/api/listings/00000000-0000-4000-8000-000000000000/photos`, {
+      const badUpload = await appFetch(`${appOrigin}/api/listings/00000000-0000-4000-8000-000000000000/photos`, {
         method: 'POST',
         headers: { origin: 'https://evil.example', 'x-listing-version': '1' },
         body: new Uint8Array([1, 2, 3]),
       });
       assert(badUpload.status === 403, `Cross-origin photo POST must return 403 (got ${badUpload.status})`);
 
-      const badCallback = await fetch(`${appOrigin}/en/auth/callback?code=invalid&next=https://evil.example`, {
+      const badCallback = await appFetch(`${appOrigin}/en/auth/callback?code=invalid&next=https://evil.example`, {
         redirect: 'manual',
       });
       assert(badCallback.status === 307 || badCallback.status === 302, `Callback must redirect (got ${badCallback.status})`);
@@ -320,10 +359,12 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       // 4. Homepage / Marketplace & Legal pages EN & AR + noindex + security headers + no secret leakage in HTML
       for (const path of ['/en', '/ar', '/en/privacy', '/ar/privacy', '/en/terms', '/ar/terms']) {
-        const res = await fetch(`${appOrigin}${path}`);
+        const res = await appFetch(`${appOrigin}${path}`);
         assert(res.ok, `GET ${path} failed with ${res.status}`);
         assert(res.headers.get('x-content-type-options') === 'nosniff', `${path} missing X-Content-Type-Options: nosniff`);
         assert(res.headers.get('x-frame-options') === 'DENY', `${path} missing X-Frame-Options: DENY`);
+        assert(res.headers.get('referrer-policy') === 'strict-origin-when-cross-origin', `${path} missing Referrer-Policy`);
+        assert((res.headers.get('permissions-policy') || '').includes('camera=()'), `${path} missing Permissions-Policy`);
         const html = await res.text();
         assert(html.includes('noindex'), `${path} must include noindex robots metadata`);
         assert(!html.includes(cfg.serviceRoleKey), `${path} HTML leaked service-role key!`);
@@ -371,7 +412,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       // 7. Browser E2E against live Next.js + hosted Supabase (EN & AR, Desktop & Mobile)
       browser = await chromium.launch({ channel: 'chrome', headless: true });
 
-      const sellerCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const sellerCtx = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const page = await sellerCtx.newPage();
 
       // Unverified login via UI stays on /en/auth/signin with error
@@ -400,7 +441,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await page.getByRole('button', { name: 'Create profile', exact: true }).click();
       await page.getByRole('heading', { name: 'Profile details' }).waitFor({ timeout: 20_000 });
 
-      const privateProfileRes = await fetch(`${appOrigin}/en/@${s1Username}`);
+      const privateProfileRes = await appFetch(`${appOrigin}/en/@${s1Username}`);
       assert(privateProfileRes.status === 404, `Private profile must return 404 publicly (got ${privateProfileRes.status})`);
 
       // Enable public profile + WhatsApp consent
@@ -423,9 +464,10 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       // Create racket draft + save with optional racket specs
       const sessionCookies = (await sellerCtx.cookies()).filter((c) => /^sb-.*-auth-token(?:\.\d+)?$/.test(c.name));
       assert(sessionCookies.length > 0, 'Session auth cookies must exist');
+      const expectSecureCookie = appOrigin.startsWith('https://');
       assert(
-        sessionCookies.every((c) => c.httpOnly && c.sameSite === 'Lax'),
-        'Session auth cookies must be httpOnly and SameSite=Lax',
+        sessionCookies.every((c) => c.httpOnly && c.sameSite === 'Lax' && (!expectSecureCookie || c.secure)),
+        `Session auth cookies must be httpOnly, SameSite=Lax${expectSecureCookie ? ', and Secure' : ''}`,
       );
 
       await page.goto(`${appOrigin}/en/account/listings`);
@@ -500,7 +542,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       const s1Cookies = (await sellerCtx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
 
-      const malformedRes = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+      const malformedRes = await appFetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
         method: 'POST',
         headers: {
           origin: appOrigin,
@@ -512,7 +554,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       });
       assert(malformedRes.status === 400, `Malformed upload must return 400 (got ${malformedRes.status})`);
 
-      const staleUploadRes = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+      const staleUploadRes = await appFetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
         method: 'POST',
         headers: {
           origin: appOrigin,
@@ -524,7 +566,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       });
       assert(staleUploadRes.status === 409, `Stale photo upload must return 409 (got ${staleUploadRes.status})`);
 
-      const oversizedRes = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+      const oversizedRes = await appFetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
         method: 'POST',
         headers: {
           origin: appOrigin,
@@ -539,7 +581,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       let version = 2;
       const uploadedIds = [];
       for (const img of [img1, img2]) {
-        const up = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+        const up = await appFetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
           method: 'POST',
           headers: {
             origin: appOrigin,
@@ -569,7 +611,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       // Concurrent upload race on the same expected version: exactly one 201 and one 409 conflict!
       const raceResponses = await Promise.all([0, 1].map(() =>
-        fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+        appFetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
           method: 'POST',
           headers: {
             origin: appOrigin,
@@ -589,7 +631,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       // Upload 4th photo -> succeeds; 5th photo -> rejected with 409 photoLimit; detach 4th photo via UI -> preserves Storage object
       const img4 = await makeSyntheticImage(160, 60, 90, false);
-      const up4 = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+      const up4 = await appFetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
         method: 'POST',
         headers: {
           origin: appOrigin,
@@ -603,7 +645,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       const saved4 = await up4.json();
       version = saved4.version;
 
-      const up5 = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+      const up5 = await appFetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
         method: 'POST',
         headers: {
           origin: appOrigin,
@@ -623,11 +665,11 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await page.getByRole('button', { name: 'Remove photo 4 from draft', exact: true }).click();
       await page.getByRole('status').filter({ hasText: 'Photo removed from this draft.' }).waitFor({ timeout: 20_000 });
       await page.getByText('3 of 4 photos').waitFor({ timeout: 15_000 });
-      const detachedPrivateRes = await fetch(`${appOrigin}/api/media/${saved4.id}?variant=full`, {
+      const detachedPrivateRes = await appFetch(`${appOrigin}/api/media/${saved4.id}?variant=full`, {
         headers: { cookie: s1Cookies },
       });
       assert(detachedPrivateRes.status === 200, `Detached photo must remain preserved privately for owner (got ${detachedPrivateRes.status})`);
-      const detachedAnonRes = await fetch(`${appOrigin}/api/media/${saved4.id}?listing=${createdListingId}`);
+      const detachedAnonRes = await appFetch(`${appOrigin}/api/media/${saved4.id}?listing=${createdListingId}`);
       assert(detachedAnonRes.status === 404, `Detached photo must not be publicly accessible (got ${detachedAnonRes.status})`);
       const afterDetach = await seller1SessionClient.rpc('get_my_listing', { p_listing_id: createdListingId });
       assert(afterDetach.data?.media_ids?.length === 3, `Expected 3 attached photos after detach, got ${afterDetach.data?.media_ids?.length}`);
@@ -635,7 +677,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       pass('Uniform 3-4 photo limits, 5th photo rejection (409), and safe UI photo detachment preserving Storage verified on hosted staging');
 
       const replacedId = uploadedIds[0];
-      const rep = await fetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
+      const rep = await appFetch(`${appOrigin}/api/listings/${createdListingId}/photos`, {
         method: 'POST',
         headers: {
           origin: appOrigin,
@@ -652,7 +694,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert(activePhotoId !== replacedId, 'Replacement must create a new immutable asset ID');
 
       // Owner preview download: hash-verified WebP + EXIF stripped + private no-store + Range rejected
-      const ownerPhotoRes = await fetch(`${appOrigin}/api/media/${activePhotoId}?variant=full`, {
+      const ownerPhotoRes = await appFetch(`${appOrigin}/api/media/${activePhotoId}?variant=full`, {
         headers: { cookie: s1Cookies },
       });
       assert(ownerPhotoRes.status === 200, `Owner photo preview failed (${ownerPhotoRes.status})`);
@@ -663,19 +705,19 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert(meta.format === 'webp' && !meta.exif, 'Processed photo must be WebP with EXIF stripped');
 
       // Verify EXIF from replaced JPEG (retained privately) was stripped
-      const oldPhotoRes = await fetch(`${appOrigin}/api/media/${replacedId}?variant=full`, {
+      const oldPhotoRes = await appFetch(`${appOrigin}/api/media/${replacedId}?variant=full`, {
         headers: { cookie: s1Cookies },
       });
       assert(oldPhotoRes.status === 200, 'Owner still has private access to retained replaced photo');
       const oldMeta = await sharp(Buffer.from(await oldPhotoRes.arrayBuffer())).metadata();
       assert(oldMeta.format === 'webp' && !oldMeta.exif, 'EXIF from uploaded JPEG must be stripped');
 
-      const rangeRes = await fetch(`${appOrigin}/api/media/${activePhotoId}?variant=card`, {
+      const rangeRes = await appFetch(`${appOrigin}/api/media/${activePhotoId}?variant=card`, {
         headers: { cookie: s1Cookies, range: 'bytes=0-10' },
       });
       assert(rangeRes.status === 416, `Range request must return 416 (got ${rangeRes.status})`);
 
-      const anonPhotoRes = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}`);
+      const anonPhotoRes = await appFetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}`);
       assert(anonPhotoRes.status === 404, `Anonymous access to draft photo must return 404 (got ${anonPhotoRes.status})`);
 
       // Direct hosted Supabase Storage URL must NOT be publicly or cross-user accessible!
@@ -708,7 +750,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       pass('Listing submitted to pending moderation queue on hosted staging');
 
       // Verify Seller 2 (mobile Arabic) cannot access /en/admin (404) or Seller 1 pending photo (404)
-      const s2Ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const s2Ctx = await newAppContext(browser, { viewport: { width: 390, height: 844 } });
       const s2Page = await s2Ctx.newPage();
       await s2Page.goto(`${appOrigin}/ar/auth/signin`);
       await s2Page.locator('form.account-form input[name="email"]').fill(seller2Email);
@@ -719,14 +761,14 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert(s2AdminRes?.status() === 404, `Non-admin /en/admin must return 404 (got ${s2AdminRes?.status()})`);
 
       const s2Cookies = (await s2Ctx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
-      const s2PhotoRes = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}`, {
+      const s2PhotoRes = await appFetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}`, {
         headers: { cookie: s2Cookies },
       });
       assert(s2PhotoRes.status === 404, `Cross-account pending photo must return 404 (got ${s2PhotoRes.status})`);
       pass('Non-admin denial and cross-account pending photo denial verified');
 
       // 10. Mandatory MFA Admin Review, Rejection, Resubmission, Approval, Public Visibility, WhatsApp & Reports
-      const adminCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const adminCtx = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const adminPage = await adminCtx.newPage();
 
       await adminPage.goto(`${appOrigin}/en/auth/signin`);
@@ -737,7 +779,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       // At aal1, admin photo proxy must fail closed with 404 (never 200 or 503, never image bytes)
       const aal1Cookies = (await adminCtx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
-      const aal1Photo = await fetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
+      const aal1Photo = await appFetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
         headers: { cookie: aal1Cookies },
       });
       assert(
@@ -815,7 +857,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.goto(`${appOrigin}/en/admin/listings/${createdListingId}`);
       await adminPage.getByText('Vertex 04 Staging').waitFor({ timeout: 15_000 });
       const aal2Cookies = (await adminCtx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
-      const aal2Photo = await fetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
+      const aal2Photo = await appFetch(`${appOrigin}/api/admin/listings/${createdListingId}/photos/${activePhotoId}`, {
         headers: { cookie: aal2Cookies },
       });
       assert(
@@ -851,24 +893,45 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.waitForURL('**/ar/admin/listings?done=1', { timeout: 25_000 });
       pass('MFA-admin review (EN/AR), photo proxy, rejection reason, resubmission, and approval verified');
 
-      // Public marketplace visibility (EN desktop + AR 390px mobile overflow check) + public photo + WhatsApp redirect
-      const anonCtxDesktop = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      // Public marketplace visibility (EN desktop + AR 390px dark mobile overflow check) + search/filter + storefront QR + public photo + WhatsApp redirect
+      const anonCtxDesktop = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const anonDesktop = await anonCtxDesktop.newPage();
+      await anonDesktop.goto(`${appOrigin}/en?q=${encodeURIComponent(tag)}&category=rackets&governorate=cairo`);
+      await anonDesktop.getByText(`Staging Racket ${tag}`).waitFor({ timeout: 15_000 });
       await anonDesktop.goto(`${appOrigin}/en/equipment/${createdListingId}`);
       await anonDesktop.getByText(`Staging Racket ${tag}`).waitFor({ timeout: 15_000 });
       await anonDesktop.getByText('Teardrop').waitFor({ timeout: 15_000 });
 
-      const anonCtxMobile = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      // Storefront, client-side QR code, and permanent public-ID redirect verification
+      await anonDesktop.goto(`${appOrigin}/en/@${s1Username}`);
+      await anonDesktop.getByRole('heading', { name: 'Staging Smoke Seller' }).waitFor({ timeout: 15_000 });
+      await anonDesktop.getByRole('button', { name: /Show QR code/i }).click();
+      await anonDesktop.locator('img[src^="data:image/png;base64,"]').waitFor({ timeout: 15_000 });
+      const s1Bundle = await seller1SessionClient.rpc('get_my_profile_bundle');
+      const s1PublicId = s1Bundle.data?.public_id ?? s1Bundle.data?.profile?.public_id;
+      assert(s1PublicId, 'Expected seller public_id for QR redirect check');
+      const qrRedirectRes = await appFetch(`${appOrigin}/api/profiles/${s1PublicId}`, { redirect: 'manual' });
+      assert(
+        (qrRedirectRes.status === 307 || qrRedirectRes.status === 302) &&
+          (qrRedirectRes.headers.get('location') || '').endsWith(`/@${s1Username}`) &&
+          (qrRedirectRes.headers.get('cache-control') || '').includes('no-store'),
+        `QR profile redirect failed (${qrRedirectRes.status} -> ${qrRedirectRes.headers.get('location')})`,
+      );
+
+      const anonCtxMobile = await newAppContext(browser, { viewport: { width: 390, height: 844 } });
       const anonMobile = await anonCtxMobile.newPage();
       await anonMobile.goto(`${appOrigin}/ar/equipment/${createdListingId}`);
       await anonMobile.getByText(`Staging Racket ${tag}`).waitFor({ timeout: 15_000 });
       await anonMobile.getByText('دمعة').waitFor({ timeout: 15_000 });
+      await anonMobile.getByRole('combobox', { name: 'مظهر الموقع' }).selectOption('dark');
+      const arDarkTheme = await anonMobile.evaluate(() => document.documentElement.getAttribute('data-theme'));
+      assert(arDarkTheme === 'dark', `Expected dark theme on Arabic mobile detail (got ${arDarkTheme})`);
       const arOverflow = await anonMobile.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       );
       assert(arOverflow <= 1, `Arabic mobile 390px horizontal overflow detected: ${arOverflow}px`);
 
-      const publicPhotoRes = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`);
+      const publicPhotoRes = await appFetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`);
       assert(
         publicPhotoRes.status === 200 && publicPhotoRes.headers.get('content-type') === 'image/webp',
         `Approved public photo must return 200 webp (got ${publicPhotoRes.status})`,
@@ -881,24 +944,24 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       );
       assert(/^"[a-f0-9]{64}"$/.test(publicEtag), `Approved public photo must emit SHA-256 ETag (got "${publicEtag}")`);
 
-      const conditionalGet = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`, {
+      const conditionalGet = await appFetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`, {
         headers: { 'if-none-match': publicEtag },
       });
       assert(conditionalGet.status === 304, `Matching If-None-Match on approved photo must return 304 (got ${conditionalGet.status})`);
       assert(conditionalGet.headers.get('etag') === publicEtag, '304 must echo matching ETag');
 
-      const conditionalHead = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`, {
+      const conditionalHead = await appFetch(`${appOrigin}/api/media/${activePhotoId}?listing=${createdListingId}&variant=card`, {
         method: 'HEAD',
         headers: { 'if-none-match': publicEtag },
       });
       assert(conditionalHead.status === 304, `Matching If-None-Match HEAD must return 304 (got ${conditionalHead.status})`);
 
-      const waRes = await fetch(`${appOrigin}/api/contact/${createdListingId}?locale=en`, { redirect: 'manual' });
+      const waRes = await appFetch(`${appOrigin}/api/contact/${createdListingId}?locale=en`, { redirect: 'manual' });
       assert(waRes.status === 302, `WhatsApp contact must return 302 (got ${waRes.status})`);
       const waLoc = waRes.headers.get('location') || '';
       assert(waLoc.startsWith('https://wa.me/201000000051?text='), `Unexpected WhatsApp location: ${waLoc}`);
       assert((waRes.headers.get('cache-control') || '').includes('no-store'), 'WhatsApp redirect must be no-store');
-      pass('Public approved listing (EN desktop & AR 390px mobile), approved photo delivery, and WhatsApp redirect verified');
+      pass('Public marketplace filter, storefront QR/redirect, listing (EN desktop & AR 390px dark mobile), approved photo ETag/304, and WhatsApp redirect verified');
 
       // Abuse report submission (Seller 2) & MFA-admin dismissal
       const repRpc = await seller2Client.rpc('report_content', {
@@ -963,13 +1026,13 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       const withdrawnId = createdListingId;
       createdListingId = null;
 
-      const revokedDetail = await fetch(`${appOrigin}/en/equipment/${withdrawnId}`);
+      const revokedDetail = await appFetch(`${appOrigin}/en/equipment/${withdrawnId}`);
       assert(revokedDetail.status === 404, `Reopened draft detail must return 404 (got ${revokedDetail.status})`);
-      const revokedContact = await fetch(`${appOrigin}/api/contact/${withdrawnId}`, { redirect: 'manual' });
+      const revokedContact = await appFetch(`${appOrigin}/api/contact/${withdrawnId}`, { redirect: 'manual' });
       assert(revokedContact.status === 404, `Reopened draft WhatsApp must return 404 (got ${revokedContact.status})`);
-      const revokedPhoto = await fetch(`${appOrigin}/api/media/${activePhotoId}?listing=${withdrawnId}&variant=card`);
+      const revokedPhoto = await appFetch(`${appOrigin}/api/media/${activePhotoId}?listing=${withdrawnId}&variant=card`);
       assert(revokedPhoto.status === 404, `Reopened draft public photo must return 404 (got ${revokedPhoto.status})`);
-      const revokedConditionalPhoto = await fetch(
+      const revokedConditionalPhoto = await appFetch(
         `${appOrigin}/api/media/${activePhotoId}?listing=${withdrawnId}&variant=card`,
         { headers: { 'if-none-match': publicEtag } },
       );
@@ -991,7 +1054,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await deletionBox.getByLabel(/I understand my public profile/i).check();
       await deletionBox.getByRole('button', { name: 'Request account deletion', exact: true }).click();
       await deletionBox.getByRole('status').filter({ hasText: 'Account deletion request received' }).waitFor({ timeout: 15_000 });
-      const hiddenAfterDelReq = await fetch(`${appOrigin}/en/@${s1Username}`);
+      const hiddenAfterDelReq = await appFetch(`${appOrigin}/en/@${s1Username}`);
       assert(hiddenAfterDelReq.status === 404, `Storefront must return 404 immediately after deletion request (got ${hiddenAfterDelReq.status})`);
       pass('Authenticated account deletion request recorded and public storefront immediately taken offline');
       for (const locale of ['en', 'ar']) {
@@ -1117,7 +1180,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       pass(`Auth settings checked (email confirmation enforced, google_enabled=${googleEnabled})`);
 
       // 1. OAuth error/cancellation, cross-type callback rejection, & open-redirect sanitization
-      const cancelRes = await fetch(
+      const cancelRes = await appFetch(
         `${appOrigin}/en/auth/callback?error=access_denied&error_description=InjectedPayload&next=https://evil.example`,
         { redirect: 'manual' },
       );
@@ -1129,7 +1192,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert((cancelRes.headers.get('cache-control') || '').includes('no-store'), 'Callback must be no-store');
       assert(cancelRes.headers.get('referrer-policy') === 'no-referrer', 'Callback must set Referrer-Policy: no-referrer');
 
-      const oauthErrRes = await fetch(
+      const oauthErrRes = await appFetch(
         `${appOrigin}/ar/auth/callback?error=server_error&next=https://evil.example`,
         { redirect: 'manual' },
       );
@@ -1138,7 +1201,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         `Unexpected OAuth error redirect: ${oauthErrRes.headers.get('location')}`,
       );
 
-      const badRecRes = await fetch(
+      const badRecRes = await appFetch(
         `${appOrigin}/en/auth/recovery?token_hash=invalid_token&type=recovery&next=https://evil.example`,
         { redirect: 'manual' },
       );
@@ -1148,7 +1211,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       );
       assert((badRecRes.headers.get('cache-control') || '').includes('no-store'), 'Recovery callback must be no-store');
 
-      const badCbRecRes = await fetch(
+      const badCbRecRes = await appFetch(
         `${appOrigin}/en/auth/callback?token_hash=invalid_token&type=recovery&next=https://evil.example`,
         { redirect: 'manual' },
       );
@@ -1161,7 +1224,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       browser = await chromium.launch({ channel: 'chrome', headless: true });
 
       // 2. EN/AR, light/dark, 390px mobile UI + Google button & graceful disabled check
-      const mobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const mobileCtx = await newAppContext(browser, { viewport: { width: 390, height: 844 } });
       const mobilePage = await mobileCtx.newPage();
       for (const locale of ['en', 'ar']) {
         for (const route of ['signin', 'signup', 'forgot-password', 'reset-password']) {
@@ -1209,7 +1272,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       assert(!signupLink.error && signupLink.data.user && signupLink.data.properties.hashed_token, `generateLink(signup) failed: ${signupLink.error?.message}`);
       disposableUserIds.push(signupLink.data.user.id);
 
-      const userCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const userCtx = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const userPage = await userCtx.newPage();
 
       // Anti-enumeration check on unknown email
@@ -1281,7 +1344,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
 
       // Owner can read private draft photo; anonymous gets 404.
       assert((await userCtx.request.get(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status() === 200, 'Owner must read own private draft photo');
-      assert((await fetch(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status === 404, 'Anonymous must get 404 for private draft photo');
+      assert((await appFetch(`${appOrigin}/api/media/${privatePhotoId}?variant=card`)).status === 404, 'Anonymous must get 404 for private draft photo');
 
       // Also create a submitted pending listing with 3 photos for the admin MFA recovery review-photo test.
       const sellerPassClient = createClient(cfg.supabaseUrl, cfg.publishableKey, {
@@ -1340,7 +1403,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         options: { redirectTo: `${appOrigin}/en/auth/recovery` },
       });
       assert(!crossTypeLink.error && crossTypeLink.data.properties.hashed_token, 'Cross-type generateLink failed');
-      const crossCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const crossCtx = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const crossPage = await crossCtx.newPage();
       await crossPage.goto(
         `${appOrigin}/en/auth/callback?token_hash=${encodeURIComponent(crossTypeLink.data.properties.hashed_token)}&type=email`,
@@ -1509,7 +1572,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         options: { redirectTo: `${appOrigin}/ar/auth/recovery` },
       });
       assert(!recLinkAr.error && recLinkAr.data.properties.hashed_token, 'AR generateLink succeeded');
-      const arCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const arCtx = await newAppContext(browser, { viewport: { width: 390, height: 844 } });
       const arPage = await arCtx.newPage();
       await arPage.goto(
         `${appOrigin}/ar/auth/recovery?token_hash=${encodeURIComponent(recLinkAr.data.properties.hashed_token)}&type=recovery`,
@@ -1525,7 +1588,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       pass('End-to-end password recovery (EN desktop & AR mobile), reuse rejection, old/new password check, and profile/photo preservation verified');
 
       // 7. MFA-enrolled Admin Recovery Isolation (aal1 AND aal2!) + Operator MFA Recovery (Task 2B-4)
-      const adminCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const adminCtx = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const adminPage = await adminCtx.newPage();
 
       await adminPage.goto(`${appOrigin}/en/auth/signin`);
@@ -1562,7 +1625,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       });
       assert(!adminRecLink1.error && adminRecLink1.data.properties.hashed_token, 'Admin recovery generateLink 1 succeeded');
 
-      const adminRecCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const adminRecCtx = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const adminRecPage = await adminRecCtx.newPage();
       await adminRecPage.goto(
         `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(adminRecLink1.data.properties.hashed_token)}&type=recovery`,
@@ -1638,7 +1701,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
         options: { redirectTo: `${appOrigin}/en/auth/recovery` },
       });
       assert(!adminRecLink2.error && adminRecLink2.data.properties.hashed_token, 'Admin recovery generateLink 2 succeeded');
-      const adminRecCtx2 = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const adminRecCtx2 = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const adminRecPage2 = await adminRecCtx2.newPage();
       await adminRecPage2.goto(
         `${appOrigin}/en/auth/recovery?token_hash=${encodeURIComponent(adminRecLink2.data.properties.hashed_token)}&type=recovery`,
@@ -1676,7 +1739,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       );
 
       // Re-login with new password -> /en/admin prompts fresh TOTP enrollment
-      const reEnrollCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const reEnrollCtx = await newAppContext(browser, { viewport: { width: 1280, height: 800 } });
       const reEnrollPage = await reEnrollCtx.newPage();
       await reEnrollPage.goto(`${appOrigin}/en/auth/signin`);
       await reEnrollPage.getByLabel('Email address').fill(adminState.email);
