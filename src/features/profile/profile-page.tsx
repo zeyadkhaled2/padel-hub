@@ -88,7 +88,7 @@ export async function ProfilePage({ locale }: { locale: string }) {
         </div>
       </div>
 
-      {bundle.error ? (
+      {bundle.error || deletion.error ? (
         <div role="alert" className="seller-feedback-banner is-error">
           <AlertTriangle size={16} aria-hidden />
           <div>
@@ -98,9 +98,9 @@ export async function ProfilePage({ locale }: { locale: string }) {
             </a>
           </div>
         </div>
-      ) : (
+      ) : deletion.request?.status !== 'pending' ? (
         <ProfileForm initial={bundle.profile} />
-      )}
+      ) : null}
 
       <AccountDeletionCard initial={deletion.request} loadError={deletion.error} />
     </main>

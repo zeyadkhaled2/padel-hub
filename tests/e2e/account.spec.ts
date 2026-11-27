@@ -576,10 +576,42 @@ test.describe('local verified accounts', () => {
     await deletionSection.getByLabel(/I understand my public profile/i).check();
     await deletionSection.getByRole('button', { name: 'Request account deletion', exact: true }).click();
     await expect(deletionSection.getByRole('status')).toContainText('Account deletion request received');
+    await expect(page.locator('.seller-profile-page input:not([type="hidden"]), .seller-profile-page textarea')).toHaveCount(0);
     await page.reload();
     await expect(page.locator('#account-deletion').getByRole('status')).toContainText('Account deletion request received');
+    await expect(page.locator('.seller-profile-page input:not([type="hidden"]), .seller-profile-page textarea')).toHaveCount(0);
+    for (const locale of ['en', 'ar']) {
+      await page.goto(`/${locale}/account`);
+      for (const theme of ['light', 'dark']) {
+        await page.getByRole('combobox', { name: locale === 'en' ? 'Color theme' : 'مظهر الموقع' }).selectOption(theme);
+        await expect(page.locator('#account-deletion').getByRole('status')).toBeVisible();
+        await expect(page.locator('.seller-profile-page input:not([type="hidden"]), .seller-profile-page textarea')).toHaveCount(0);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+        if (locale === 'ar' && theme === 'dark') {
+          await page.screenshot({ path: info.outputPath('pending-deletion-ar-dark.png'), fullPage: true });
+        }
+      }
+    }
+    await page.goto('/en/account');
     expect((await request.get(`/en/@${username}`)).status()).toBe(404);
     expect((await request.get(qrTarget, { maxRedirects: 0 })).status()).toBe(404);
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await expect(page).toHaveURL(/\/en(?:\/auth\/signin)?$/);
+  });
+
+  test('pending deletion hides profile creation for accounts without a profile', async ({ page, request }, info) => {
+    const email = `delete-empty-${Date.now()}-${info.project.name}@example.test`;
+    await signup(page, email, 'Local-only-Padel-739!');
+    await page.goto(await confirmation(request, email));
+    await expect(page.getByRole('heading', { name: 'Create profile', exact: true })).toBeVisible();
+    const deletionSection = page.locator('#account-deletion');
+    await deletionSection.getByLabel(/I understand my public profile/i).check();
+    await deletionSection.getByRole('button', { name: 'Request account deletion', exact: true }).click();
+    await expect(deletionSection.getByRole('status')).toContainText('Account deletion request received');
+    await expect(page.locator('.seller-profile-page input:not([type="hidden"]), .seller-profile-page textarea')).toHaveCount(0);
+    await page.reload();
+    await expect(deletionSection.getByRole('status')).toContainText('Account deletion request received');
+    await expect(page.locator('.seller-profile-page input:not([type="hidden"]), .seller-profile-page textarea')).toHaveCount(0);
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await expect(page).toHaveURL(/\/en(?:\/auth\/signin)?$/);
   });
