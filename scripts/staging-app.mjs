@@ -826,7 +826,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       // Reject once -> confirm owner sees rejection reason -> resubmit -> approve in Arabic review UI
       await adminPage.locator('textarea[name="reason"]').fill('Staging smoke rejection check');
       await adminPage.locator('button[name="intent"][value="reject"]').click();
-      await adminPage.waitForURL('**/en/admin?done=reject', { timeout: 25_000 });
+      await adminPage.waitForURL('**/en/admin/listings?done=1', { timeout: 25_000 });
 
       // Verify enriched Seller Dashboard (EN desktop + AR 390px mobile) displays rejection reason and zero overflow
       await page.goto(`${appOrigin}/en/account/listings`);
@@ -848,7 +848,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.goto(`${appOrigin}/ar/admin/listings/${createdListingId}`);
       await adminPage.getByText('دمعة').waitFor({ timeout: 15_000 });
       await adminPage.locator('button[name="intent"][value="approve"]').click();
-      await adminPage.waitForURL('**/ar/admin?done=approve', { timeout: 25_000 });
+      await adminPage.waitForURL('**/ar/admin/listings?done=1', { timeout: 25_000 });
       pass('MFA-admin review (EN/AR), photo proxy, rejection reason, resubmission, and approval verified');
 
       // Public marketplace visibility (EN desktop + AR 390px mobile overflow check) + public photo + WhatsApp redirect
@@ -941,7 +941,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await adminPage.goto(`${appOrigin}/en/admin/sellers?q=${encodeURIComponent(s1Username)}`);
       await adminPage.getByText(`@${s1Username}`).waitFor({ timeout: 15_000 });
       await adminPage.locator('a[href*="/admin/sellers/"]').first().click();
-      await adminPage.waitForURL(/\/en\/admin\/sellers\/[0-9a-f-]{36}$/, { timeout: 15_000 });
+      await adminPage.waitForURL(/\/en\/admin\/sellers\/[0-9a-f-]{36}(?:\?.*)?$/, { timeout: 15_000 });
       await adminPage.getByText('Staging Smoke Seller').waitFor({ timeout: 15_000 });
       pass('Admin B listing inventory and Admin C seller management verified on hosted staging');
 
@@ -994,6 +994,20 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       const hiddenAfterDelReq = await fetch(`${appOrigin}/en/@${s1Username}`);
       assert(hiddenAfterDelReq.status === 404, `Storefront must return 404 immediately after deletion request (got ${hiddenAfterDelReq.status})`);
       pass('Authenticated account deletion request recorded and public storefront immediately taken offline');
+      for (const locale of ['en', 'ar']) {
+        await page.goto(`${appOrigin}/${locale}/account/listings`);
+        await page.locator('.seller-feedback-banner a[href$="/account#account-deletion"]').waitFor();
+        assert(await page.locator('.seller-create-card').count() === 0, 'Pending deletion hides listing creation');
+        assert(await page.locator('.seller-listing-actions button:enabled').count() === 0, 'Pending deletion disables lifecycle mutations');
+        await page.goto(`${appOrigin}/${locale}/account/listings/${withdrawnId}`);
+        await page.locator('.editor-page fieldset[disabled]').waitFor();
+        assert(await page.locator('.editor-page fieldset[disabled]').count() === 1, 'Direct editor is read-only');
+        await page.goto(`${appOrigin}/${locale}/account/photos?listing=${withdrawnId}`);
+        await page.locator('.photo-manager-page').waitFor();
+        assert(await page.locator('input[type="file"]').count() === 0, 'Direct photo route hides upload controls');
+      }
+      await page.goto(`${appOrigin}/en/account`);
+      pass('Pending-deletion listing and photo controls restricted across direct EN/AR routes');
 
       await page.getByRole('button', { name: 'Sign out', exact: true }).click();
       await page.waitForURL('**/en/auth/signin', { timeout: 20_000 });

@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { AnalyticsSummary } from '@/features/analytics/summary';
 import { localeValue } from '@/features/auth/types';
-import { fetchMyProfileBundle } from '@/features/profile/server';
+import { MutationNotice } from '@/features/profile/mutation-notice';
+import { fetchMyAccountDeletionRequest, fetchMyProfileBundle } from '@/features/profile/server';
 import { Link } from '@/i18n/navigation';
 import { EQUIPMENT_CATEGORIES, MAX_LISTING_PHOTOS, MIN_LISTING_PHOTOS } from '@/lib/domain/equipment';
 import { verifiedClient } from '@/server/supabase/server';
@@ -33,13 +34,14 @@ export default async function ListingIndex({
   const client = await verifiedClient();
   if (!client) redirect(`/${localeValue(locale)}/auth/signin`);
 
-  const [t, photos, account, publicProfile, listingsResult, profileBundle] = await Promise.all([
+  const [t, photos, account, publicProfile, listingsResult, profileBundle, deletion] = await Promise.all([
     getTranslations('listingEditor'),
     getTranslations('photos'),
     getTranslations('account'),
     getTranslations('publicProfile'),
     fetchOwnerListings(client),
     fetchMyProfileBundle(client),
+    fetchMyAccountDeletionRequest(client),
   ]);
 
   const profile = profileBundle.profile;
@@ -51,6 +53,8 @@ export default async function ListingIndex({
       profile.public_contact_consent &&
       profile.whatsapp_e164,
   );
+
+  const readOnly = deletion.error || deletion.request?.status === 'pending';
 
   return (
     <main id="main" className="container seller-page">
@@ -143,7 +147,7 @@ export default async function ListingIndex({
                   <span>{account('businessHint')}</span>
                 </p>
               )}
-              {!profileReadyForPublic && (
+              {!profileReadyForPublic && !readOnly && (
                 <p className="seller-inline-hint">
                   <Link href="/account" className="text-link seller-inline-link">
                     {t('dashboardEnableProfileLink')}
@@ -151,17 +155,17 @@ export default async function ListingIndex({
                 </p>
               )}
             </div>
-          ) : (
+          ) : !readOnly ? (
             <div className="seller-profile-needed">
               <p>{t('dashboardCreateProfileFirst')}</p>
               <Link href="/account" className="button primary seller-compact-btn">
                 {account('createProfile')}
               </Link>
             </div>
-          )}
+          ) : null}
         </div>
 
-        <form action={createListing.bind(null, locale)} className="seller-create-card">
+        {!readOnly && <form action={createListing.bind(null, locale)} className="seller-create-card">
           <p className="seller-create-title">{t('dashboardCreateHeading')}</p>
           <p className="field-hint">
             {t('dashboardCreateHint', {
@@ -185,7 +189,7 @@ export default async function ListingIndex({
               <span>{t('create')}</span>
             </button>
           </div>
-        </form>
+        </form>}
       </div>
 
       {query.error === 'createFailed' && (
@@ -195,6 +199,7 @@ export default async function ListingIndex({
         </div>
       )}
 
+      {readOnly && <MutationNotice error={deletion.error} />}
       <AnalyticsSummary />
 
       {listingsResult.error ? (
@@ -204,6 +209,7 @@ export default async function ListingIndex({
         </div>
       ) : (
         <SellerListingsBoard
+          readOnly={readOnly}
           initialItems={listingsResult.items}
           hasProfile={profile !== null}
           profileReadyForPublic={profileReadyForPublic}

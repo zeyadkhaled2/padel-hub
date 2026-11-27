@@ -14,6 +14,7 @@ import { localeValue } from '@/features/auth/types';
 import { Link } from '@/i18n/navigation';
 import { verifiedClient } from '@/server/supabase/server';
 import { ProfileForm } from './profile-form';
+import { MutationNotice } from './mutation-notice';
 import { AccountDeletionCard } from './account-deletion-card';
 import { fetchMyAccountDeletionRequest, fetchMyProfileBundle } from './server';
 
@@ -102,6 +103,7 @@ export async function ProfilePage({ locale }: { locale: string }) {
         <ProfileForm initial={bundle.profile} />
       ) : null}
 
+      {deletion.request?.status === 'pending' && <MutationNotice showLink={false} />}
       <AccountDeletionCard initial={deletion.request} loadError={deletion.error} />
     </main>
   );

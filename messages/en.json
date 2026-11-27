@@ -297,6 +297,7 @@
       "privacyLink": "Read privacy policy",
       "pendingHeading": "Account deletion request received",
       "pendingBody": "Requested on {date}. Your public profile, QR link, listings, and WhatsApp contact have been taken offline.",
+      "readOnly": "Your account deletion request is pending. Profile, contact, listing and photo changes are unavailable. You can still view your saved information, check deletion status and sign out.",
       "pendingNextSteps": "Permanent deletion of your login, profile, listings, and stored photos will be completed manually within 7 days. If you submitted this by mistake before removal completes, sign out and contact the Raketna pilot operator.",
       "loadFailed": "We could not load your account deletion status. Reload to try again.",
       "errors": {

@@ -1,22 +1,18 @@
 # Raketna — MVP Launch Readiness & Go/No-Go Checklist
 
-Last updated: 2026-11-26
+Last updated: 2026-11-27
 Target controlled pilot: **10 real sellers · 50–100 listings** (independent coaches, Instagram retailers, Facebook resellers in Egypt)
 Feature freeze status: **FROZEN** after Admin C merge (`2b78c5c`). No Admin D–F or unrelated features before pilot completion.
 
 ---
 
-## 1. Infrastructure & Hosting Comparison (Commercial-Use Compliance)
+## 1. Selected infrastructure — 2026-11-27
 
-| Component | Recommended Pilot Option | Monthly Cost | Commercial Use Permitted? | Key Operational Limits |
-| --- | --- | --- | --- | --- |
-| **Database, Auth, MFA & Private Storage** | **Supabase Free** (dedicated production project, `eu-central-1` Frankfurt) | **\$0/mo** | **Yes** | 500 MB DB, 1 GB Storage, 5 GB egress, 50k MAU, free TOTP MFA. **No auto backups/PITR** (use [OPERATIONS_AND_BACKUPS.md](OPERATIONS_AND_BACKUPS.md)); pauses after **7 days of complete inactivity**. Upgrade to Pro (\$25/mo) only if pilot exceeds limits or requires managed backups. |
-| **Transactional Auth Email** | **Resend Free** (Custom SMTP on dedicated `auth.<domain>`) | **\$0/mo** | **Yes** | 3,000 emails/mo, **100 emails/day**. Disable link & open tracking. |
-| **Web Hosting (Next.js App)** | **Option A (Recommended): Railway Hobby** (Node `next start`, EU region, already planned in [PRODUCT_PLAN.md](PRODUCT_PLAN.md)) | **\$5/mo** (usage credit) | **Yes** | Persistent Node server, EU colocation near Frankfurt DB, no serverless cold-start/body-limit friction. |
-| **Web Hosting (Alternative)** | **Option B: Vercel Pro** (if staying on Vercel with `"regions": ["fra1"]`) | **\$20/mo/seat** | **Yes** | Compatible with Raketna's 4 MB client-optimized uploads. **Important:** Existing **Vercel Hobby (\$0/mo) prohibits commercial use** under Vercel's Terms of Service and should be kept for non-commercial preview/staging only, not real-seller production. |
-| **Custom Domain** | Production domain (e.g. `raketna.com` / `.eg` / `.app`) | ~\$10–15/yr | **Yes** | Needed for clean storefront URLs (`/@username`), QR codes, and Resend SPF/DKIM/DMARC auth email delivery. |
+Owner decision: **Vercel Hobby, Supabase Free, Resend Free through Supabase custom SMTP, GitHub Free**. Domain setup is separate. No purchases, billing activation, Railway migration or additional services are authorized.
 
-**Simplest compliant production total:** **\$5/month** (Railway Hobby + Supabase Free + Resend Free) + domain registration.
+Vercel Hobby is retained for eligible non-commercial validation. Resolve real-seller pilot eligibility before inviting sellers; a free marketplace is not automatically non-commercial under [Vercel's terms](https://vercel.com/legal/terms). Do not silently change plans.
+
+Vercel project inspection on 2026-11-27 confirmed Hobby plan (`padel-hub`, Node.js `26.x`, Fluid Compute enabled, 2048 MB memory, 0 env vars) currently deploys functions to **`iad1`** (`dpl_DQoNKB7Xvfk6wTBHebKA3CGxCVav` at `a977117`). Frankfurt single-region colocation (`"regions": ["fra1"]`) is configured in `vercel.json` and will be verified on the dedicated PR preview deployment. See [STAGING_SETUP.md](STAGING_SETUP.md) and [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md) for current staging evidence, quotas, and owner steps. Historical results below are dated evidence, not proof of current deployment.
 
 ---
 
@@ -36,21 +32,23 @@ Feature freeze status: **FROZEN** after Admin C merge (`2b78c5c`). No Admin D–
 
 ## 3. Prioritized Remaining Tasks (P0 / P1 / P2)
 
-### P0 — Must Complete Before Onboarding Real Sellers
-1. **Approve & apply hosted migrations `027`–`031` on `padelhub-staging` (`sxghreukdkxclymysryp`)** and run the full hosted staging launch smoke suite (`smoke` + `smoke-phase2b` + `verify-revoked-admin`). *(027–030 were previously dry-run; 031 is locally tested only. No hosted changes authorized in this correction.)*
-2. **Choose & provision production web host** (Railway Hobby \$5/mo recommended for commercial compliance, or Vercel Pro \$20/mo) and **dedicated production Supabase project** (`eu-central-1`, isolated from `padelhub-staging`), then apply migrations `001`–`031` (with `006` superseded repair) + create private `media-private` bucket + set the 4 server-only `PADELHUB_*` env vars.
-3. **Configure custom domain + Resend Custom SMTP**: add SPF, DKIM, MX, DMARC DNS records for `auth.<domain>`, turn **OFF** Resend Click & Open Tracking, paste SMTP settings + Raketna bilingual templates (`supabase/templates/`) into Supabase Auth, configure exact 4 Redirect URLs (`/(en|ar)/auth/(callback|recovery)`), and verify real external inbox signup & password recovery end-to-end.
-4. **Harden operator accounts & provision production admin**: enable 2FA on Vercel, GitHub, Supabase, and Resend accounts; register your production admin account, grant `private.admin_roles`, enroll TOTP MFA (`aal2`), and confirm non-admin/revoked access fails closed.
-5. **Run production backup + restore smoke check**: take first production DB dump + `scripts/backup-supabase.mjs media-backup` + `media-verify` and confirm recoverability off-host.
-6. **Complete Physical-Device Launch Checklist (Section 4 below)** on real iPhone Safari and Android Chrome (including real HEIC camera photo upload and WhatsApp tap-to-chat).
+### P0 - Must complete before onboarding real sellers
+1. **Resolve Vercel Hobby eligibility for the real-seller pilot.** Keep the owner-selected free tier for eligible non-commercial validation. No paid plan or migration is authorized.
+2. **Connect and verify an actual hosted staging frontend.** Staging migrations 027–031, Security/Performance Advisors (`0` errors), and full synthetic smoke suites (`smoke`, `smoke-phase2b`, deletion guards, Admin B removal, Admin C moderation, `verify-revoked-admin`) passed via a local production Next.js server connected to hosted Frankfurt Supabase. Set isolated Preview env vars on Vercel, confirm `fra1` deployment, and rerun against the staging HTTPS origin.
+3. **Domain and real SMTP delivery.** Configure Resend/DNS (`auth.<domain>`), exact redirects, and bilingual templates; verify real-inbox confirmation/recovery. Synthetic generated-link tests do not satisfy this gate.
+4. **Separate production approval and provisioning.** Use a dedicated clean Supabase Free project in `eu-central-1`, migrations 001–031 with documented 006 repair, private Storage, and isolated Production variables. Follow [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md); do not provision until separately approved.
+5. **Operator security and recovery.** Confirm provider 2FA (GitHub, Vercel, Supabase, Resend), production admin TOTP/non-admin/revoked denial, backup operator, encrypted independent DB/media backups, and an actual hosted restore/authorization rehearsal.
+6. **Physical-device sign-off.** iPhone Safari and Android Chrome camera/HEIC, retry/cancel, account deletion, and WhatsApp remain unverified on real devices.
+
 ### Optional indexing decision (not a launch blocker)
 - **Flip SEO `robots` indexing decision (if desired)**: keep `noindex` during invite-only pilot OR remove `noindex` on public browse/detail/profile/legal pages only when explicitly ready for public search indexing (never index `/auth`, `/account`, or `/admin`).
 
-### P1 — Can Complete During the Controlled Pilot
-1. **Colocate Vercel Functions to `fra1`** (`"regions": ["fra1"]` in `vercel.json`) if using Vercel, eliminating ~160–220 ms transatlantic RTT to Frankfurt Supabase.
-2. **Optional Google OAuth**: create Google Cloud Web OAuth Client (`openid email profile`), enable Google provider in Supabase Auth, and test live Google sign-in — button appears automatically once enabled.
-3. **Enable Supabase Leaked Password Protection (HIBP)** if/when moving to a Supabase plan tier that includes it (flagged as `WARN` in Security Advisors).
-4. **Decide post-pilot policy questions** already tracked in [ADMIN_REVIEW.md](ADMIN_REVIEW.md): whether to add an admin-UI seller restoration flow and whether to retain owner self-service Personal/Business switching.
+### P1 - Complete during staging validation
+1. Review and deploy the dedicated readiness PR, including pending-deletion controls, `fra1` config, and corrected hosted smoke assertions.
+2. Confirm `fra1` deployment and connected-host cold/warm browse, detail, storefront, and upload performance with Vercel Runtime Logs duration/memory/invocation/query/egress evidence.
+3. Repeat browser HEIC fallback, upload cancellation, and retry checks against the connected hosted HTTPS preview origin (locally verified in 36/36 E2E; JPEG/PNG/WebP + idempotency + Admin B removal + Admin C moderation verified against hosted staging).
+4. Record actual Vercel/Supabase/Resend/GitHub usage baselines and 50/70/90% operator actions from [FREE_TIER_LAUNCH.md](FREE_TIER_LAUNCH.md).
+5. Optional during pilot: Google OAuth (auto-surfaces once enabled) and Supabase HIBP leaked-password protection (currently flagged as `WARN` on Free tier).
 
 ### P2 — Post-Pilot Improvements (Strictly Out of Scope Before Pilot)
 - Admin D–F (reports enhancements, analytics/audit log explorer, platform settings & operations UI).

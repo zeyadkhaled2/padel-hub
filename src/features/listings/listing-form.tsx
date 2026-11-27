@@ -100,12 +100,14 @@ const SUCCESS_MESSAGES = new Set(['saved', 'submitted', 'withdrawn', 'reopened',
 export function ListingForm({
   initial,
   profile,
+  readOnly = false,
 }: {
   initial: Listing;
   profile: Pick<
     Profile,
     'is_public' | 'public_contact_consent' | 'whatsapp_e164' | 'account_status'
   > | null;
+  readOnly?: boolean;
 }) {
   const t = useTranslations('listingEditor');
   const account = useTranslations('account');
@@ -784,7 +786,7 @@ export function ListingForm({
               </p>
             )}
 
-            {editable && !dirty && (
+            {editable && !readOnly && !dirty && (
               <Link
                 className="button secondary editor-photos-cta"
                 href={`/account/photos?listing=${listing.id}`}
@@ -793,10 +795,10 @@ export function ListingForm({
                 <span>{t('photos')}</span>
               </Link>
             )}
-            {editable && dirty && <p className="field-hint">{t('saveFirst')}</p>}
+            {editable && !readOnly && dirty && <p className="field-hint">{t('saveFirst')}</p>}
           </div>
 
-          {editable && (
+          {editable && !readOnly && (
             <div className="seller-card editor-side-card">
               <div className="detail-panel-head">
                 <span className="detail-panel-icon" aria-hidden>

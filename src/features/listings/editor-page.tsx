@@ -2,7 +2,8 @@ import { getTranslations } from 'next-intl/server';
 import { notFound, redirect } from 'next/navigation';
 import { AlertTriangle, ArrowLeft, ExternalLink, ImagePlus } from 'lucide-react';
 import { localeValue } from '@/features/auth/types';
-import { fetchMyProfileBundle } from '@/features/profile/server';
+import { MutationNotice } from '@/features/profile/mutation-notice';
+import { fetchMyAccountDeletionRequest, fetchMyProfileBundle } from '@/features/profile/server';
 import { Link } from '@/i18n/navigation';
 import { isListingEditable } from '@/lib/domain/equipment';
 import { uuidSchema } from '@/lib/validation/shared';
@@ -21,12 +22,13 @@ export default async function EditorPage({
   const client = await verifiedClient();
   if (!client) redirect(`/${localeValue(locale)}/auth/signin`);
 
-  const [t, photos, admin, listingResult, profileBundle] = await Promise.all([
+  const [t, photos, admin, listingResult, profileBundle, deletion] = await Promise.all([
     getTranslations('listingEditor'),
     getTranslations('photos'),
     getTranslations('admin'),
     fetchOwnerListing(client, id),
     fetchMyProfileBundle(client),
+    fetchMyAccountDeletionRequest(client),
   ]);
 
   if (listingResult.error) {
@@ -42,10 +44,12 @@ export default async function EditorPage({
   const listing = listingResult.listing;
   if (!listing) notFound();
 
+  const readOnly = deletion.error || deletion.request?.status === 'pending';
+
   const decisionResult =
     listing.status === 'rejected' ? await fetchOwnerListingDecision(client, id) : null;
 
-  const editable = isListingEditable(listing.status);
+  const editable = !readOnly && isListingEditable(listing.status);
   const canViewPublic =
     ['active', 'reserved', 'sold', 'traded'].includes(listing.status) &&
     Boolean(
@@ -117,7 +121,10 @@ export default async function EditorPage({
         </section>
       )}
 
-      <ListingForm initial={listing} profile={profileBundle.profile} />
+      {readOnly && <MutationNotice error={deletion.error} />}
+      <fieldset disabled={readOnly} className="listing-fields" aria-label={t('heading')}>
+        <ListingForm initial={listing} profile={profileBundle.profile} readOnly={readOnly} />
+      </fieldset>
     </main>
   );
 }
