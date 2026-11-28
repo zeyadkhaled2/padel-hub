@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Search, SlidersHorizontal } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import {
   CURATED_BRANDS,
   EGYPT_GOVERNORATES,
@@ -19,6 +20,7 @@ interface SearchPanelProps {
   category: string;
   sort: string;
   values?: MarketplaceSearchValues;
+  base?: '/' | '/demo';
 }
 
 const SELECT_FILTERS = [
@@ -33,6 +35,7 @@ export async function SearchPanel({
   category,
   sort,
   values,
+  base = '/',
 }: SearchPanelProps) {
   const t = await getTranslations('market');
   const b = await getTranslations('buyer');
@@ -56,6 +59,7 @@ export async function SearchPanel({
       key={JSON.stringify({ query, category, sort, values })}
       className="search-panel"
       role="search"
+      action="#equipment-heading"
     >
       <div className="search-row">
         <label className="search-field">
@@ -64,6 +68,7 @@ export async function SearchPanel({
             <Search size={19} aria-hidden />
             <input
               name="q"
+              enterKeyHint="search"
               maxLength={MAX_SEARCH_QUERY_LENGTH}
               defaultValue={query}
               placeholder={t('placeholder')}
@@ -84,7 +89,10 @@ export async function SearchPanel({
           <SlidersHorizontal size={15} aria-hidden />
           <span>{t('filters')}</span>
           {activeFilterCount > 0 ? (
-            <span className="filters-count-pill">{activeFilterCount}</span>
+            <span className="filters-count-pill">
+              <span aria-hidden>{activeFilterCount}</span>
+              <span className="sr-only">{t('activeFilters', { count: activeFilterCount })}</span>
+            </span>
           ) : null}
         </summary>
 
@@ -159,6 +167,12 @@ export async function SearchPanel({
           )}
         </div>
         {values && <p className="field-hint">{b('priceHint')}</p>}
+        <div className="filter-actions">
+          <button className="button primary" type="submit">{t('applyFilters')}</button>
+          <Link href={{ pathname: base, hash: 'equipment-heading' }} className="button secondary">
+            {t('reset')}
+          </Link>
+        </div>
       </details>
     </form>
   );

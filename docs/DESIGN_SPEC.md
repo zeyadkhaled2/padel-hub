@@ -5,6 +5,10 @@ Raketna uses a modern, minimal, sporty, calm, and trustworthy courtside retail i
 
 The rejected `v2` visual direction (3D/2.5D floating racket stage, StockX/GOAT glow effects, heavy `radix-ui`/`shadcn` widgets, and external Google Fonts) is retired and must not be reintroduced.
 
+### Marketplace search refinement — 2026-11-28
+
+Search uses a border-only panel, 16px inputs/selects, and a full-width 44px filter disclosure. Expanded filters end with localized Apply filters and Clear filters actions. Native GET submission and reset links target the results heading; resets preserve the live/demo route and locale. Mobile category shortcuts have 44px minimum targets. Active-filter counts include localized screen-reader text. Preserve native controls and server rendering; no new UI dependency is required.
+
 - **Light theme (`:root`)**:
   - `--canvas` (`--color-base`): `#faf9f6` (warm alabaster off-white)
   - `--surface` (`--color-surface`): `#ffffff` (pure surface card/panel)
@@ -37,12 +41,12 @@ The rejected `v2` visual direction (3D/2.5D floating racket stage, StockX/GOAT g
 - **Container, Soft Minimal / Premium Rounded geometry & sticky-header offset**:
   - Desktop content sits within a `1240px` container.
   - Semantic radius hierarchy (inspired by modern iOS interfaces, with proportional nested radii):
-    - `--radius-sm: 8px` — Small labels, condition/category/spec chips, and compact controls.
-    - `--radius-control: 12px` — Standard buttons (`.button`), search input wrapper, filter selects/inputs, header navigation links, theme selector, language toggle, and step/feature icon badges.
+    - `--radius-sm: 8px` — Standard buttons (`.button`), category shortcuts, small labels, condition/category/spec chips, and compact controls. Buttons use 600 weight, flat fills or transparent secondary surfaces, and minimum 44px targets.
+    - `--radius-control: 12px` — Search input wrapper, filter selects/inputs, header navigation links, theme selector, language toggle, and step/feature icon badges.
     - `--radius-card: 18px` — Product cards (`.listing-card`), step cards (`.step-card`), FAQ cards (`.faq-item`), and nested media stages inside `24px` containers (`.hero-equipment`, `.inspection-stage`).
     - `--radius-panel: 20px` (`--radius-md: 20px`) — Larger content cards and panels (`.search-panel`, `.features-list`, `.community-banner`, `.empty-state`, `.disclosure`, and mobile hero/inspection containers).
     - `--radius-lg: 24px` — Homepage hero (`.hero`), interactive inspection showcase (`.inspection-section`), and major containers.
-    - `--radius-pill: 999px` — Category shortcut pills (`.category-link`) and small capsule badges (`.hero-badge`, `.result-count`, `.filters-count-pill`, `.card-negotiable-tag`).
+    - `--radius-pill: 999px` — Small capsule badges (`.hero-badge`, `.result-count`, `.filters-count-pill`, `.card-negotiable-tag`). Category shortcuts instead use 8px corners, with accent-soft selected fill and an accent border.
   - Sticky-header anchor offset: `--sticky-header-offset: 92px` on desktop/tablet (`> 700px`) and `128px` on mobile (`<= 700px`, accounting for the 2-row mobile sticky header), applied via `scroll-margin-top` scoped exclusively to intended page/section anchors (`#equipment-heading`, `#main-content`, `#pending-queue`, `#inspection-heading`, `#features-heading`, `#how-it-works-heading`, `#faq-heading`) without duplicating `scroll-padding-top` on `html`.
 
 ## Responsive global shell and marketplace layout (Phase UI-A)

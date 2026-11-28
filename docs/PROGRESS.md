@@ -1,5 +1,30 @@
 # PadelHub progress
 
+## UX main-branch delivery — 2026-11-28
+
+- User requested pushing the completed search/control refinements to main. Prepared a scoped commit based on the fetched origin/main; unrelated staging commit and local edits are excluded. Latest application verification remains npm run check passed and 18/18 foundation browser tests passed, plus 12 control layout/keyboard combinations. No application changes during delivery.
+- Physical device and authenticated admin-flow verification remain outstanding.
+
+## Minimal buttons and selection controls — 2026-11-28
+
+- User requested more minimalist buttons and radio controls. Shared buttons now use 8px corners, 600 weight, quieter transparent secondary surfaces and enabled-only hover styles. Hero/header/compact button targets are at least 44px. Category shortcuts use restrained rounded rectangles with accent-soft selected backgrounds rather than solid pills. Preserved brand colors, focus outlines, RTL and native behavior.
+- Fixed `.account-form` text-field selector inadvertently applying 48px height and 12px padding to radio inputs. Radio and checkbox inputs now have consistent 20px geometry, a simple selected dot/check, semantic theme colors, disabled states and native appearance fallback in forced-colors mode. Narrowed the admin width rule so it cannot override choice-input sizing. No JavaScript or authorization changes.
+- `npm run check`: **passed**, lint/typecheck/build, 37 generated routes. `PLAYWRIGHT_CHANNEL=chrome PADELHUB_AUTH_E2E=1 npx playwright test tests/e2e/foundation.spec.ts --workers=1`: **18/18 passed**. `git diff --check`: passed.
+- `.cache/controls-verify.mjs`: **12/12** combinations of EN/AR, light/dark and 390/768/1440px passed exact radio dimensions, arrow-key selection, Space checkbox toggling, disabled-button and overflow checks; forced-colors native fallback passed; zero page errors. Captured real marketplace buttons and local visual fixtures using production form classes; inspected EN mobile light and AR mobile dark controls plus marketplace dark buttons. Repeated captures after correcting screenshot scroll position.
+- Limits: choice controls were verified in a local DOM fixture, not an authenticated moderation flow. No admin actions, physical-device testing, Safari testing or deployment. Existing unrelated work preserved. Updated DESIGN_SPEC.md geometry guidance.
+- Next: owner visual review in local preview and physical-device checks; separately scoped listing-detail/seller-editor UX remains future work.
+
+## Marketplace UX refinement — 2026-11-28
+
+- User authorized a focused modern UX refinement after the prior feature freeze. Applied calm-nextjs-design and Impeccable guidance, preserving the approved courtside identity, native controls, server rendering, localization and live/demo separation. Impeccable context launcher could not initialize its external cache; used canonical project docs and skill references directly instead. No dependencies, schema changes or deployment.
+- Search/filter panel now has bottom Apply filters and Clear filters actions, native GET navigation to the results heading, localized screen-reader filter counts, 16px form text, full-width 44px disclosure target and 44px mobile category links. Removed the panel's redundant shadow. Corrected category aria-current to match its visual fallback selection. Documented the pattern in DESIGN_SPEC.md.
+- Final `npm run check`: **passed** (lint, TypeScript, production build; 37 generated routes). Initial sandbox build failed with EPERM creating build output; authorized rerun passed, including a final rerun after accessibility markup changes.
+- `PLAYWRIGHT_CHANNEL=chrome PADELHUB_AUTH_E2E=1 npx playwright test tests/e2e/foundation.spec.ts --workers=1`: **18/18 passed**, including a new filter apply/reset regression on desktop and mobile. Initial parallel run during other build/browser work had **13 passed / 3 navigation timeouts**; full serial rerun passed without weakening assertions.
+- Local `.cache/ux-verify.mjs`: **12/12** EN/AR × light/dark × 390/768/1440px layout and apply/reset checks passed; no horizontal overflow or page errors. Inspected EN mobile light, EN desktop dark, AR mobile dark screenshots and the full live-search AR dark mobile filter panel. Foundation suite also covers 320px layouts and keyboard/anchor behavior. `git diff --check`: passed.
+- Limits: Chrome desktop/emulation only; physical iPhone input zoom, Safari/Android hardware, Lighthouse and authenticated seller/admin flows were not tested in this UI-only session. Initial local browser networking failed until restarting this session's dev server with authorized access. Changes remain local and uncommitted; unrelated existing edits were preserved.
+- Next: review this search refinement in the local preview, verify on physical mobile devices, then separately scope listing-detail and seller-editor UX refinements. Existing hosted Auth configuration blockers below remain unresolved.
+
+
 Updated: 2026-11-27. Feature freeze active after PR #14 merge (`a977117`). Hosted `padelhub-staging` (`sxghreukdkxclymysryp`, `eu-central-1`, Free plan) is migrated through `031` and verified (`0` Security Advisor errors, `smoke` 25/25, `smoke-phase2b` 13/13, deletion guards 19/19, Admin C 16/16, Admin B removal + media idempotency, `verify-revoked-admin` 2/2); Vercel Hobby Preview staging env connection, Resend custom SMTP/domain, Vercel Hobby commercial-use eligibility, production provisioning, and physical device QA remain owner-gated.
 
 ## Completed locally

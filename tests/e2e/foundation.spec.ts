@@ -1,5 +1,18 @@
 import { test, expect } from '@playwright/test';
 
+test('filter actions apply and clear criteria while keeping results in view', async ({ page }) => {
+  await page.goto('/en/demo?category=balls&sort=low');
+  const filters = page.locator('.filters');
+  await filters.locator('select[name="category"]').selectOption('rackets');
+  await filters.getByRole('button', { name: 'Apply filters' }).click();
+  await expect(page).toHaveURL(/category=rackets.*sort=low.*#equipment-heading$/);
+  await expect(page.locator('.listing-card')).toHaveCount(2);
+  await filters.getByRole('link', { name: 'Clear filters' }).click();
+  await expect(page).toHaveURL(/\/en\/demo#equipment-heading$/);
+  await expect(page.locator('.listing-card')).toHaveCount(3);
+  await expect(filters).not.toHaveAttribute('open');
+});
+
 test('search, empty state, detail and seller navigation', async ({ page }) => {
   await page.goto('/en/demo');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(

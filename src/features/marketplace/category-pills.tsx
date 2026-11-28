@@ -64,7 +64,7 @@ export async function CategoryPills({
               hash: 'equipment-heading',
             }}
             className={`category-link ${isSelected ? 'selected' : ''}`}
-            aria-current={category === item ? 'true' : undefined}
+            aria-current={isSelected ? 'true' : undefined}
           >
             {renderCategoryIcon(item)}
             <span>{t(item || 'all')}</span>

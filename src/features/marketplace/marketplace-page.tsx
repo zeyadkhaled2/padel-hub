@@ -77,6 +77,7 @@ export async function MarketplacePage({
         category={category}
         sort={sort}
         values={demo ? undefined : values}
+        base={demo ? '/demo' : '/'}
       />
 
       <CategoryPills
