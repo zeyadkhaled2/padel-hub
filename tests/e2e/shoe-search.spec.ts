@@ -11,7 +11,7 @@ test('shoe size search persists across refresh, locale and category navigation',
   await expect(page).toHaveURL(/\/ar\?.*size=45\.5/);
   await expect(page.locator('select[name="size"]')).toHaveValue('45.5');
   for (const theme of ['light', 'dark']) {
-    await page.locator('header select').selectOption(theme);
+    await page.locator('.theme-switch input[value="' + theme + '"]').check();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   if (info.project.name === 'mobile') await page.screenshot({ path: '.cache/shoe-search-ar-dark.png', fullPage: true });

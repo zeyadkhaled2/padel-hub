@@ -1,12 +1,18 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { usePathname } from '@/i18n/navigation';
 
 const subscribe = () => () => {};
+const themeOptions = [
+  { value: 'system', Icon: Monitor },
+  { value: 'light', Icon: Sun },
+  { value: 'dark', Icon: Moon },
+] as const;
 
 export function Preferences() {
   const t = useTranslations('shell');
@@ -27,22 +33,27 @@ export function Preferences() {
 
   return (
     <div className="preferences">
-      <label>
-        <span className="sr-only">{t('theme')}</span>
-        <select
-          aria-label={t('theme')}
-          disabled={!mounted}
-          value={mounted ? theme : 'system'}
-          onChange={(event) => setTheme(event.target.value)}
-        >
-          <option value="system">{t('system')}</option>
-          <option value="light">{t('light')}</option>
-          <option value="dark">{t('dark')}</option>
-        </select>
-      </label>
+      <fieldset className="theme-switch" disabled={!mounted}>
+        <legend className="sr-only">{t('theme')}</legend>
+        {themeOptions.map(({ value, Icon }) => (
+          <label className="theme-option" key={value} title={t(value)}>
+            <input
+              type="radio"
+              name="color-theme"
+              value={value}
+              checked={mounted && theme === value}
+              onChange={() => setTheme(value)}
+            />
+            <span className="theme-option-face">
+              <Icon size={17} aria-hidden />
+              <span className="sr-only">{t(value)}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
 
       {/* Locale changes replace the document language/direction and theme bootstrap together. */}
-      <a className="language" href={languageHref} lang={otherLocale}>
+      <a className="language" href={languageHref} lang={otherLocale} hrefLang={otherLocale} dir="auto" translate="no">
         {locale === 'en' ? 'العربية' : 'English'}
       </a>
     </div>

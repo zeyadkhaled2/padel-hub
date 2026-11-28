@@ -889,7 +889,7 @@ test.describe('Media Optimization V1 — Client Prep, HEIC, Queue, Idempotency &
         expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 
         await page.goto(`/ar/account/photos?listing=${draft1.id}`);
-        await page.getByRole('combobox', { name: 'مظهر الموقع' }).selectOption('dark');
+        await page.locator('.theme-switch input[value="dark"]').check();
         expect(await page.evaluate(() => document.documentElement.dir)).toBe('rtl');
 
         // Detach 1 photo to have 3/4 + open slot, then select a photo to inspect Arabic dark mobile queue UI

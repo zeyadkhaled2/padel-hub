@@ -399,34 +399,55 @@ nav a:hover,
   gap: 10px;
 }
 
-.preferences select {
-  padding: 7px 11px;
+.theme-switch {
+  display: flex;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
   border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 550;
-  min-height: 40px;
-  max-width: 136px;
-  transition: border-color 0.18s var(--ease-calm);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
 }
-
-.preferences select:hover {
-  border-color: var(--border-strong);
+.theme-option { position: relative; cursor: pointer; }
+.theme-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.theme-option-face {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.theme-option input:checked + .theme-option-face { background: var(--accent-soft); color: var(--accent); }
+.theme-option input:hover:not(:disabled) + .theme-option-face { color: var(--text); }
+.theme-option input:focus-visible + .theme-option-face { outline: 2.5px solid var(--focus); outline-offset: 2px; }
+.theme-option input:disabled { cursor: wait; }
+@media (forced-colors: active) {
+  .theme-option input:checked + .theme-option-face { outline: 2px solid Highlight; outline-offset: -4px; }
 }
 
 .language {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 13px;
 }
 
 .language:hover {
-  border-color: var(--accent);
+  background: var(--surface-soft);
   color: var(--accent);
 }
 
@@ -1773,17 +1794,9 @@ nav a:hover,
     gap: 6px;
   }
 
-  .preferences select {
-    max-width: 98px;
-    font-size: 12.5px;
-    padding: 6px 8px;
-    min-height: 36px;
-  }
-
   .language {
     font-size: 12.5px;
-    padding: 5px 9px;
-    min-height: 36px;
+    padding: 5px;
   }
 
   .site-nav {
@@ -2002,15 +2015,11 @@ nav a:hover,
     gap: 4px;
   }
 
-  .preferences select {
-    max-width: 82px;
-    font-size: 12px;
-    padding: 5px 6px;
-  }
+  .site-header .brand-logo { width: 80px; height: auto; }
 
   .language {
     font-size: 12px;
-    padding: 5px 8px;
+    padding: 5px;
   }
 
   .site-nav {

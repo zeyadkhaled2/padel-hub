@@ -528,7 +528,7 @@ test.describe('Phase UI-C — Premium Seller Experience', () => {
               await page.setViewportSize({ width, height: 900 });
               for (const target of checkPages) {
                 await page.goto(`/${locale}${target.path}`);
-                await page.getByRole('combobox', { name: locale === 'en' ? 'Color theme' : 'مظهر الموقع' }).selectOption(theme);
+                await page.locator('.theme-switch input[value="' + theme + '"]').check();
                 expect(await page.evaluate(() => document.documentElement.dir)).toBe(locale === 'ar' ? 'rtl' : 'ltr');
                 const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
                 expect(overflow, `Overflow on ${target.key} ${width}px ${locale} ${theme}`).toBeLessThanOrEqual(0);
@@ -553,7 +553,7 @@ test.describe('Phase UI-C — Premium Seller Experience', () => {
         }
         await page.setViewportSize({ width: 1280, height: 900 });
         await page.goto('/en/account/listings');
-        await page.getByRole('combobox', { name: 'Color theme' }).selectOption('light');
+        await page.locator('.theme-switch input[value="light"]').check();
       }
 
       // 9. Correct rejected listing -> resubmit -> approve -> verify buyer view shows all 4 photos -> dashboard lifecycle actions

@@ -1,5 +1,16 @@
 # PadelHub progress
 
+## Direct theme and language controls — 2026-11-28
+
+- User requested non-dropdown theme/language controls and current best-practice research, then authorized pushing the completed changes to main. Consulted GOV.UK select guidance and W3C radio/language-navigation guidance (linked in DESIGN_SPEC.md); used calm-nextjs-design/Impeccable refinement guidance.
+- Replaced theme select with native System/Light/Dark radios presented as a compact icon segment group. Retained persistence, live system preference and hydration gating. Localized labels, title hints, visible keyboard focus, forced-colors checked indicator and 44px hit areas. Language remains direct native-name navigation, now unboxed with explicit language/direction/translation attributes; path/query preserved. Narrow headers fit without shrinking hit targets.
+- Updated existing theme selectors in browser tests and staging smoke harness; added preferences regression covering arrow keys, persistence, OS-theme changes and language/query preservation. Authenticated and hosted suites were not run; only their selectors were adapted.
+- `npm run check`: **passed**, lint/typecheck/production build, 37 routes. Initial lint found completed local CommonJS helper scripts in `.cache`; removed those session-created helpers and reran successfully. `git diff --check`: passed.
+- Production-server browser run: `PLAYWRIGHT_CHANNEL=chrome PADELHUB_AUTH_E2E=1 npx playwright test tests/e2e/foundation.spec.ts tests/e2e/preferences.spec.ts --workers=1`: **20/20 passed**. Initial dev-server runs failed with unhydrated/disabled controls and blocked loopback HMR; stopped that run and verified the production build instead. Dev-server issue not claimed fixed.
+- `.cache/preferences-visual.mjs`: **16/16** EN/AR × light/dark × 320/390/768/1440px checks passed, all preference hit areas at least 44px, no overflow or page errors. Inspected EN 320px light and AR 390px dark screenshots. Physical devices, Safari and assistive-technology announcements remain untested.
+- Delivery: scoped main commit excludes unrelated staging work. Next: verify hosted build after push and complete physical-device/assistive-technology checks. No production configuration changes.
+
+
 ## UX main-branch delivery — 2026-11-28
 
 - User requested pushing the completed search/control refinements to main. Prepared a scoped commit based on the fetched origin/main; unrelated staging commit and local edits are excluded. Latest application verification remains npm run check passed and 18/18 foundation browser tests passed, plus 12 control layout/keyboard combinations. No application changes during delivery.

@@ -91,8 +91,7 @@ test('demo product detail and seller storefront fit responsive matrix in EN/AR l
         await expect(page.getByText(locale === 'en' ? 'Before you meet & buy' : 'قبل المقابلة والشراء')).toBeVisible();
         for (const theme of ['light', 'dark'] as const) {
           await page
-            .getByRole('combobox', { name: locale === 'en' ? 'Color theme' : 'مظهر الموقع' })
-            .selectOption(theme);
+            .locator('.theme-switch input[value="' + theme + '"]').check();
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
           await assertNoOverflow(page, `demo detail ${locale} ${theme} ${width}px`);
         }
@@ -639,7 +638,7 @@ test.describe('live buyer experience (UI-B)', () => {
         // 1. Product details — English desktop light (1440px)
         await page.setViewportSize({ width: 1440, height: 960 });
         await page.goto(`/en/equipment/${usedRacket.id}`);
-        await page.getByRole('combobox', { name: 'Color theme' }).selectOption('light');
+        await page.locator('.theme-switch input[value="light"]').check();
         await expect.poll(() =>
           page.locator('.detail-whatsapp-cta').evaluate((el) => getComputedStyle(el).color),
         ).toBe('rgb(255, 255, 255)');
@@ -647,7 +646,7 @@ test.describe('live buyer experience (UI-B)', () => {
         await page.screenshot({ path: join(shotsDir, '1-product-detail-en-desktop-light.png'), fullPage: true });
 
         // 2. Product details — English desktop dark (1440px)
-        await page.getByRole('combobox', { name: 'Color theme' }).selectOption('dark');
+        await page.locator('.theme-switch input[value="dark"]').check();
         await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
         await expect.poll(() =>
           page.locator('.detail-whatsapp-cta').evaluate((el) => getComputedStyle(el).color),
@@ -661,7 +660,7 @@ test.describe('live buyer experience (UI-B)', () => {
         // 3. Product details — Arabic mobile RTL (390px, light)
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto(`/ar/equipment/${usedRacket.id}`);
-        await page.getByRole('combobox', { name: 'مظهر الموقع' }).selectOption('light');
+        await page.locator('.theme-switch input[value="light"]').check();
         await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
         await expect.poll(() =>
           page.locator('.detail-whatsapp-cta').evaluate((el) => getComputedStyle(el).color),
@@ -671,7 +670,7 @@ test.describe('live buyer experience (UI-B)', () => {
 
         // 4. Product details — English mobile (390px, light)
         await page.goto(`/en/equipment/${usedRacket.id}`);
-        await page.getByRole('combobox', { name: 'Color theme' }).selectOption('light');
+        await page.locator('.theme-switch input[value="light"]').check();
         await expect.poll(() =>
           page.locator('.detail-whatsapp-cta').evaluate((el) => getComputedStyle(el).color),
         ).toBe('rgb(255, 255, 255)');
@@ -688,7 +687,7 @@ test.describe('live buyer experience (UI-B)', () => {
         await page.screenshot({ path: join(shotsDir, '5-seller-storefront-desktop.png'), fullPage: true });
 
         // 7. QR sharing interface (1440px, dark mode to verify white quiet zone contrast!)
-        await page.getByRole('combobox', { name: 'Color theme' }).selectOption('dark');
+        await page.locator('.theme-switch input[value="dark"]').check();
         await page.getByRole('button', { name: 'Show QR code', exact: true }).click();
         await expect(page.locator('.profile-qr img')).toBeVisible();
         await expect.poll(() =>
@@ -700,7 +699,7 @@ test.describe('live buyer experience (UI-B)', () => {
         // 6. Seller storefront — mobile (390px, light)
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto(`/en/@${sellerUsername}`);
-        await page.getByRole('combobox', { name: 'Color theme' }).selectOption('light');
+        await page.locator('.theme-switch input[value="light"]').check();
         await expect.poll(() =>
           page.locator('.share-action-btn').first().evaluate((el) => getComputedStyle(el).backgroundColor),
         ).toBe('rgb(255, 255, 255)');

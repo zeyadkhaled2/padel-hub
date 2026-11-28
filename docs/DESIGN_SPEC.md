@@ -9,6 +9,12 @@ The rejected `v2` visual direction (3D/2.5D floating racket stage, StockX/GOAT g
 
 Search uses a border-only panel, 16px inputs/selects, and a full-width 44px filter disclosure. Expanded filters end with localized Apply filters and Clear filters actions. Native GET submission and reset links target the results heading; resets preserve the live/demo route and locale. Mobile category shortcuts have 44px minimum targets. Active-filter counts include localized screen-reader text. Preserve native controls and server rendering; no new UI dependency is required.
 
+### Header preferences — 2026-11-28
+
+Theme selection is an always-visible three-segment native radio group (monitor/System, sun/Light, moon/Dark), with localized accessible labels, native title hints, checked-state styling and keyboard focus. Each option is 44×44px. System mode follows OS changes; explicit preferences persist. Language navigation is a direct text link in the target language, with `lang`, `hreflang`, `dir="auto"` and `translate="no"`; it preserves the path and query. Neither preference uses a dropdown. Narrow headers reduce only the logo width, preserving control hit targets.
+
+References: [GOV.UK select guidance](https://design-system.service.gov.uk/components/select/), [W3C radio keyboard pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/), and [W3C language navigation](https://www.w3.org/International/quicktips/index).
+
 - **Light theme (`:root`)**:
   - `--canvas` (`--color-base`): `#faf9f6` (warm alabaster off-white)
   - `--surface` (`--color-surface`): `#ffffff` (pure surface card/panel)

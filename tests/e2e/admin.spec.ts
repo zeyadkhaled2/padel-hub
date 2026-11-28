@@ -122,7 +122,7 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
         for(const view of ['queue','review','inventory']) {
           await page.goto(view==='queue'?`/${locale}/admin`:view==='inventory'?`/${locale}/admin/listings?q=${suffix}`:`/${locale}/admin/listings/${id}`);
           await expect(page.locator(view==='inventory'?'.inventory-table:visible':view==='review'?'.listing-detail-fields':'.admin-kpi-card').first()).toBeVisible();
-          await page.getByRole('combobox',{name:locale==='en'?'Color theme':'مظهر الموقع'}).selectOption(theme);
+          await page.locator('.theme-switch input[value="' + theme + '"]').check();
           expect(await page.evaluate(()=>document.documentElement.dir)).toBe(locale==='ar'?'rtl':'ltr');
           expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
           if(view==='queue' && ((width===390&&locale==='ar'&&theme==='dark')||(width===1440&&locale==='en'&&theme==='light')))await page.screenshot({path:`.cache/admin-overview-${locale}-${theme}.png`,fullPage:true});
@@ -198,7 +198,7 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
       for(const width of [390,1440]) for(const locale of ['en','ar']) for(const theme of ['light','dark']) {
         await sellerPage.setViewportSize({width,height:900});
         await sellerPage.goto(`/${locale}/account/listings`);
-        await sellerPage.locator('header select').selectOption(theme);
+        await sellerPage.locator('.theme-switch input[value="' + theme + '"]').check();
         await expect(sellerPage.locator('main section h2')).toBeVisible();
         expect(await sellerPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
         if(width===390 && locale==='ar' && theme==='dark') await sellerPage.screenshot({path:'.cache/analytics-ar-dark.png',fullPage:true});
@@ -220,7 +220,7 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
       for(const locale of ['en','ar'])for(const theme of ['light','dark'])for(const width of [390,768,1440]) {
         await page.setViewportSize({width,height:1000});
         await page.goto(`/${locale}/admin/reports?page=${reportPage}`);
-        await page.locator('header select').selectOption(theme);
+        await page.locator('.theme-switch input[value="' + theme + '"]').check();
         await expect(page.locator('section').filter({hasText:`Synthetic report ${suffix}`})).toBeVisible();
         expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
         if(width===390 && theme==='dark' && locale==='ar') await page.screenshot({path:'.cache/reports-ar-dark.png',fullPage:true});

@@ -253,7 +253,7 @@ test('Admin C seller management, allowances, moderation revocation, audit labels
               await expect(
                 page.locator(view === 'sellers' ? '.sellers-table:visible' : '.seller-profile-dl').first(),
               ).toBeVisible();
-              await page.getByRole('combobox', { name: locale === 'en' ? 'Color theme' : 'مظهر الموقع' }).selectOption(theme);
+              await page.locator('.theme-switch input[value="' + theme + '"]').check();
               expect(await page.getByRole('main').innerText()).not.toContain('profile.');
               expect(await page.evaluate(() => document.documentElement.dir)).toBe(locale === 'ar' ? 'rtl' : 'ltr');
               const overflow = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: innerWidth }));

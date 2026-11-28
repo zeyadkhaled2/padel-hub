@@ -278,7 +278,7 @@ test.describe('local verified accounts', () => {
       for (const locale of ['en', 'ar']) for (const theme of ['light', 'dark']) {
         await page.setViewportSize({ width: 390, height: 900 });
         await page.goto(editorUrl.replace('/en/', `/${locale}/`));
-        await page.locator('header select').selectOption(theme);
+        await page.locator('.theme-switch input[value="' + theme + '"]').check();
         await expect(page.locator('input[name="racket_weight_grams"]')).toHaveValue('365');
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         if (locale === 'ar' && theme === 'dark') {
@@ -583,7 +583,7 @@ test.describe('local verified accounts', () => {
     for (const locale of ['en', 'ar']) {
       await page.goto(`/${locale}/account`);
       for (const theme of ['light', 'dark']) {
-        await page.getByRole('combobox', { name: locale === 'en' ? 'Color theme' : 'مظهر الموقع' }).selectOption(theme);
+        await page.locator('.theme-switch input[value="' + theme + '"]').check();
         await expect(page.locator('#account-deletion').getByRole('status')).toBeVisible();
         await expect(page.locator('.seller-profile-page input:not([type="hidden"]), .seller-profile-page textarea')).toHaveCount(0);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

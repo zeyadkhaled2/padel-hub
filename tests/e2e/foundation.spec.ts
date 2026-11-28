@@ -47,7 +47,7 @@ test('theme persists and locale switch preserves filters without overflow', asyn
 }) => {
   await page.goto('/en/demo?category=balls&sort=low');
   await expect(page.locator('.listing-card')).toHaveCount(1);
-  await page.getByRole('combobox', { name: 'Color theme' }).selectOption('dark');
+  await page.locator('.theme-switch input[value="dark"]').check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -56,8 +56,7 @@ test('theme persists and locale switch preserves filters without overflow', asyn
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.locator('.listing-card')).toHaveCount(1);
   await page
-    .getByRole('combobox', { name: 'مظهر الموقع' })
-    .selectOption('light');
+    .locator('.theme-switch input[value="light"]').check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   expect(
     await page.evaluate(
@@ -72,10 +71,7 @@ test('both locales and themes fit a narrow screen', async ({ page }) => {
     for (const theme of ['light', 'dark']) {
       await page.goto(`/${locale}/demo`);
       await page
-        .getByRole('combobox', {
-          name: locale === 'en' ? 'Color theme' : 'مظهر الموقع',
-        })
-        .selectOption(theme);
+        .locator('.theme-switch input[value="' + theme + '"]').check();
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -181,11 +177,9 @@ test('auth recovery and OAuth callback routes fail closed and fit EN/AR narrow t
   await page.setViewportSize({ width: 320, height: 780 });
   for (const locale of ['en', 'ar']) {
     await page.goto(`/${locale}/auth/forgot-password`);
-    const themeSelect = page.getByRole('combobox', {
-      name: locale === 'en' ? 'Color theme' : 'مظهر الموقع',
-    });
+    const themeControls = page.locator('.theme-switch');
     for (const theme of ['light', 'dark']) {
-      await themeSelect.selectOption(theme);
+      await themeControls.locator('input[value="' + theme + '"]').check();
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       expect(
         await page.evaluate(
@@ -310,11 +304,9 @@ test('privacy policy, terms of use, and baseline HTTP security headers work acro
   for (const route of ['privacy', 'terms'] as const) {
     for (const locale of ['en', 'ar'] as const) {
       await page.goto(`/${locale}/${route}`);
-      const themeSelect = page.getByRole('combobox', {
-        name: locale === 'en' ? 'Color theme' : 'مظهر الموقع',
-      });
+      const themeControls = page.locator('.theme-switch');
       for (const theme of ['light', 'dark']) {
-        await themeSelect.selectOption(theme);
+        await themeControls.locator('input[value="' + theme + '"]').check();
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
         expect(
           await page.evaluate(

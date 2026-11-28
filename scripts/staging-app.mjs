@@ -1170,8 +1170,7 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
             assert(navRes?.status() === 200, `GET /${locale}/auth/${route} failed (${navRes?.status()})`);
             assert((navRes?.headers()['cache-control'] || '').includes('no-store'), `/${locale}/auth/${route} must be no-store`);
             await mobilePage
-              .getByRole('combobox', { name: locale === 'en' ? 'Color theme' : 'مظهر الموقع' })
-              .selectOption(theme);
+              .locator('.theme-switch input[value="' + theme + '"]').check();
             const overflow = await mobilePage.evaluate(
               () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
             );
