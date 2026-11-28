@@ -1,5 +1,14 @@
 # Raketna (راكتنا) — Design Specification
 
+## Content voice — 2026-11-28
+
+- Egyptian Arabic for discovery, onboarding and helpful guidance; plain English with equivalent meaning, not literal slogans. Use «راكت» / «راكتات» for racket(s), «شنط» for bag category labels, «إعلان» for listing, and «تبديل» for swap. Keep brand «راكتنا» / Raketna.
+- Lead with the player benefit: “Your next racket is waiting.” / «راكتك الجاي مستنيك.» Include balls, shoes and bags in supporting copy. Seller hook: unused equipment can get back on court with another player.
+- Labels name the action. The closing seller invitation links directly to `/account/listings`. Keep draft, review, publication and completed handover distinct; do not imply submitting publishes immediately.
+- Manual review checks listing completeness and rules, not authenticity, performance, seller identity or physical condition. Never promise no surprises, guaranteed sales or approval speed. Treat photos and descriptions as seller-provided information, not an inspection.
+- Browsing/contact need no account. Profiles start private. WhatsApp contact requires consent and exposes the number when contacted; never call it “always private.” Keep demo inventory explicitly separate from live listings.
+- Keep security, consent, deletion, moderation and legal wording precise. Retain validated limits and ICU placeholders. No invented demand, urgency, testimonials, alerts or unavailable services. These copy choices are hypotheses, not measured conversion results.
+
 ## Visual direction and semantic tokens (Modern Minimal Courtside Retail)
 Raketna uses a modern, minimal, sporty, calm, and trustworthy courtside retail identity in both Light and Dark themes (`next-themes` with `attribute="data-theme"` and `defaultTheme="system"`), exposed through Tailwind v4 `@theme inline` tokens in `src/app/globals.css`.
 

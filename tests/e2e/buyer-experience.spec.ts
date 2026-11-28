@@ -425,7 +425,7 @@ test.describe('live buyer experience (UI-B)', () => {
       await expect(page.locator('.gallery-counter')).toHaveText('1 / 3');
 
       // Prominent disclosures, specs, seller link, safety, and WhatsApp CTA
-      await expect(page.getByRole('heading', { name: 'Condition & inspection disclosures' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'What the seller says about condition' })).toBeVisible();
       await expect(page.getByText('No structural cracks, no core rattle, and no prior carbon repairs.')).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Model year', exact: true })).toBeVisible();
       await expect(page.getByText('2025', { exact: true })).toBeVisible();

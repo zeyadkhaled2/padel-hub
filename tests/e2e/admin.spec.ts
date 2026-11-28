@@ -172,7 +172,7 @@ test('real TOTP session, review photos, rejection, stale decision, approval and 
     await page.goto(`/ar/admin/listings/${racketId}`);
     await expect(page.locator('.listing-detail-fields')).toContainText('سنة الموديل');
     await expect(page.locator('.listing-detail-fields')).toContainText('الوزن (جرام)');
-    await expect(page.locator('.listing-detail-fields')).toContainText('شكل المضرب');
+    await expect(page.locator('.listing-detail-fields')).toContainText('شكل الراكت');
     await expect(page.locator('.listing-detail-fields')).toContainText('ماسي');
     await page.goto(`/en/admin/listings/${racketId}`);
     await page.getByRole('button',{name:'Approve listing',exact:true}).click();

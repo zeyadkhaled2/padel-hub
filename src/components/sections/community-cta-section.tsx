@@ -12,7 +12,7 @@ export async function CommunityCtaSection() {
         <h2>{t('tipTitle')}</h2>
         <p>{t('tip')}</p>
       </div>
-      <Link href="/about" className="text-link">
+      <Link href="/account/listings" prefetch={false} className="text-link">
         {t('learn')}
         <ArrowUpRight size={18} aria-hidden />
       </Link>

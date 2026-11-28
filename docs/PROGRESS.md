@@ -1,5 +1,20 @@
 # PadelHub progress
 
+## Content main delivery — 2026-11-28
+
+- User authorized pushing the content refactor to main. Prepared a scoped 10-file commit on fetched origin/main, preserving unrelated staging and palette research. Validation remains npm run check passed, 20/20 browser tests, 16/16 responsive checks and 1,006 paired ICU messages verified. No application changes or new test runs during delivery. Hosted deployment unverified. Next: verify remote main after push and review hosted content.
+
+## Marketplace content refactor — 2026-11-28
+
+- User authorized a full content refinement and specified «راكت». Rewrote 98 English and 116 Arabic messages across discovery/metadata, buying guidance, FAQ, seller onboarding, account/privacy explanations, photos, listing editing, public profiles and reports. Arabic racket terminology now consistently uses «راكت» / «راكتات», including admin and policy references. Preserved precise security, legal obligations, validation limits and all existing translation keys. Brand remains Raketna / راكتنا.
+- New lead: “Your next racket is waiting.” / «راكتك الجاي مستنيك.» Seller invitation emphasizes giving unused equipment another match; its CTA now points to `/account/listings` and preserves sign-in gating. Removed unsupported implications of guaranteed condition, performance inferred from photos, no surprises and faster approval. Clarified review versus physical inspection, all four equipment categories, sale-only categories and WhatsApp number visibility. No new services/features, publication or infrastructure changes.
+- Documented voice/terminology in DESIGN_SPEC.md. Used Impeccable clarify and calm-nextjs-design guidance plus installed Next.js internationalization guide. Impeccable context launcher could not initialize its external cache; read repository context directly. Existing unrelated working changes preserved.
+- `npm run check`: **passed** (lint, typecheck, production build; 37 routes). ICU AST parsing and variable parity: **1,006 paired keys passed**, with 98 EN / 116 AR changes compared with session-start copies. Initial regex-only interpolation check falsely treated a plural branch as a variable; replaced the diagnostic with the installed ICU parser. `git diff --check`: **passed**.
+- `PLAYWRIGHT_CHANNEL=chrome npx playwright test --config .cache/content/playwright.config.ts tests/e2e/foundation.spec.ts tests/e2e/preferences.spec.ts --workers=1`: **20/20 passed** against local production server on port 3125. Config only overrides local URL/test directory to avoid occupied port 3100. Initial sandbox browser attempt hit `ERR_NETWORK_ACCESS_DENIED`; authorized local browser execution passed. Adapted changed text assertions in foundation/account/admin/buyer/seller suites; authenticated suites were not run.
+- `.cache/content/visual.mjs`: **16/16** EN/AR × light/dark × 320/390/768/1440px checks passed, no horizontal overflow or page errors, preference targets at least 44px. Inspected EN desktop light and AR mobile dark, including full-page Arabic content. `.cache/content/flows.mjs`: seller CTA → sign-in and about-page 200% zoom at 1280px passed in both locales. An exploratory 390px + CSS 200% zoom check overflowed on AR about (effective width 195px); this extreme-width limitation remains, while supported 320px layouts and desktop 200% zoom pass.
+- Limits: no conversion uplift claimed; copy needs player feedback. Authenticated seller/admin flows, physical devices, Safari and screen-reader speech were not tested. No commit, push or deployment. Next: owner content review, player feedback on the buying/selling hooks, then release only when requested; existing hosted readiness blockers remain as documented below.
+
+
 ## Skeleton-loading main delivery — 2026-11-28
 
 - User authorized pushing the verified product-grid skeleton changes to main. Prepared a scoped commit on fetched origin/main; unrelated staging changes excluded. Validation remains npm run check passed, 20/20 browser tests, and 15/15 delayed-response loading checks. No application changes during delivery; hosted deployment not verified.

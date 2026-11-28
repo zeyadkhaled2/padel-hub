@@ -16,14 +16,14 @@ test('filter actions apply and clear criteria while keeping results in view', as
 test('search, empty state, detail and seller navigation', async ({ page }) => {
   await page.goto('/en/demo');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Your next game starts here.',
+    'Your next racket is waiting.',
   );
   await page
     .getByRole('textbox', { name: 'What are you looking for?' })
     .fill('no-such-racket');
   await page.getByRole('button', { name: 'Find equipment' }).click();
   await expect(
-    page.getByRole('heading', { name: 'Nothing here just yet' }),
+    page.getByRole('heading', { name: 'No matching equipment yet' }),
   ).toBeVisible();
   await page.getByRole('link', { name: 'Clear filters' }).click();
   await page
@@ -115,27 +115,27 @@ test('interactive inspection showcase and FAQ sections work in both locales', as
   await page.goto('/en/demo');
   await expect(
     page.getByRole('heading', {
-      name: 'Every listing requires structured court-ready disclosures.',
+      name: 'Know the condition before you make the trip.',
     }),
   ).toBeVisible();
 
-  const frameTab = page.getByRole('tab', { name: /Frame & bumper guard/ });
+  const frameTab = page.getByRole('tab', { name: /Frame & repairs/ });
   await frameTab.click();
   await expect(frameTab).toHaveAttribute('aria-selected', 'true');
   await expect(
-    page.getByRole('heading', { name: 'Structural integrity first' }),
+    page.getByRole('heading', { name: 'Ask about cracks and repairs' }),
   ).toBeVisible();
 
-  const ballsTab = page.getByRole('tab', { name: /Pressurized ball packs/ });
+  const ballsTab = page.getByRole('tab', { name: /Balls & packaging/ });
   await ballsTab.click();
   await expect(ballsTab).toHaveAttribute('aria-selected', 'true');
   await expect(
-    page.getByRole('heading', { name: 'Clear quantity & seal status' }),
+    page.getByRole('heading', { name: 'Check what the price includes' }),
   ).toBeVisible();
 
   await expect(
     page.getByRole('heading', {
-      name: 'Everything you need to know about the marketplace.',
+      name: 'Before your first deal',
     }),
   ).toBeVisible();
 });

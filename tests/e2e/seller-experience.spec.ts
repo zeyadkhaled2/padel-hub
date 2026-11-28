@@ -168,7 +168,7 @@ test.describe('Phase UI-C — Premium Seller Experience', () => {
       await expect(page.getByText('Nadia Courtside')).toBeVisible();
       await expect(page.getByText(`@${username}`)).toBeVisible();
       await expect(page.getByText('Personal', { exact: true }).first()).toBeVisible();
-      await expect(page.getByText('Ready to list your padel gear?')).toBeVisible();
+      await expect(page.getByText('Got gear you no longer use?')).toBeVisible();
       await expect(page.getByText('WhatsApp clicks', { exact: true })).toHaveCount(0);
 
       // 3. Seller Profile Management: edit Business/Personal, bio, district, favorite racket, public visibility, WhatsApp consent & QR

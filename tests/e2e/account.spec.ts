@@ -372,7 +372,7 @@ test.describe('local verified accounts', () => {
     await buyerPage.goto(`/ar/equipment/${listingId}`);
     await expect(buyerPage.getByRole('heading', { name: 'سنة الموديل', exact: true })).toBeVisible();
     await expect(buyerPage.getByRole('heading', { name: 'الوزن (جرام)', exact: true })).toBeVisible();
-    await expect(buyerPage.getByRole('heading', { name: 'شكل المضرب', exact: true })).toBeVisible();
+    await expect(buyerPage.getByRole('heading', { name: 'شكل الراكت', exact: true })).toBeVisible();
     await expect(buyerPage.getByText('دمعة', { exact: true })).toBeVisible();
     await expect(buyerPage.getByRole('link', { name: 'تواصل عبر واتساب' })).toBeVisible();
     await page.reload();
