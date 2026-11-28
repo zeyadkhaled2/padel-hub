@@ -7,6 +7,7 @@ import {
   updateRecoveredPassword,
   verifyRecoveryMfa,
 } from './actions';
+import { AuthNotice, AuthSpinner } from './auth-notice';
 
 export function RecoveryMfaForm() {
   const t = useTranslations('account');
@@ -30,13 +31,14 @@ export function RecoveryMfaForm() {
         />
         <div aria-live="polite" aria-atomic="true">
           {state.message && (
-            <p className="form-notice" role="alert">
+            <AuthNotice message={state.message} role="alert">
               {t(state.message)}
-            </p>
+            </AuthNotice>
           )}
         </div>
-        <button className="button primary" disabled={pending}>
-          {t(pending ? 'working' : 'verifyMfaContinue')}
+        <button className="button primary" disabled={pending} aria-busy={pending}>
+          {pending && <AuthSpinner />}
+          <span>{t(pending ? 'verifyingCode' : 'verifyMfaContinue')}</span>
         </button>
       </form>
       <form action={cancelRecovery.bind(null, locale)} className="auth-cancel-form">
@@ -95,14 +97,15 @@ export function ResetPasswordForm() {
 
         <div aria-live="polite" aria-atomic="true">
           {state.message && (
-            <p className="form-notice" role="alert">
+            <AuthNotice message={state.message} role="alert">
               {t(state.message)}
-            </p>
+            </AuthNotice>
           )}
         </div>
 
-        <button className="button primary" disabled={pending}>
-          {t(pending ? 'working' : 'updatePassword')}
+        <button className="button primary" disabled={pending} aria-busy={pending}>
+          {pending && <AuthSpinner />}
+          <span>{t(pending ? 'updatingPassword' : 'updatePassword')}</span>
         </button>
       </form>
       <form action={cancelRecovery.bind(null, locale)} className="auth-cancel-form">

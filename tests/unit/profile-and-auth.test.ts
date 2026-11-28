@@ -24,6 +24,7 @@ import {
   parseForgotPasswordEmail,
   parseResetPasswordInput,
 } from '@/features/auth/validation';
+import { getAuthNoticeTone } from '@/features/auth/auth-notice';
 
 test('parseProfileMutation validates profile creation, details and contact updates', () => {
   const created = parseProfileMutation(
@@ -426,4 +427,18 @@ test('account deletion request input and DTO validators enforce explicit confirm
       updated_at: '2026-11-26T12:00:00Z',
     },
   );
+});
+
+test('getAuthNoticeTone maps success, warning, and danger auth messages semantically', () => {
+  assert.equal(getAuthNoticeTone('checkEmail'), 'success');
+  assert.equal(getAuthNoticeTone('resetEmailSent'), 'success');
+  assert.equal(getAuthNoticeTone('passwordUpdated'), 'success');
+  assert.equal(getAuthNoticeTone('confirmFirst'), 'warning');
+  assert.equal(getAuthNoticeTone('oauthCancelled'), 'warning');
+  assert.equal(getAuthNoticeTone('unavailable'), 'warning');
+  assert.equal(getAuthNoticeTone('signinFailed'), 'danger');
+  assert.equal(getAuthNoticeTone('signupFailed'), 'danger');
+  assert.equal(getAuthNoticeTone('callbackFailed'), 'danger');
+  assert.equal(getAuthNoticeTone('recoveryLinkInvalid'), 'danger');
+  assert.equal(getAuthNoticeTone('mfaCodeInvalid'), 'danger');
 });

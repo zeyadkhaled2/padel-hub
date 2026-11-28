@@ -2103,6 +2103,63 @@ nav a:hover,
 .field-error { color: var(--text); font-size: 14px; font-weight: 650; }
 [aria-invalid="true"] { outline: 2px solid var(--focus); outline-offset: 2px; }
 .form-notice { background: var(--surface-soft); border-radius: 12px; padding: 16px; margin-block: 16px; overflow-wrap: anywhere; }
+.form-notice-rich {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: var(--radius-control);
+  padding-block: 13px;
+  padding-inline: 15px;
+  margin-block: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.form-notice-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-block-start: 3px;
+}
+.form-notice-body {
+  min-inline-size: 0;
+  font-weight: 500;
+}
+.form-notice-success {
+  background: var(--status-new-bg);
+  color: var(--status-new-text);
+  border-color: color-mix(in srgb, var(--status-new-text) 24%, transparent);
+}
+.form-notice-warning {
+  background: var(--status-warn-bg);
+  color: var(--status-warn-text);
+  border-color: color-mix(in srgb, var(--status-warn-text) 26%, transparent);
+}
+.form-notice-danger {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border-color: color-mix(in srgb, var(--status-danger-text) 24%, transparent);
+}
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.auth-spinner {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  animation: auth-spin 0.75s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-spinner {
+    animation: none;
+  }
+}
+.button[aria-busy="true"]:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
 .form-notice a, .account-switch a { text-decoration: underline; text-underline-offset: 4px; }
 .profile-sections .account-form + .account-form { border-block-start: 1px solid var(--border); margin-block-start: 16px; }
 .profile-visibility { margin-block-start: 24px; font-weight: 650; }

@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { authenticate } from './actions';
+import { AuthNotice, AuthSpinner } from './auth-notice';
 import { GoogleAuthButton } from './google-auth-button';
 import type { AuthBannerNotice } from './types';
 
@@ -19,12 +20,14 @@ export function AuthForm({
   const t = useTranslations('account');
   const locale = useLocale();
   const [state, action, pending] = useActionState(authenticate.bind(null, locale, mode), {});
+  const pendingKey = mode === 'signin' ? 'signingIn' : 'creatingAccount';
+  const showBanner = Boolean(bannerNotice && !state.message && !state.errors);
   return (
     <>
-      {bannerNotice && (
-        <p className="form-notice" role={bannerNotice.kind}>
+      {showBanner && bannerNotice && (
+        <AuthNotice message={bannerNotice.message} role={bannerNotice.kind}>
           {t(bannerNotice.message)}
-        </p>
+        </AuthNotice>
       )}
       {googleEnabled && <GoogleAuthButton />}
       <form action={action} className="account-form">
@@ -67,10 +70,13 @@ export function AuthForm({
           </p>
         )}
         <div aria-live="polite" aria-atomic="true">
-          {state.message && <p className="form-notice">{t(state.message)}</p>}
+          {state.message && (
+            <AuthNotice message={state.message}>{t(state.message)}</AuthNotice>
+          )}
         </div>
-        <button className="button primary" disabled={pending}>
-          {t(pending ? 'working' : mode)}
+        <button className="button primary" disabled={pending} aria-busy={pending}>
+          {pending && <AuthSpinner />}
+          <span>{t(pending ? pendingKey : mode)}</span>
         </button>
         {mode === 'signup' && (
           <p className="field-hint auth-legal-hint">

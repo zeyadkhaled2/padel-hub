@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { Link } from '@/i18n/navigation';
+import { AuthNotice } from './auth-notice';
 import { RecoveryMfaForm, ResetPasswordForm } from './reset-password-form';
 import { getRecoverySessionState } from './server';
 
@@ -11,6 +12,7 @@ export async function ResetPasswordPage({
 }) {
   const t = await getTranslations('account');
   const recovery = await getRecoverySessionState();
+  const missingMessage = invalidLink ? 'recoveryLinkInvalid' : 'recoverySessionMissing';
 
   return (
     <main id="main" className="container account-page auth-page">
@@ -21,18 +23,18 @@ export async function ResetPasswordPage({
       <p className="account-intro">{t('resetPasswordIntro')}</p>
 
       {recovery.status === 'unavailable' ? (
-        <p role="status" className="form-notice">
+        <AuthNotice message="unavailable" role="status">
           {t('unavailable')}
-        </p>
+        </AuthNotice>
       ) : recovery.status === 'ready' ? (
         <ResetPasswordForm />
       ) : recovery.status === 'mfa_required' ? (
         <RecoveryMfaForm />
       ) : (
         <>
-          <p role="alert" className="form-notice">
-            {t(invalidLink ? 'recoveryLinkInvalid' : 'recoverySessionMissing')}
-          </p>
+          <AuthNotice message={missingMessage} role="alert">
+            {t(missingMessage)}
+          </AuthNotice>
           <p className="account-switch">
             <Link href="/auth/forgot-password">{t('requestNewReset')}</Link>
           </p>

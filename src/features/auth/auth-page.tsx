@@ -4,6 +4,7 @@ import { BrandLogo } from '@/components/layout/brand-logo';
 import { authConfig } from '@/server/supabase/config';
 import { verifiedClient } from '@/server/supabase/server';
 import { AuthForm } from './auth-form';
+import { AuthNotice } from './auth-notice';
 import { readAuthProviderSettings } from './server';
 import { localeValue, type AuthBannerNotice } from './types';
 
@@ -37,9 +38,9 @@ export async function AuthPage({
           googleEnabled={googleEnabled}
         />
       ) : (
-        <p role="status" className="form-notice">
+        <AuthNotice message="unavailable" role="status">
           {t('unavailable')}
-        </p>
+        </AuthNotice>
       )}
     </main>
   );

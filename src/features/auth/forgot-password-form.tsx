@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { requestPasswordReset } from './actions';
+import { AuthNotice, AuthSpinner } from './auth-notice';
 
 export function ForgotPasswordForm() {
   const t = useTranslations('account');
@@ -36,13 +37,14 @@ export function ForgotPasswordForm() {
         )}
         <div aria-live="polite" aria-atomic="true">
           {state.message && (
-            <p className="form-notice" role="status">
+            <AuthNotice message={state.message} role="status">
               {t(state.message)}
-            </p>
+            </AuthNotice>
           )}
         </div>
-        <button className="button primary" disabled={pending}>
-          {t(pending ? 'sendingReset' : 'sendResetLink')}
+        <button className="button primary" disabled={pending} aria-busy={pending}>
+          {pending && <AuthSpinner />}
+          <span>{t(pending ? 'sendingReset' : 'sendResetLink')}</span>
         </button>
       </form>
       <p className="account-switch">

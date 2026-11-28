@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { authConfig } from '@/server/supabase/config';
 import { verifiedClient } from '@/server/supabase/server';
+import { AuthNotice } from './auth-notice';
 import { ForgotPasswordForm } from './forgot-password-form';
 import { localeValue } from './types';
 
@@ -20,9 +21,9 @@ export async function ForgotPasswordPage({ locale }: { locale: string }) {
       {authConfig() ? (
         <ForgotPasswordForm />
       ) : (
-        <p role="status" className="form-notice">
+        <AuthNotice message="unavailable" role="status">
           {t('unavailable')}
-        </p>
+        </AuthNotice>
       )}
     </main>
   );
