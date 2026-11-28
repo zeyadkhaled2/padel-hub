@@ -1,45 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
   <title>Reset your Raketna password</title>
 </head>
-<body style="margin:0;padding:24px;background:#FAF9F6;color:#111617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #dfe3de;border-radius:12px;">
-    <tr>
-      <td style="padding:28px;">
-        <h1 style="margin:0 0 12px;font-size:20px;color:#111617;">Reset your password</h1>
-        <p style="margin:0 0 16px;font-size:15px;">
+<body style="margin:0;padding:0;background-color:#F7F9FF;color:#14234B;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  <div style="width:100%;box-sizing:border-box;background-color:#F7F9FF;margin:0;padding:32px 16px;">
+    <div style="width:100%;max-width:540px;box-sizing:border-box;margin:0 auto;background-color:#FFFFFF;border:1px solid #DBE3F3;border-radius:12px;overflow:hidden;">
+      <!-- Brand Header -->
+      <div dir="ltr" style="width:100%;box-sizing:border-box;padding:18px 28px;background-color:#F8FAFF;border-bottom:1px solid #E4EBF7;overflow:hidden;direction:ltr;text-align:left;">
+        <span dir="rtl" lang="ar" style="float:right;font-family:'Segoe UI',Tahoma,-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;font-size:16px;font-weight:700;color:#53617D;line-height:28px;">راكتنا</span>
+        <span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;background-color:#2455D6;color:#FFFFFF;border-radius:7px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;font-weight:800;vertical-align:middle;">R</span><span style="display:inline-block;margin-left:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#14234B;line-height:28px;vertical-align:middle;">raketna.</span>
+      </div>
+
+      <!-- English Section (LTR) -->
+      <div dir="ltr" lang="en" style="width:100%;box-sizing:border-box;padding:28px 28px 24px 28px;direction:ltr;text-align:left;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+        <h1 style="margin:0 0 10px 0;font-size:20px;line-height:28px;font-weight:700;letter-spacing:-0.015em;color:#14234B;direction:ltr;text-align:left;">
+          Reset your password
+        </h1>
+        <p style="margin:0 0 22px 0;font-size:15px;line-height:24px;color:#2B3A63;direction:ltr;text-align:left;">
           We received a request to reset the password for your Raketna account. Use the button below to choose a new password. This link expires shortly and works only once.
         </p>
-        <p style="margin:0 0 20px;">
-          <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;padding:12px 20px;background:#14533C;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">
+        <div style="margin:0 0 20px 0;direction:ltr;text-align:left;">
+          <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;padding:12px 24px;background-color:#2455D6;color:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;font-weight:600;line-height:20px;text-decoration:none;border-radius:8px;">
             Reset password
           </a>
-        </p>
-        <p style="margin:0 0 24px;font-size:13px;color:#525e58;">
+        </div>
+        <p style="margin:0;font-size:13px;line-height:20px;color:#53617D;direction:ltr;text-align:left;">
           If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.
         </p>
+      </div>
 
-        <hr style="border:0;border-top:1px solid #e4e9e6;margin:20px 0;" />
+      <!-- Divider -->
+      <div style="margin:0 28px;border-top:1px solid #E4EBF7;height:0;line-height:0;font-size:0;">&nbsp;</div>
 
-        <div dir="rtl" lang="ar" style="text-align:right;">
-          <h2 style="margin:0 0 12px;font-size:19px;color:#111617;">إعادة تعيين كلمة المرور</h2>
-          <p style="margin:0 0 16px;font-size:15px;">
-            تلقّينا طلبًا لإعادة تعيين كلمة المرور لحسابك على راكتنا. استخدم الزر التالي لاختيار كلمة مرور جديدة. ينتهي هذا الرابط قريبًا ويعمل لمرة واحدة فقط.
-          </p>
-          <p style="margin:0 0 20px;">
-            <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;padding:12px 20px;background:#14533C;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">
-              إعادة تعيين كلمة المرور
-            </a>
-          </p>
-          <p style="margin:0;font-size:13px;color:#525e58;">
-            إذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذه الرسالة بأمان ولن تتغير كلمة مرورك.
-          </p>
+      <!-- Arabic Section (RTL) -->
+      <div dir="rtl" lang="ar" style="width:100%;box-sizing:border-box;padding:24px 28px 28px 28px;direction:rtl;text-align:right;font-family:'Segoe UI',Tahoma,-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;">
+        <h2 style="margin:0 0 10px 0;font-size:20px;line-height:30px;font-weight:700;color:#14234B;direction:rtl;text-align:right;">
+          إعادة تعيين كلمة المرور
+        </h2>
+        <p style="margin:0 0 22px 0;font-size:15px;line-height:26px;color:#2B3A63;direction:rtl;text-align:right;">
+          تلقّينا طلبًا لإعادة تعيين كلمة المرور لحسابك على راكتنا. استخدم الزر التالي لاختيار كلمة مرور جديدة. ينتهي هذا الرابط قريبًا ويعمل لمرة واحدة فقط.
+        </p>
+        <div dir="rtl" style="margin:0 0 20px 0;direction:rtl;text-align:right;">
+          <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;padding:12px 24px;background-color:#2455D6;color:#FFFFFF;font-family:'Segoe UI',Tahoma,-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;font-size:15px;font-weight:600;line-height:20px;text-decoration:none;border-radius:8px;direction:rtl;">
+            إعادة تعيين كلمة المرور
+          </a>
         </div>
-      </td>
-    </tr>
-  </table>
+        <p style="margin:0;font-size:13px;line-height:21px;color:#53617D;direction:rtl;text-align:right;">
+          إذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذه الرسالة بأمان ولن تتغير كلمة مرورك.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div dir="ltr" style="width:100%;box-sizing:border-box;padding:14px 28px;background-color:#F8FAFF;border-top:1px solid #E4EBF7;overflow:hidden;direction:ltr;text-align:left;">
+        <span dir="rtl" lang="ar" style="float:right;font-family:'Segoe UI',Tahoma,-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;font-size:12px;line-height:18px;color:#53617D;">راكتنا &middot; أمان الحساب</span>
+        <span style="display:inline-block;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;line-height:18px;color:#53617D;">Raketna &middot; Account security</span>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
