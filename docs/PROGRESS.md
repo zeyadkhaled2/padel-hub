@@ -1,5 +1,16 @@
 # PadelHub progress
 
+## Foundation CI E2E assertion fix — 2026-11-28
+
+- Fixed GitHub Actions `Foundation checks` (`npm run test:e2e`) failures introduced by content refactor `116328c` and inherited by `812d6dd`. Scanned all test and staging script assertions against the 214 EN/AR message keys changed in `116328c` (including ICU strings) and updated the five remaining stale copy assertions:
+  - `tests/e2e/buyer-experience.spec.ts` (unauthenticated demo test): `Before you meet & buy` / `قبل المقابلة والشراء` → `Before you agree` / `قبل ما تتفق`.
+  - `tests/e2e/buyer-experience.spec.ts` (authenticated report test): `Report received. Thank you.` → `Report received for review. Thank you for helping keep listings useful.`.
+  - `tests/e2e/account.spec.ts` and `scripts/staging-app.mjs` (authenticated/staging password reset mismatch checks): `Passwords do not match.` → `The passwords do not match. Enter the same new password in both fields.`.
+  - `tests/e2e/seller-experience.spec.ts` (authenticated profile sharing test): `Share this storefront` → `Share this seller’s profile`.
+- Verified in a clean `main` worktree (`npm ci --prefer-offline`): `npm run check` passed (lint, typecheck, production build, 37/37 routes); `npm run test:unit` passed (`70/70`); `CI=1 PLAYWRIGHT_CHANNEL=chrome npm run test:e2e` passed (`26 passed, 14 skipped` across desktop and mobile, including `buyer-experience.spec.ts` demo checks, `foundation.spec.ts`, `preferences.spec.ts`, `media-boundary.spec.ts`, and `shoe-search.spec.ts`). `git diff --check` passed.
+- Limits: authenticated E2E suites (14 skipped tests requiring local Supabase Auth/Storage) and `scripts/staging-app.mjs` against hosted staging were not run in this session; only their text assertions were aligned with `messages/en.json`. No application code, copy, schema or dependency changes.
+- Next: confirm the GitHub Actions `Foundation checks` run passes on `origin/main` after push, and verify the hosted Vercel preview (`padel-hub-beta.vercel.app`).
+
 ## Electric cobalt review branch and full project handoff — 2026-11-28
 
 - Owner selected Electric cobalt and requested an isolated color branch for pre-merge review. Created managed worktree `C:\Users\COMPUMARTS\.codex\worktrees\color\padelHub`, branch `codex/color`, from local `origin/main` at `116328c`. Original checkout and unrelated staging edits remain intact. Used calm-nextjs-design and installed Next.js CSS/icon guides.

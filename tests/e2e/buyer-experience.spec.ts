@@ -88,7 +88,7 @@ test('demo product detail and seller storefront fit responsive matrix in EN/AR l
         await page.goto(`/${locale}/demo/equipment/head-delta-motion`);
         await expect(page.locator('html')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
         await expect(page.getByRole('heading', { level: 1 })).toHaveText('Head Delta Motion');
-        await expect(page.getByText(locale === 'en' ? 'Before you meet & buy' : 'قبل المقابلة والشراء')).toBeVisible();
+        await expect(page.getByText(locale === 'en' ? 'Before you agree' : 'قبل ما تتفق')).toBeVisible();
         for (const theme of ['light', 'dark'] as const) {
           await page
             .locator('.theme-switch input[value="' + theme + '"]').check();
@@ -603,7 +603,9 @@ test.describe('live buyer experience (UI-B)', () => {
       // Valid submission succeeds cleanly
       await reporterPage.getByLabel('Details (optional)').fill(`UI-B verified report ${suffix}`);
       await reporterPage.getByRole('button', { name: 'Send report', exact: true }).click();
-      await expect(reporterPage.getByRole('status')).toContainText('Report received. Thank you.');
+      await expect(reporterPage.getByRole('status')).toContainText(
+        'Report received for review. Thank you for helping keep listings useful.',
+      );
       await expect(reporterPage.getByRole('button', { name: 'Send report', exact: true })).toBeDisabled();
       await reporterCtx.close();
 

@@ -190,7 +190,7 @@ test.describe('Phase UI-C — Premium Seller Experience', () => {
       await expect(page.getByRole('status')).toContainText('Saved successfully');
 
       // Storefront sharing + QR code directly on /account
-      await expect(page.getByText('Share this storefront')).toBeVisible();
+      await expect(page.getByText('Share this seller’s profile')).toBeVisible();
       await expect(page.getByRole('link', { name: 'View public profile' })).toHaveAttribute('href', `/en/@${username}`);
       await page.getByRole('button', { name: 'Show QR code', exact: true }).click();
       const profileQr = page.getByRole('img', { name: `QR code for @${username}`, exact: true });

@@ -1469,7 +1469,9 @@ if (mode === 'migrate' || mode === 'migrate-dry-run' || mode === 'repair-006') {
       await userPage.getByLabel('New password', { exact: true }).fill(newPassword);
       await userPage.getByLabel('Confirm new password', { exact: true }).fill('WrongMismatch!123');
       await userPage.getByRole('button', { name: 'Update password', exact: true }).click();
-      await userPage.getByText('Passwords do not match.').waitFor({ timeout: 10_000 });
+      await userPage
+        .getByText('The passwords do not match. Enter the same new password in both fields.')
+        .waitFor({ timeout: 10_000 });
 
       // Valid update signs out globally and redirects to /en/auth/signin?reset=1
       await userPage.getByLabel('New password', { exact: true }).fill(newPassword);

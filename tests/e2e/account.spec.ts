@@ -543,7 +543,9 @@ test.describe('local verified accounts', () => {
     await page.getByLabel('New password', { exact: true }).fill(nextPassword);
     await page.getByLabel('Confirm new password', { exact: true }).fill('Different-Padel-942!');
     await page.getByRole('button', { name: 'Update password', exact: true }).click();
-    await expect(page.getByText('Passwords do not match.')).toBeVisible();
+    await expect(
+      page.getByText('The passwords do not match. Enter the same new password in both fields.'),
+    ).toBeVisible();
 
     // Valid password reset signs out globally and redirects to sign-in with confirmation banner.
     await page.getByLabel('New password', { exact: true }).fill(nextPassword);
