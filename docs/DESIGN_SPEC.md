@@ -15,6 +15,12 @@ Theme selection is an always-visible three-segment native radio group (monitor/S
 
 References: [GOV.UK select guidance](https://design-system.service.gov.uk/components/select/), [W3C radio keyboard pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/), and [W3C language navigation](https://www.w3.org/International/quicktips/index).
 
+### Product grid loading — 2026-11-28
+
+Marketplace results stream through a Suspense boundary keyed by normalized search values. The shell/search controls render before product data resolves. The fallback retains the results heading and live/demo context, shows a localized loading status, and renders six static, noninteractive placeholder cards using the existing responsive grid, 4:3 media ratio and semantic theme tokens. Placeholder shapes are hidden from assistive technology inside a named busy group; no fake result count or artificial delay. Loaded, empty and unavailable states replace the fallback. Static shapes work unchanged with reduced motion.
+
+Run `npm run build`, then `npm run test:loading` for the delayed-response regression harness (Playwright Chromium required; `PLAYWRIGHT_CHANNEL=chrome` uses installed Chrome). It launches loopback-only servers on ports 3191/3192 with synthetic search responses, verifies loading-to-results/empty/error and category navigation, and writes ignored screenshots to `.cache/skeletons`. It does not use hosted data or production credentials.
+
 - **Light theme (`:root`)**:
   - `--canvas` (`--color-base`): `#faf9f6` (warm alabaster off-white)
   - `--surface` (`--color-surface`): `#ffffff` (pure surface card/panel)

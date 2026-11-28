@@ -40,6 +40,7 @@
     "submit": "Find equipment",
     "filters": "Refine your search",
     "applyFilters": "Apply filters",
+    "loading": "Loading equipment…",
     "category": "Equipment",
     "all": "All equipment",
     "rackets": "Rackets",

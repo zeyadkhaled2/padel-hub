@@ -1,5 +1,7 @@
 # Application organization
 
+Marketplace result streaming: `marketplace-page.tsx` composes the shell and a query-keyed Suspense boundary. `marketplace-results.tsx` owns the existing server-side search, result count, cards, empty/error rendering and pagination. `product-grid-skeleton.tsx` is a server-rendered, localized fallback; no loading timer or client data cache is introduced. `scripts/test-product-grid-loading.mjs` verifies actual streaming against a loopback mock after a production build.
+
 One modular Next.js App Router application with TypeScript strict mode. No separate API service or monorepo is needed for the pilot.
 
 ```text

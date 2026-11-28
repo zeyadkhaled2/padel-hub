@@ -1,5 +1,19 @@
 # PadelHub progress
 
+## Skeleton-loading main delivery — 2026-11-28
+
+- User authorized pushing the verified product-grid skeleton changes to main. Prepared a scoped commit on fetched origin/main; unrelated staging changes excluded. Validation remains npm run check passed, 20/20 browser tests, and 15/15 delayed-response loading checks. No application changes during delivery; hosted deployment not verified.
+
+## Product grid skeleton loading — 2026-11-28
+
+- Added a query-keyed Suspense boundary around marketplace results. Extracted the existing search/cards/count/empty/error/pagination rendering into `marketplace-results.tsx` so product-data latency no longer holds back the search shell. `product-grid-skeleton.tsx` supplies six static placeholders matching the existing grid and 4:3 images, localized EN/AR status, a named busy group, and assistive-technology-hidden noninteractive shapes. Preserved demo/live separation and existing search validation. No artificial wait or animation.
+- Used calm-nextjs-design/Impeccable guidance and the installed Next.js loading/Suspense documentation. Consulted the Supabase skill for the synthetic loopback test setup; no hosted data, credentials, schema, authentication or policy changes.
+- Final `npm run check`: **passed** (lint/typecheck/production build; 37 routes). `PLAYWRIGHT_CHANNEL=chrome PADELHUB_AUTH_E2E=1 npx playwright test tests/e2e/foundation.spec.ts tests/e2e/preferences.spec.ts --workers=1`: **20/20 passed** on local production server. `git diff --check`: passed.
+- Added repeatable `npm run test:loading` / `scripts/test-product-grid-loading.mjs` after build. Final `PLAYWRIGHT_CHANNEL=chrome npm run test:loading`: **15 checks passed** — 12 EN/AR × light/dark × 390/768/1440px loading-to-products cases plus empty, error and category-transition checks. Actual upstream response held until skeleton visibility assertions complete; zero page errors/overflow, reduced-motion mode, no interactive placeholders. Initial harness assertion matched a temporary hidden React streaming copy; corrected it to assert the visible empty/error state and reran successfully.
+- Visually inspected desktop EN light and mobile AR dark screenshots under `.cache/skeletons`. Documented architecture and test instructions. Application checks preceded a final semantic `role="group"` adjustment; the final build and loading harness include that adjustment. Physical devices/Safari, hosted streaming/proxy buffering and screen-reader announcements were not tested. No deployment or push in this session; earlier main commits and unrelated working edits preserved.
+- Next: review local loading behavior under slow responses, then push/release when requested and verify streaming on hosted Preview. The shell can still wait on its own locale/layout work; skeletons specifically cover the product-results fetch.
+
+
 ## Direct theme and language controls — 2026-11-28
 
 - User requested non-dropdown theme/language controls and current best-practice research, then authorized pushing the completed changes to main. Consulted GOV.UK select guidance and W3C radio/language-navigation guidance (linked in DESIGN_SPEC.md); used calm-nextjs-design/Impeccable refinement guidance.

@@ -927,6 +927,32 @@ nav a:hover,
   gap: 20px;
 }
 
+.product-skeleton {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.product-skeleton-image {
+  aspect-ratio: 4 / 3;
+  background: var(--surface-soft);
+  border-block-end: 1px solid var(--border);
+}
+.product-skeleton-content { gap: 14px; }
+.product-skeleton-line { height: 14px; border-radius: 4px; background: var(--surface-soft); }
+.product-skeleton-tag { width: 30%; height: 22px; }
+.product-skeleton-title { width: 85%; height: 22px; }
+.product-skeleton-price { width: 50%; height: 28px; }
+.product-skeleton-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-block-start: 4px;
+  padding-block-start: 14px;
+  border-block-start: 1px solid var(--border);
+}
+
 .listing-card {
   display: flex;
   flex-direction: column;
