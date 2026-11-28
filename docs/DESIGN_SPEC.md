@@ -30,30 +30,18 @@ Marketplace results stream through a Suspense boundary keyed by normalized searc
 
 Run `npm run build`, then `npm run test:loading` for the delayed-response regression harness (Playwright Chromium required; `PLAYWRIGHT_CHANNEL=chrome` uses installed Chrome). It launches loopback-only servers on ports 3191/3192 with synthetic search responses, verifies loading-to-results/empty/error and category navigation, and writes ignored screenshots to `.cache/skeletons`. It does not use hosted data or production credentials.
 
-- **Light theme (`:root`)**:
-  - `--canvas` (`--color-base`): `#faf9f6` (warm alabaster off-white)
-  - `--surface` (`--color-surface`): `#ffffff` (pure surface card/panel)
-  - `--surface-soft` (`--color-surface-soft`): `#eef2ef` (soft courtside sage-tinted neutral)
-  - `--text` (`--color-ink`): `#111617` (deep courtside ink)
-  - `--muted` (`--color-muted`): `#525e58` (mineral slate secondary copy)
-  - `--border` (`--color-line`): `#dfe3de` (1px hairline border; `--border-strong`: `#c8d0ca`)
-  - `--accent` (`--color-accent`): `#14533c` (deep forest brand green; `--accent-hover`: `#0e3d2c`, `--accent-soft`: `#e6efe9`, `--accent-text`: `#ffffff`)
-  - `--focus` (`--color-coral`): `#c85a32` (warm terracotta-clay accessible focus outline)
-  - `--status-new-bg` / `--status-new-text`: `#e4f2eb` / `#114a35`
-  - `--status-used-bg` / `--status-used-text`: `#f1efe9` / `#45433e`
-  - `--status-warn-bg` / `--status-warn-text`: `#fbf2de` / `#6e480a`
-  - `--status-danger-bg` / `--status-danger-text`: `#fbe9e7` / `#8b261d`
-- **Dark theme (`[data-theme="dark"]`)**:
-  - `--canvas`: `#111617` (deep courtside charcoal)
-  - `--surface`: `#181f20` (elevated dark charcoal surface)
-  - `--surface-soft`: `#20292a`
-  - `--text`: `#faf9f6` (warm off-white)
-  - `--muted`: `#a1aca9`
-  - `--border`: `#2a3435` (`--border-strong`: `#394748`)
-  - `--accent`: `#4ec99b` (luminous accessible court emerald; `--accent-hover`: `#6ad5ad`, `--accent-soft`: `rgba(78, 201, 155, 0.14)`, `--accent-text`: `#081c14`)
-  - `--focus`: `#f08c69`
-  - `--status-new-bg` / `--status-new-text`: `rgba(78, 201, 155, 0.16)` / `#7ee0ba`
-  - `--status-used-bg` / `--status-used-text`: `#20292a` / `#c7d0cd`
+### Electric cobalt palette — 2026-11-28
+
+Selected by Ziad for a more lively, sporty identity; implemented on the isolated codex/color review branch. Preserve existing geometry, typography, bilingual content and marketplace flows. Primary actions, selected filters and the rounded R carry cobalt; neutral surfaces keep equipment photography dominant.
+
+- Light: canvas `#F7F9FF`, surface `#FFFFFF`, soft/selected `#EDF2FF`, text/wordmark `#14234B`, muted `#53617D`, separator `#DBE3F3`, strong control border `#7887A3`.
+- Light action/focus `#2455D6`, hover `#1C43B1`, white action label; hero `#16358A` with `#F3F6FF` text.
+- Dark: canvas `#0E1629`, surface `#162139`, soft `#1E2C49`, elevated `#1C2943`, text/wordmark `#F3F6FF`, muted `#AEBCD6`, separator `#2E3D5B`, strong control border `#7083A6`.
+- Dark action/focus `#94B0FF`, hover `#B1C5FF`, action label `#101B35`, selected background `#22345D`; hero `#17264B`.
+- Retain semantic green new/success, amber warning and red danger roles. Used-condition badges use blue-gray neutrals. QR codes remain black on white. Legacy `--mint` aliases the theme accent; `--color-coral` remains a compatibility alias for focus.
+- Theme-aware inline logo and fixed-tone logo CSS, static Raketna SVGs, favicon and Apple icons use the new palette. Logo paths and proportions remain unchanged. Archived PadelHub logos and demo/product imagery retain their original colors.
+
+Research basis: [Radix semantic color roles](https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale), [WCAG text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), and [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html). Color preference is a design decision, not a measured conversion claim.
 
 ## Typography and spacing
 - **Font stack**: Zero-network local system sans-serif stack with Arabic-capable fallbacks (`ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif`).
@@ -79,12 +67,12 @@ Run `npm run build`, then `npm run test:loading` for the delayed-response regres
 6. **Editorial Value Proposition, 3-Step Workflow, FAQ & Footer (`FeaturesSection`, `HowItWorksSection`, `FaqSection`, `CommunityCtaSection`, `SiteFooter`)**: Explains manual moderation, direct WhatsApp coordination, club-ready QR profiles, the 1–2–3 handover flow, native `<details>`/`<summary>` FAQ accordions, and a structured retail footer with trust summary pill and navigation links.
 
 ## Brand and demo artwork provenance
-- **Official Canva Logo Reference**: Canva design `DAHbnOJciG0` (`Raketna — Approved Rounded R Logo (Original PadelHub Font)`), matched faithfully with the softly rounded deep forest green (`#14533C`) **R** monogram and exact lowercase **`raketna.`** wordmark (`#111617`, `GreycliffCF-Bold` vector outlines), flat 2D geometry with no sports illustrations, gradients, or shadows.
-  - `public/brand/raketna-logo.svg`: Primary horizontal SVG logo (`viewBox="0 0 154 39"`, `#14533C` + `#111617`, transparent background).
-  - `public/brand/raketna-logo-light.svg`: Off-white (`#FAF9F6`) horizontal SVG logo (`viewBox="0 0 154 39"`, transparent background) for dark and brand-green backgrounds.
-  - `public/brand/raketna-icon.svg`: Standalone rounded R monogram icon (`viewBox="0 0 64 64"`, `#14533C`, transparent background).
-  - `src/app/icon.svg` & `src/app/favicon.ico`: High-contrast browser favicons (`#FAF9F6` rounded R centered on a `#14533C` `rx="8"` badge for crisp legibility at `16px` and `32px` on light and dark tabs).
-  - `src/app/apple-icon.png` & `public/apple-touch-icon.png`: 180×180 Apple touch icon (`#FAF9F6` rounded R on full-bleed `#14533C`).
+- **Official Canva Logo Reference**: Canva design `DAHbnOJciG0` (`Raketna — Approved Rounded R Logo (Original PadelHub Font)`), geometry preserved with the softly rounded **R** monogram (original forest green `#14533C`; cobalt `#2455D6` on this branch) and exact lowercase **`raketna.`** wordmark (`#111617`, `GreycliffCF-Bold` vector outlines), flat 2D geometry with no sports illustrations, gradients, or shadows.
+  - `public/brand/raketna-logo.svg`: Primary horizontal SVG logo (`viewBox="0 0 154 39"`, `#2455D6` + `#14234B`, transparent background).
+  - `public/brand/raketna-logo-light.svg`: Off-white (`#F3F6FF`) horizontal SVG logo (`viewBox="0 0 154 39"`, transparent background) for dark and brand-blue backgrounds.
+  - `public/brand/raketna-icon.svg`: Standalone rounded R monogram icon (`viewBox="0 0 64 64"`, `#2455D6`, transparent background).
+  - `src/app/icon.svg` & `src/app/favicon.ico`: High-contrast browser favicons (`#F3F6FF` rounded R centered on a `#2455D6` `rx="8"` badge for crisp legibility at `16px` and `32px` on light and dark tabs).
+  - `src/app/apple-icon.png` & `public/apple-touch-icon.png`: 180×180 Apple touch icon (`#F3F6FF` rounded R on full-bleed `#2455D6`).
   - `src/components/layout/brand-logo.tsx` (re-exported via `brand.tsx`): Reusable inline SVG component supporting `horizontal` and `icon` variants, `auto` (theme-aware `--accent` + `--brand-ink`), `dark`, and `light` tones, optional `sm`/`md`/`lg` sizing, and locked LTR visual order across English and Arabic.
   - Rollback assets preserved untouched: `public/brand/padelhub-logo.svg`, `public/brand/padelhub-logo-dark.svg`, and `public/brand/padelhub-mark.svg`.
 - `public/images/demo/racket-court.webp`, `racket-coral.webp`, and `balls.webp`: Generated unbranded editorial illustrations (1200px WebP). Cards and detail pages explicitly label them as AI demo imagery, never evidence of condition or depictions of the named models.
